@@ -1,0 +1,27 @@
+<apex:page Controller="ContactControllerfrvf" >
+    <table border="1">
+        <thead>
+        <tr>
+            <td>S.no</td>
+             <td>Name</td>
+             <td>Email</td>
+              <td>Phone</td>
+        </tr>
+        </thead>
+        <tbody>
+       
+        <apex:variable var="count" value="{!1}" />
+        <apex:repeat value="{!contactList}" var="con">
+             <tr>
+            <td>{!count}</td>
+            <td><apex:outputLink >{!con.Name}</apex:outputLink></td>
+            <td>{!con.Phone}</td>
+            <td>{!con.Email}</td>
+                 </tr>
+            <apex:variable var="count" value="{!count + 1}"/>
+        </apex:repeat>
+        
+        </tbody>
+    
+    </table>
+</apex:page>

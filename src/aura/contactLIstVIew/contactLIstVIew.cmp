@@ -1,0 +1,32 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+    <aura:attribute name="isDetail" type="boolean" default="false" />
+    <aura:attribute name="isListview" type="boolean" default="true" />
+    <aura:attribute name="contactId" type="string"  />
+    
+    <aura:if isTrue="{!v.isListview}">
+        <lightning:listView aura:id="listViewContacts"
+                            objectApiName="Contact"
+                            listName="AllContacts"
+                            rows="15"
+                            showActionBar="true"
+                            enableInlineEdit="true"
+                            showRowLevelActions="true"
+                            />
+    </aura:if>
+    
+    <aura:handler event="force:navigateToSObject" action="{!c.navigate}"/>  
+    <aura:if isTrue="{!v.isDetail}">
+        <div class="slds-grid">
+            <div class="slds-col  ">
+                <div class="slds-text-heading_medium">Contact Details </div>  
+            </div> 
+            <div class="slds-align_absolute-center">
+                <lightning:button label="Back" variant="white" onclick="{!c.clickback}" /> 
+            </div>
+        </div>
+        <c:ContactDetail RecordID="{!v.contactId}"/>
+        
+    </aura:if>
+    
+</aura:component>

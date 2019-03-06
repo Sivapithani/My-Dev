@@ -1,0 +1,16 @@
+<apex:page standardController="contact">
+     <apex:includeScript value="/lightning/lightning.out.js"/>
+
+    <div id="lightning" />
+
+    <script>
+        $Lightning.use("c:DemoApp", function() {
+            $Lightning.createComponent("c:Create_Contact",{},
+                                       "lightning",
+                                       function(cmp) {
+                                           //  Do some stuff
+                                       }
+            );
+        });
+    </script>
+</apex:page>

@@ -1,0 +1,131 @@
+<aura:component controller ="inlineEditCtrl" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+    <aura:attribute name="recordId" type="Id"/>
+    <aura:attribute name="Sobjecttype" type="string"/>
+    <aura:attribute name="showSaveCancelBtn" type="boolean"/>
+    <aura:attribute name="showErrorClass" type="boolean" default="false"/>
+    <aura:attribute name="sNo" type="string" />
+    <aura:attribute name="disabled" type="Boolean" default="false" />
+    <aura:attribute name="EditMode" type="boolean" default="false" />
+    <aura:attribute name="SelectedId" type="Id" />
+    <aura:attribute name="saved" type="Boolean" default="false" />
+    <aura:if isTrue="{!v.EditMode == false}"> 
+        
+        <lightning:recordViewForm recordId="{!v.recordId}" objectApiName="Account">
+            <div class="slds-grid  ">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:outputField fieldName="Name" />
+                        <button onclick="{!c.inlineEdit}" id="{!v.recordId}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit Name">
+                            <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                        </button>
+                    </span>
+                </div>
+            </div>   
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:outputField fieldName="Website" /> 
+                        <button onclick="{!c.inlineEdit}" id="{!v.recordId}"  class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit Name">
+                            <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                        </button>
+                    </span>
+                    
+                </div>
+            </div>
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:outputField fieldName="Rating" />
+                        <button onclick="{!c.inlineEdit}"  id="{!v.recordId}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit Name">
+                            <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                        </button>
+                    </span>
+                    
+                </div>
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                <span class="slds-grid slds-grid_align-spread">
+                    
+                    <lightning:outputField fieldName="Phone"/>
+                    <button onclick="{!c.inlineEdit}" id="{!v.recordId}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit Name">
+                        <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                    </button>
+                </span>
+                
+            </div>
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:outputField fieldName="Fax" />
+                        <button onclick="{!c.inlineEdit}" id="{!v.recordId}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit Name">
+                            <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                        </button>
+                    </span> 
+                    
+                </div>
+            </div>
+            
+        </lightning:recordViewForm>
+    </aura:if>
+    <aura:if isTrue="{!v.EditMode != false}"> 
+        <lightning:recordEditForm  aura:id="editForm" recordId="{!v.SelectedId}" objectApiName="Account"  >
+            <lightning:messages />
+            <div class="slds-grid  ">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:inputField fieldName="Name" />
+                        
+                    </span>
+                </div>
+            </div>   
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:inputField fieldName="Website" /> 
+                        
+                    </span>
+                    
+                </div>
+            </div>
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:inputField fieldName="Name" />
+                        
+                    </span>
+                    
+                </div>
+            </div>
+            <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                <span class="slds-grid slds-grid_align-spread">
+                    
+                    <lightning:inputField fieldName="Phone"/>
+                    
+                </span>
+                
+            </div>
+            <div class="slds-grid">
+                <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+                    <span class="slds-grid slds-grid_align-spread">
+                        
+                        <lightning:inputField fieldName="Fax" />
+                        
+                    </span> 
+                    
+                </div>
+            </div>
+            
+        </lightning:recordEditForm>
+        <lightning:button class="slds-m-top_small" variant="brand" type="button" name="update" label="update" onclick="{!c.update}" />
+    </aura:if>
+</aura:component>

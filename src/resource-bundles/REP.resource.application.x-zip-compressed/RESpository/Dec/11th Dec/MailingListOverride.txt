@@ -1,0 +1,283 @@
+<apex:page id="MailingList" standardController="ocm_Mailing_List__c" extensions="MailingListOverrideController">
+<apex:sectionHeader title="Mailing List Edit" subtitle="New Mailing List" />
+    <apex:form id="myForm">
+    <apex:actionfunction name="validateMailingInfo" action="{!validateMailingPreferences}" reRender="pgmsg, pbMailingPreferences">
+        <apex:param name="selectedMethodOrType" assignTo="{!selectedMethodOrType}" value="" />
+        <apex:param name="assignEmailType" assignTo="{!assignEmailType}" value="" />
+    </apex:actionfunction>
+    <apex:pageBlock tabStyle="ocm_Mailing_List__c" id="mailingListPB" title="Mailing List Edit" >
+    <apex:pageMessages id="pgmsg" />
+    <apex:pageBlockButtons >
+        <apex:commandButton value="Save" action="{!save}"/>
+        <apex:commandButton value="Save & New" action="{!saveNnew}"/> 
+        <apex:commandButton value="Cancel" action="{!cancel}"/>
+    </apex:pageBlockButtons>
+       
+    <apex:pageBlocksection title="Information" id="pbInformation" collapsible="false" rendered="{!fundMailingFlag}">
+        <apex:inputField value="{!mailingList.Client_Account_Legal_Entity_Relationship__c}" required="true"/>
+        <apex:inputField value="{!mailingList.Status__c}" required="true"/>
+        <apex:outputText />
+        <apex:inputField value="{!mailingList.Contact__c}" required="true">
+            <apex:actionSupport event="onchange" action="{!lookupByContact}" reRender="pbInformation"/>
+        </apex:inputField>
+        <apex:outputText />
+        <apex:outputText id="email1" label="Email 1" value="{!conEmailIds.Email}"/>
+        <apex:outputText />
+        <apex:outputText id="email2" label="Email 2" value="{!conEmailIds.Email_2__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email3" label="Email 3" value="{!conEmailIds.Email_3__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email4" label="Email 4" value="{!conEmailIds.Email_4__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email5" label="Email 5" value="{!conEmailIds.Email_5__c}"/>
+        <apex:inputField id="inactivationdate" value="{!mailingList.Inactivation_Date__c}"/>
+        <apex:outputText id="email6" label="Email 6" value="{!conEmailIds.Email_6__c}"/>
+        <apex:inputCheckbox label="Default Mailing Preferences" value="{!fmDefaultPref}" >
+            <apex:actionSupport event="onclick" reRender="pbMailingPreferences, pgmsg" action="{!fundMailingDefaultPreferences}"/>
+        </apex:inputCheckbox>
+        <apex:outputText id="email7" label="Email 7" value="{!conEmailIds.Email_7__c}"/>
+        <apex:inputCheckbox value="{!mailingList.Remove_OCP_Document_Access__c}" >
+            <apex:actionSupport event="onclick" reRender="pbMailingPreferences, pgmsg" action="{!removeOCPDocAccess}"/>
+        </apex:inputCheckbox>
+        <apex:outputText id="email8" label="Email 8" value="{!conEmailIds.Email_8__c}"/>               
+        <apex:inputHidden id="fax" value="{!conEmailIds.Fax}" />             
+    </apex:pageBlocksection>
+    
+    <apex:pageBlocksection title="Information" id="pbInformation3" collapsible="false" rendered="{!fundmailingDowngradeNotification}">
+        <apex:inputField value="{!mailingList.Client_Account_Legal_Entity_Relationship__c}" required="true"/>
+        <apex:inputField value="{!mailingList.Status__c}" required="true"/>
+        <apex:outputText />
+        <apex:inputField value="{!mailingList.Contact__c}" required="true">
+        <apex:actionSupport event="onchange" action="{!lookupByContact}" reRender="pbInformation" />
+        </apex:inputField>
+        <apex:outputText />
+        <apex:outputText id="email1" label="Email 1" value="{!conEmailIds.Email}"/>
+        <apex:inputHidden id="fax" value="{!conEmailIds.Fax}"/>
+        <apex:outputText id="email2" label="Email 2" value="{!conEmailIds.Email_2__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email3" label="Email 3" value="{!conEmailIds.Email_3__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email4" label="Email 4" value="{!conEmailIds.Email_4__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email5" label="Email 5" value="{!conEmailIds.Email_5__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email6" label="Email 6" value="{!conEmailIds.Email_6__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email7" label="Email 7" value="{!conEmailIds.Email_7__c}"/>
+        <apex:outputText />
+        <!--<apex:inputField id="inactivationdate" value="{!mailingList.Inactivation_Date__c}"/>-->
+        <apex:outputText id="email8" label="Email 8" value="{!conEmailIds.Email_8__c}"/>        
+        <!-- <apex:inputField id="writeinemail" value="{!mailingList.Write_in_Email_Address__c}"/> -->
+        
+    </apex:pageBlocksection>
+        
+    <apex:pageBlocksection title="Information" id="pbInformation1" collapsible="false" rendered="{!fundMailingIEFlag}">
+        <apex:inputField value="{!mailingList.Client_Investment_Entity__c}" required="true"/>
+        <apex:inputField value="{!mailingList.Status__c}" required="true"/>
+        <apex:outputText />
+        <apex:inputField value="{!mailingList.Contact__c}" required="true">
+        <apex:actionSupport event="onchange" action="{!lookupByContact}" reRender="pbInformation1" />
+        </apex:inputField>
+        <apex:outputText />
+        <apex:outputText id="email1" label="Email 1" value="{!conEmailIds.Email}"/>
+        <apex:inputHidden id="fax" value="{!conEmailIds.Fax}"/>
+        <apex:outputText id="email2" label="Email 2" value="{!conEmailIds.Email_2__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email3" label="Email 3" value="{!conEmailIds.Email_3__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email4" label="Email 4" value="{!conEmailIds.Email_4__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email5" label="Email 5" value="{!conEmailIds.Email_5__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email6" label="Email 6" value="{!conEmailIds.Email_6__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email7" label="Email 7" value="{!conEmailIds.Email_7__c}"/>
+        <apex:outputText />
+        <!--<apex:inputField id="inactivationdate" value="{!mailingList.Inactivation_Date__c}"/>-->
+        <apex:outputText id="email8" label="Email 8" value="{!conEmailIds.Email_8__c}"/>   
+        <!-- <apex:inputField id="writeinemail" value="{!mailingList.Write_in_Email_Address__c}"/> -->
+        
+    </apex:pageBlocksection>
+    
+    <apex:pageBlocksection title="Information" id="pbInformation2" collapsible="false" rendered="{!fundmailingGC}">
+        <apex:inputField value="{!mailingList.Contact__c}" required="true">
+        <apex:actionSupport event="onchange" action="{!lookupByContact}" reRender="pbInformation2" />
+        </apex:inputField>
+        <apex:inputField value="{!mailingList.Status__c}" required="true"/>
+        <apex:outputText id="email1" label="Email 1" value="{!conEmailIds.Email}"/>
+        <apex:outputText />
+        <!--<apex:inputField id="inactivationdate" value="{!mailingList.Inactivation_Date__c}"/>-->
+        <apex:outputText id="email2" label="Email 2" value="{!conEmailIds.Email_2__c}"/>
+        <!-- <apex:inputField id="writeinemail" value="{!mailingList.Write_in_Email_Address__c}"/> -->
+        <apex:inputHidden id="fax" value="{!conEmailIds.Fax}"/>
+        <apex:outputText id="email3" label="Email 3" value="{!conEmailIds.Email_3__c}"/> 
+        <apex:outputText />
+        <apex:outputText id="email4" label="Email 4" value="{!conEmailIds.Email_4__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email5" label="Email 5" value="{!conEmailIds.Email_5__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email6" label="Email 6" value="{!conEmailIds.Email_6__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email7" label="Email 7" value="{!conEmailIds.Email_7__c}"/>
+        <apex:outputText />
+        <apex:outputText id="email8" label="Email 8" value="{!conEmailIds.Email_8__c}"/>               
+    </apex:pageBlocksection>    
+    
+    <apex:pageBlockSection title="Mailing Preferences" id="pbMailingPreferences" collapsible="false" columns="2">                
+        <apex:repeat value="{!fields}" var="field">
+            <apex:inputField value="{!mailingList[field.fieldPath]}" required="{!OR(field.required, field.dbrequired)}" onChange="validateMailingPreferences(this.id, '{!field.fieldPath}', '{!conEmailIds.Fax}')" />
+        </apex:repeat>
+    </apex:pageBlockSection>
+    
+    </apex:pageBlock>    
+    <script>
+        function validateMailingPreferences(selectedid, path, faxVal)
+        {
+            var selectedvalues = selectedid+'_selected';
+            var result = '';            
+            if(document.getElementById(selectedvalues) != null)
+            {
+                var myOpts = document.getElementById(selectedvalues).options;
+                if(myOpts != null)
+                {
+                    for(i=0; i<myOpts.length; i++) 
+                    {
+                        if((myOpts[i].innerHTML == 'Fax') || (myOpts[i].innerHTML.includes("Email")) || (myOpts[i].innerHTML == 'Portal with Notification'))
+                        {
+                            result += myOpts[i].innerHTML+";";                          
+                            if((myOpts[i].innerHTML == 'Fax') && ((faxVal == null) || (faxVal == '')))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                var emailType = document.getElementById(selectedid).value;
+                result = emailType;
+            }
+            //alert("======="+result+"====="+path);
+            validateMailingInfo(result, path);
+            
+            /*var isFundMailing = {!fundMailingFlag};
+            var isfundMailingIE = {!fundMailingIEFlag};
+            var isfundmailingGC = {!fundmailingGC};
+            var isfundmailingDowngradeNotification = {!fundmailingDowngradeNotification};
+            
+            var selectedvalues = selectedid+'_selected';
+            //alert(document.getElementById(selectedid).nextSibling);
+            
+            var idPrefix = 'MailingList:myForm:mailingListPB:';
+            if(isFundMailing){
+                idPrefix = idPrefix+'pbInformation:';
+            }else if(isfundMailingIE){
+                idPrefix = idPrefix+'pbInformation1:';
+            }else if(isfundmailingGC){
+                idPrefix = idPrefix+'pbInformation2:';
+            }else if(isfundmailingDowngradeNotification){
+                idPrefix = idPrefix+'pbInformation3:';
+            }
+                        
+            if(document.getElementById(selectedvalues) != null){
+                var myOpts = document.getElementById(selectedvalues).options;
+                if(myOpts != null){
+                    for(i=0; i<myOpts.length; i++) {
+                        if(myOpts[i].innerHTML == 'Email'){
+                            //pbInformation2:email1';
+                            var arr = selectedid.split(':');
+                            var index = parseInt(arr[5]);
+                            index = index + 1;
+                            arr[5] = index;
+                            var sibling = arr.join(':');
+                            
+                            var emailType = document.getElementById(sibling).value;
+                            if(emailType == 'Email 1'){
+                                var emailId = idPrefix+'email1';
+                                var email = document.getElementById(emailId).innerHTML;
+                                if(email == null || email == ''){
+                                    alert('Email 1 is not enterted, please choose any other option');
+                                    document.getElementById(sibling).value = '';
+                                }
+                            }else if(emailType == 'Email 2'){
+                                var emailId = idPrefix+'email2';
+                                var email = document.getElementById(emailId).innerHTML;
+                                if(email == null || email == ''){
+                                    alert('Email 2 is not enterted, please choose any other option');
+                                    document.getElementById(sibling).value = '';
+                                }
+                            }else if(emailType == 'Email 3'){
+                                var emailId = idPrefix+'email3';
+                                var email = document.getElementById(emailId).innerHTML;
+                                if(email == null || email == ''){
+                                    alert('Email 3 is not enterted, please choose any other option');
+                                    document.getElementById(sibling).value = '';
+                                }
+                            }else if(emailType == 'Write-in Email'){
+                                var emailId = idPrefix+'writeinemail';
+                                var email = document.getElementById(emailId).value;
+                                if(email == null || email == ''){
+                                    alert('Error - Please enter the Write-In Email Address');
+                                    document.getElementById(sibling).value = '';
+                                }
+                            }
+                        }
+                        
+                        if(myOpts[i].innerHTML == 'Fax'){
+                            var faxId = idPrefix+'fax';
+                            var contactfax = document.getElementById(faxId).value;
+                            if(contactfax == null || contactfax == ''){
+                                // To Display the error message if the Fax value is blank for the selected contact.
+                                alert('Contact Does not have fax number.');
+                                
+                                // To Remove the Fax Value from selected box.
+                                var select = document.getElementById(selectedvalues);
+                                select.remove(i);
+                                
+                                // To Add the Fax Value back in unselected box.
+                                var unselect = document.getElementById(selectedid+'_unselected');
+                                var opt = document.createElement('option');
+                                opt.value = i;
+                                opt.innerHTML = 'Fax';
+                                unselect.appendChild(opt);
+                            }
+                        }
+                    }
+                }
+            }else{
+                var emailType = document.getElementById(selectedid).value;
+                if(emailType == 'Email 1'){
+                    var emailId = idPrefix+'email1';
+                    var email = document.getElementById(emailId).innerHTML;
+                    if(email == null || email == ''){
+                        alert('Email 1 is not enterted, please choose any other option');
+                        document.getElementById(selectedid).value = '';
+                    }
+                }else if(emailType == 'Email 2'){
+                    var emailId = idPrefix+'email2';
+                    var email = document.getElementById(emailId).innerHTML;
+                    if(email == null || email == ''){
+                        alert('Email 2 is not enterted, please choose any other option');
+                        document.getElementById(selectedid).value = '';
+                    }
+                }else if(emailType == 'Email 3'){
+                    var emailId = idPrefix+'email3';
+                    var email = document.getElementById(emailId).innerHTML;
+                    if(email == null || email == ''){
+                        alert('Email 3 is not enterted, please choose any other option');
+                        document.getElementById(selectedid).value = '';
+                    }
+                }else if(emailType == 'Write-in Email'){
+                    var emailId = idPrefix+'writeinemail';
+                    var email = document.getElementById(emailId).value;
+                    if(email == null || email == ''){
+                        alert('Please enter the Write-In Email Address');
+                        document.getElementById(selectedid).value = '';
+                    }
+                }
+            }*/
+        }
+    </script>
+    </apex:form>
+</apex:page>

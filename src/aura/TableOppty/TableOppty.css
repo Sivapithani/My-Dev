@@ -1,0 +1,19 @@
+.THIS {
+}
+.THIS .chosenColor {
+    background-color:blue !important;
+    
+}
+.THIS .red {
+    color : red;
+}
+
+.THIS .blue {
+    color : blue;
+}
+.THIS .input {
+    
+}
+.THIS.custominput{
+     background-color:yellow !important;
+}

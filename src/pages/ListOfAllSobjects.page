@@ -1,0 +1,8 @@
+<apex:page controller="listOfSobjectController">
+    
+   <apex:pageBlock title=" List of All Object" > 
+    <apex:repeat value="{!allObjects}" var="obj">
+        <li>  {!obj}</li>
+    </apex:repeat>
+    </apex:pageBlock>
+</apex:page>

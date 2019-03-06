@@ -1,0 +1,2 @@
+<apex:page standardController="Contact" extensions="PageRedirectPageController"   action="{!if($CurrentPage.parameters.recordType == '{!selectedRecordType}',urlfor('/003/e',null,[RecordType=$CurrentPage.parameters.RecordType],true),if($CurrentPage.parameters.recordType == '0120I0000019aAz',urlfor('/apex/DetailPage',null,[RecordType=$CurrentPage.parameters.RecordType],true),'' ))
+                                                }" />

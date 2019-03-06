@@ -1,0 +1,143 @@
+<aura:component controller="AccountListCtrl" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}" />
+    <aura:attribute name="contacts" type="Contact[]"/>
+    <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+    
+    <ltng:require styles="/resource/slds_resource/assets/styles/salesforce-lightning-design-system.css?v=1" />
+    <div class="slds-scrollable_x" style="width:100%;height:50%;">
+    <table> 
+    <div class="slds">
+       
+        <div class="slds-table--header-fixed_container" style="height:200px;width:100%;">
+           <div class="slds-scrollable_y" style="height:100%;">
+        	<table class="slds-table slds-table_bordered slds-table--header-fixed"> 
+               
+             	<thead>
+						<tr class="slds-text-title_caps">
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name">Name</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email">Email</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile">Mobile</div>
+							</th>
+                            <th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name1"> Name1</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable"  scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email1">Email1</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile1">Mobile1</div>
+							</th>
+                            <th class="slds-is-sortable slds-is-resizable"  scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name1"> Name2</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email1">Email2</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile1">Mobile2</div>
+							</th>
+                            <th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name1"> Name3</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email1">Email3</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile1">Mobile3</div>
+							</th>
+                            <th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name1"> Name4</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email1">Email4</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable "  scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile1">Mobile4</div>
+							</th>
+                            <th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="contact Name1"> Name5</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable" scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Email1">Email5</div>
+							</th>
+							<th class="slds-is-sortable slds-is-resizable "  scope="col">
+								<div class="slds-truncate slds-cell-fixed " title="Mobile1">Mobile5</div>
+							</th>
+						</tr>
+					</thead>
+                 
+                    <tbody>
+                        <aura:iteration items="{!v.contacts}" var="contact">
+                            <tr>
+                                <td data-label="Name" title="Name">
+                                    <div><a data-record="{!contact.Id}" onclick="{!c.redirectToSobject}">{!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>  
+ 								 <td data-label="Name" title="Name">
+                                    <div><a> {!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>
+                                <td data-label="Name" title="Name">
+                                    <div><a> {!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>
+                                 <td data-label="Name" title="Name">
+                                    <div><a> {!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>  
+                                 <td data-label="Name" title="Name">
+                                    <div><a> {!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>  
+                                <td data-label="Name" title="Name">
+                                    <div><a> {!contact.Name}</a></div>
+                                </td>
+                                <td data-label="Email" title="Email">
+                                    <div>{!contact.Email}</div>
+                                </td>
+                                <td data-label="Mobile" title="Mobile">
+                                    <div>{!contact.Phone}</div>
+                                </td>  
+                            </tr> 
+                        </aura:iteration>        
+                </tbody>
+                      
+            </table>
+       </div>
+    </div>
+ </div>
+    </table>
+   </div> 
+   
+    
+</aura:component>

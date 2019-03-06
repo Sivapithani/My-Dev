@@ -1,0 +1,32 @@
+<aura:component controller="Staffing_Report_Controller" implements="force:appHostable,flexipage:availableForAllPageTypes,forceCommunity:availableForAllPageTypes" 
+                access="global" >
+    
+    <aura:attribute name="Names" type="cds_obj_ParticipantRecord__c[]" />
+    <aura:attribute name="courtDate" type="Date" />
+    <aura:attribute name="buttons" type="object[]" />
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />  
+	<aura:attribute name="ParticpantId" type="string"  />    
+    <div class="slds-text-heading--large slds-m-left--xx-large slds-m-top--xx-large">
+        Staffing Report
+    </div>
+    
+     <div class="slds-container--small slds-m-left--xx-large slds-m-top--xx-large">        
+     	<ui:inputDate aura:id="courtDate" label="Court Date"
+                      displayDatePicker="true" value="{!v.courtDate}" /><br/>
+      <!--  <aura:iteration items="{!v.Names}" var="Particepant">
+          <ui:button label="{!Particepant.Name}" 
+                     class="slds-size2-of-2"
+                     press="{!c.generateReport}"
+                     />
+          <br/>
+        </aura:iteration> -->
+         <aura:iteration items="{!v.buttons}" var="button">
+          <ui:button label="{!button.label}" 
+                     class="slds-size--2-of-2"
+                     press="{!c.generateReport}"
+                     />
+          <br/>
+        </aura:iteration>
+    </div>
+    
+</aura:component>

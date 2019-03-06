@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ManagedTopics xmlns="http://soap.sforce.com/2006/04/metadata">
+    <managedTopic>
+        <fullName>BANKofBO.Navigational:Edit Page</fullName>
+        <managedTopicType>Navigational</managedTopicType>
+        <name>Edit Page</name>
+        <parentName></parentName>
+        <position>1</position>
+        <topicDescription> </topicDescription>
+    </managedTopic>
+    <managedTopic>
+        <fullName>BANKofBO.Navigational:View Page</fullName>
+        <managedTopicType>Navigational</managedTopicType>
+        <name>View Page</name>
+        <parentName></parentName>
+        <position>0</position>
+        <topicDescription> </topicDescription>
+    </managedTopic>
+</ManagedTopics>

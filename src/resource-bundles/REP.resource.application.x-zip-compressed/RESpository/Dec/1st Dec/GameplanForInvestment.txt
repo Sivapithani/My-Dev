@@ -1,0 +1,1178 @@
+<apex:page id="GamePlanPage" tabStyle="Opportunity" controller="GamePlanForInvestmentsController" cache="true" title="Game Plans - Investment Forecast">
+    <!-- Resources for jquery for fixed header  -->
+    <script src="{!URLFOR($Resource.HeaderScoller,'jquery-1.11.3.min.js')}"></script>
+    <script src="{!URLFOR($Resource.HeaderScoller,'jquery.dataTables.min.js')}"></script>
+    <script src="{!URLFOR($Resource.HeaderScoller,'dataTables.fixedColumns.min.js')}"></script>
+    <apex:stylesheet value="{!URLFOR($Resource.HeaderScoller,'jquery.dataTables.min.css')}"/>
+    <apex:stylesheet value="{!URLFOR($Resource.HeaderScoller,'fixedColumns.dataTables.min.css')}"/> 
+    <apex:stylesheet value="{!URLFOR($Resource.HeaderScoller,'GamePlanPage.css')}"/>
+    <script type="text/javascript">
+        function updateFilter() 
+        {
+            filter();
+        }
+        function PopUpDispFun(popupOrgId, popupOrgName)
+        {
+            PopUpDisp(popupOrgId, popupOrgName);
+        }
+
+    </script>
+    <apex:form id="myForm"> 
+    <apex:actionFunction name="PopUpDisp" action="{!addRec}" rerender="tstpopup" status="GetRecordsStatus">
+       <apex:param id="popupOrgId" name="popupOrgId" assignTo="{!popupOrgId}" value="" />
+       <apex:param id="popupOrgName" name="popupOrgName" assignTo="{!popupOrgName}" value="" />
+     </apex:actionFunction>   
+             
+        <apex:pageBlock title="Game Plans - Investment Forecast" id="GamePlans">
+            <apex:pageMessages id="msgsSection"/>
+               <apex:outputPanel >
+                    <table width="100%">
+                    <tr>
+                        <td align="right" colspan="5">
+                            <apex:outputLink value="/apex/GamePlanForOrgComments" target="_parent" style="color: #015BA7;text-decoration: none;">
+                                <apex:outputText value="Back to Comments" />
+                            </apex:outputLink> &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+                            <apex:outputLink value="/apex/GamePlanForRankings" target="_parent" style="color: #015BA7;text-decoration: none;">
+                                <apex:outputText value="Go to Rankings" />
+                            </apex:outputLink> &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+                            <apex:outputLink id="myOrgsId" value="/{!myOrgsId}?pv0={!marketingRepName}" target="_new" style="color: #015BA7;text-decoration: none;">
+                                <apex:outputText value="Print a List of My Organizations" />
+                            </apex:outputLink> &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+                            <apex:outputLink id="myTaggedOrgsId"  value="/{!myTaggedOrgsId}?pv0={!marketingRepName}" target="_new" style="color: #015BA7;text-decoration: none;">
+                                <apex:outputText value="My Tagged Organizations by Strategy" />
+                            </apex:outputLink> &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+                            <apex:outputLink value="/{!myGamePlansId}" target="_new" style="color: #015BA7;text-decoration: none;">
+                                <apex:outputText value="My Game Plan" />
+                            </apex:outputLink>                              
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width:25%;">
+                            <apex:outputLabel style="font-size: .9em; font-weight: bold;" value="Investor Type " />
+                            <apex:selectList id="investorTypePL" value="{!selectedAcc}" size="1" onchange="updateFilter();" >
+                                <apex:selectOptions value="{!Accounts}"/>
+                            </apex:selectList>
+                        </td>
+                        <td style="width:20%">
+                            <apex:outputLabel style="font-size: .9em; font-weight: bold;" value="Game Plan Year  " />
+                            <apex:inputField value="{!opp.Game_Plan_Year__c}" onChange="updateFilter();"/>
+                        </td>
+                        <td style="width:25%;">
+                            <apex:outputLabel style="font-size: .9em; font-weight: bold;" value="Activity Status " />
+                            <apex:selectList id="activityStatus" value="{!selectedActivityStatus}" size="1" onchange="updateFilter();" >
+                                <apex:selectOptions value="{!ActivityStatusList}"/>
+                            </apex:selectList>
+                        </td>  
+                        <td style="width:25%">
+                            <apex:outputLabel style="font-size: .9em; font-weight: bold;" value="Marketing Rep  " />
+                            <apex:inputField value="{!acc.Primary_Marketing_Representative__c}" onChange="updateFilter();"/>
+                        </td>
+                        <td style="width:5%">
+                            <apex:commandButton value="Save" rerender="GamePlans" action="{!save}" status="GetRecordsStatus"/>
+                        </td>
+                    </tr>
+                </table>
+            </apex:outputPanel>            
+            <apex:actionstatus id="GetRecordsStatus">
+                <apex:facet name="start">
+                    <div class="waitingSearchDiv" id="el_loading" style="background-color: #fbfbfb; height: 100%;opacity:0.65;width:100%;"> 
+                        <div class="waitingHolder" style="top: 335.2px; width: 91px;">
+                            <img class="waitingImage" src="/img/loading.gif" title="Please Wait..." />
+                         <span class="waitingDescription">Please wait...</span>
+                        </div>
+                    </div>
+                </apex:facet>
+             </apex:actionstatus> 
+            <apex:outputPanel id="dtable">
+                 <div id="col">
+                     <!-- Script for fixed header -->
+                    <script type="text/javascript" charset="utf-8">                       
+                       $(document).ready(function() {
+                        var vph = $(window).height();
+                        var vpw = $(window).width();
+                        var table = $('#fixHead').DataTable( {
+                            scrollY:        vph-400,
+                            scrollX:        true,
+                            scrollCollapse: false,
+                            paging:         false,
+                            "ordering":     false,
+                            fixedColumns:   {
+                                leftColumns: 1,
+                                rightColumns: 0
+                            }
+                        } );
+                        $(".dataTables_wrapper").width(vpw - 80);                    
+                    } );
+                    
+                   $(window).resize(function() {
+                        var vph = $(window).height();
+                        var vpw = $(window).width();
+                        var table = $('#fixHead').DataTable( {
+                            destroy:        true,
+                            scrollY:        vph-400,
+                            scrollX:        true,
+                            scrollCollapse: false,
+                            paging:         false,                            
+                            "ordering":     false,
+                            fixedColumns:   {
+                                leftColumns: 1,
+                                rightColumns: 0
+                            }
+                        } );
+                        $(".dataTables_wrapper").width(vpw - 80);                    
+                    } );
+                                                      
+                    </script>
+                    <div id="tempDiv" >
+                        <table id="fixHead" width="100%;" border="0" cellspacing="0" cellpadding="0" class="mytables list stripe row-border order-column"> 
+                            <thead>
+                                <tr class="headerRow">
+                                    <th Class="investorHeaderSize">
+                                        <apex:commandLink action="{!sortData}" value="Investor" rerender="dtable">
+                                            <apex:param name="sortBy" value="Investor" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th>
+                                        <apex:commandLink action="{!sortData}" value="Type of Investor" rerender="dtable">
+                                            <apex:param name="sortBy" value="TOI" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th>
+                                        <apex:commandLink action="{!sortData}" value="Activity Status" rerender="dtable">
+                                            <apex:param name="sortBy" value="ActSt" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th>Comments</th>                                    
+                                    <th Class="{!IF(ff1.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff1.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund1" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff2.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff2.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund2" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff3.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff3.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund3" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff4.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff4.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund4" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff5.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff5.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund5" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff6.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff6.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund6" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff7.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff7.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund7" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff8.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff8.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund8" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff9.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff9.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund9" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th Class="{!IF(ff10.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff10.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund10" />
+                                        </apex:commandLink>                                        
+                                    </th>
+                                    <th Class="{!IF(ff11.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff11.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund11" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff12.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff12.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund12" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff13.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff13.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund13" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff14.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff14.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund14" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff15.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff15.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund15" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff16.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff16.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund16" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff17.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff17.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund17" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff18.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff18.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund18" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff19.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff19.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund19" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff20.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff20.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund20" />
+                                        </apex:commandLink>                                        
+                                    </th>
+                                    <th Class="{!IF(ff21.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff21.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund21" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff22.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff22.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund22" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff23.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff23.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund23" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff24.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff24.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund24" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff25.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff25.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund25" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff26.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff26.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund26" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff27.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff27.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund27" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff28.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff28.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund28" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff29.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff29.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund29" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff30.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff30.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund30" />
+                                        </apex:commandLink>                                        
+                                    </th>
+                                    <th Class="{!IF(ff31.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff31.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund31" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff32.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff32.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund32" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff33.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff33.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund33" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff34.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff34.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund34" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff35.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff35.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund35" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff36.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff36.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund36" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff37.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff37.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund37" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff38.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff38.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund38" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff39.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff39.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund39" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff40.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff40.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund40" />
+                                        </apex:commandLink>                                        
+                                    </th>
+                                    <th Class="{!IF(ff41.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff41.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund41" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff42.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff42.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund42" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff43.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff43.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund43" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff44.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff44.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund44" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff45.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff45.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund45" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff46.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff46.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund46" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff47.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff47.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund47" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff48.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff48.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund48" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff49.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff49.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund49" />
+                                        </apex:commandLink>                                        
+                                    </th> 
+                                    <th Class="{!IF(ff50.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:commandLink action="{!sortData}" value="{!ff50.Fund_Product_Marketing_Name__c}" rerender="dtable">
+                                            <apex:param name="sortBy" value="fund50" />
+                                        </apex:commandLink>                                        
+                                    </th>
+                                </tr>
+                            </thead>                            
+                            <tfoot>
+                                <tr class="headerRow">
+                                    <th Class="investorHeaderSize">Grand Total:</th>
+                                    <th colspan="3"></th>
+                                    <th Class="{!IF(ff1.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund1" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund1)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp1.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff2.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund2" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund2)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp2.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff3.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund3" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund3)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp3.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff4.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund4" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund4)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp4.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff5.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund5" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund5)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp5.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff6.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund6" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund6)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp6.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff7.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund7" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund7)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp7.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff8.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund8" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund8)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp8.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff9.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund9" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund9)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp9.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff10.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund10" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund10)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp10.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                     <th Class="{!IF(ff11.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund11" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund11)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp11.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff12.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund12" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund12)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp12.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff13.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund13" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund13)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp13.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff14.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund14" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund14)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp14.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff15.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund15" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund15)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp15.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff16.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund16" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund16)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp16.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff17.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund17" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund17)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp17.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff18.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund18" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund18)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp18.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff19.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund19" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund9)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp19.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff20.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund20" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund20)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp20.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff21.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund21" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund21)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp21.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff22.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund22" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund22)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp22.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff23.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund23" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund23)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp23.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff24.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund24" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund24)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp24.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff25.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund25" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund25)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp25.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff26.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund26" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund26)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp26.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff27.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund27" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund27)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp27.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff28.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund28" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund28)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp28.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff29.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund29" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund29)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp29.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff30.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund30" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund30)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp30.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff31.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund31" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund31)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp31.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff32.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund32" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund32)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp32.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff33.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund33" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund33)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp33.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff34.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund34" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund34)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp34.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff35.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund35" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund35)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp35.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff36.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund36" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund36)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp36.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff37.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund37" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund37)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp37.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff38.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund38" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund38)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp38.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff39.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund39" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund39)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp39.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff40.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund40" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund40)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp40.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff41.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund41" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund41)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp41.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff42.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund42" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund42)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp42.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff43.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund43" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund43)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp43.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff44.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund44" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund44)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp44.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff45.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund45" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund45)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp45.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff46.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund46" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund46)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp46.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff47.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund47" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund47)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp47.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff48.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund48" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund48)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp48.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff49.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund49" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund49)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp49.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                    <th Class="{!IF(ff50.Fund_Product_Marketing_Name__c != null,'','displaySection')}">
+                                        <apex:outputText id="grandFund50" value="{0,number,$###,###,###.##}">
+                                             <!-- <apex:param value="{!VALUE(resultsTotal.fund50)}" />  -->
+                                             <apex:param value="{!resultsTotal.opp50.Game_Plan_Amount__c}" />
+                                         </apex:outputtext>                                    
+                                    </th>
+                                </tr>
+                            </tfoot>                            
+                            <tbody>
+                                <apex:repeat value="{!results}" var="result" rendered="{!results.size != 0}">
+                                    <tr>
+                                        <td Class="investorHeaderSize">
+                                            <apex:outputLink value="/{!result.acc.Id}" target="_parent" style="color: #015BA7;text-decoration: none;">
+                                                <apex:outputText value="{!result.acc.Name}  " />
+                                            </apex:outputLink> &nbsp;&nbsp;&nbsp;&nbsp;
+                                            <apex:outputtext id="orgLevelSum1"  style="background:#e5c130;" value="{0,number, $###, ###,###.##}" rendered="{!opp.Game_Plan_Year__c != null}">
+                                                <apex:param value="{!result.acc.Primary_Strategy_AUM_currency__c}" />
+                                            </apex:outputtext>&nbsp;&nbsp;
+                                            
+                                            <apex:outputLink style="background:LightBlue; height:18px; text-decoration: none" styleClass="localButton" value="" onclick="PopUpDispFun('{!result.acc.Id}','{!result.acc.Name}'); return false;" rendered="{!opp.Game_Plan_Year__c != null}">
+                                                <apex:outputText value="+"/>
+                                            </apex:outputLink>
+                                        </td>
+                                        <td>{!result.acc.RecordType.Name}</td>
+                                        <td>{!result.acc.Activity_Status__c}</td>
+                                        <td>{!result.acc.Marketing_Comments__c}</td>
+                                        <td Class="{!IF(ff1.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp1.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp1.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff2.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp2.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp2.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff3.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp3.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp3.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff4.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp4.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp4.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff5.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp5.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp5.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff6.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp6.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp6.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff7.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp7.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp7.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff8.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp8.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp8.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff9.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp9.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp9.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff10.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp10.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp10.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff11.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp11.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp11.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff12.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp12.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp12.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff13.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp13.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp13.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff14.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp14.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp14.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff15.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp15.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp15.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff16.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp16.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp16.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff17.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp17.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp17.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff18.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp18.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp18.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff19.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp19.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp19.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff20.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp20.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp20.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff21.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp21.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp21.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff22.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp22.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp22.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff23.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp23.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp23.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff24.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp24.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp24.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff25.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp25.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp25.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff26.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp26.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp26.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff27.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp27.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp27.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff28.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp28.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp28.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff29.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp29.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp29.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff30.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp30.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp30.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff31.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp31.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp31.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff32.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp32.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp32.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff33.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp33.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp33.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff34.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp34.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp34.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff35.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp35.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp35.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff36.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp36.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp36.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff37.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp37.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp37.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff38.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp38.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp38.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff39.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp39.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp39.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff40.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp40.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp40.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff41.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp41.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp41.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff42.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp42.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp42.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff43.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp43.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp43.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff44.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp44.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp44.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff45.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp45.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp45.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff46.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp46.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp46.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff47.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp47.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp47.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff48.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp48.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp48.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff49.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp49.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp49.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                        <td Class="{!IF(ff50.Fund_Product_Marketing_Name__c != null,'','displaySection')}" >                                            
+                                            <apex:inputField value="{!result.opp50.Game_Plan_Amount__c}"  styleClass="resizedTextbox">
+                                            </apex:inputField>
+                                            <apex:selectList value="{!result.opp50.StageName}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                    </tr>
+                                </apex:repeat>                            
+                            </tbody>                        
+                        </table>        
+                    </div>
+                 </div>
+            </apex:outputPanel>
+           <apex:actionFunction name="filter" action="{!filter}" rerender="dtable,msgsSection,myOrgsId,myTaggedOrgsId,pagePanel" status="GetRecordsStatus"/>
+           <apex:panelGrid columns="8" id="pagePanel">           
+                <apex:commandButton status="fetchStatus" reRender="dtable, pagePanel" value="|<" id="first" title="0 - 300 Records" action="{!Beginning}" disabled="{!disablePrevious}"/> 
+                <apex:commandButton status="fetchStatus" reRender="dtable, pagePanel" value="<" title="Previous 300 Records" action="{!Previous}" disabled="{!disablePrevious}"/>  
+                <apex:commandButton status="fetchStatus" reRender="dtable, pagePanel" value=">" title="Next 300 Records" action="{!Next}" disabled="{!disableNext}"/>  
+                <apex:commandButton status="fetchStatus" reRender="dtable, pagePanel" value=">|" title="Last Records" action="{!End}" disabled="{!disableNext}" /> 
+                <apex:outputText style="font-style:italic" value="Page {!pageNumber}" /><span>of</span><apex:outputText style="font-style:italic" value=" {!totalPages} - No.of Investors {!total_size}"/>
+                <apex:outputPanel style="color:#4AA02C;font-weight:bold" >  
+                    <apex:actionStatus id="fetchStatus" startText="Fetching..." stopText=""/>  
+                </apex:outputPanel>                  
+            </apex:panelGrid>
+        </apex:pageBlock>
+        <apex:outputPanel id="tstpopup">
+            <apex:outputPanel styleClass="popupBackground" layout="block" rendered="{!displayPopUp}"/>
+            <apex:outputPanel styleClass="custPopup" layout="block" rendered="{!displayPopUp}">
+                <apex:pageMessages id="popUpMsgsSection"/>
+                <apex:pageBlock >
+                    <apex:actionstatus id="GetRecordsStatus2">
+                          <apex:facet name="start">
+                              <div class="waitingSearchDiv" id="el_loading" style="background-color: #fbfbfb; height: 100%;opacity:0.65;width:100%;"> 
+                                  <div class="waitingHolder" style="top: 300.2px; width: 91px;">
+                                      <img class="waitingImage" src="/img/loading.gif" title="Please Wait..." />
+                                   <span class="waitingDescription">Please wait...</span>
+                                  </div>
+                              </div>
+                          </apex:facet>
+                       </apex:actionstatus>
+                    <apex:outputPanel >
+                        <apex:commandButton value="Save" action="{!saveChildRecs}" rerender="popUpMsgsSection, tstpopup, dtable" status="GetRecordsStatus2"/> &nbsp;&nbsp;&nbsp;&nbsp;
+                        <apex:commandButton value="Cancel" rerender="tstpopup">
+                            <apex:param value="" assignTo="{!popupOrgId}"/>
+                            <apex:param value="" assignTo="{!popupOrgName}"/>
+                            <apex:param value="false" assignTo="{!displayPopup}"/>
+                        </apex:commandButton>
+                        <br/>
+                    </apex:outputPanel>                 
+                    <div class="pbBody" id="popupDiv1">
+                        <table cellpadding="0" cellspacing="0" border="0" class="mytables list" id="popupTable">
+                            <thead>
+                                <tr class="headerRow">                                
+                                    <th colspan="3" style="text-align: center">
+                                        <apex:outputText style="color:blue; font-weight:bold" value="{!popupOrgName}" />
+                                    </th>                                                                
+                                </tr>
+                                <tr class="headerRow">                                
+                                    <th>
+                                        <apex:commandLink action="{!sortData}" value="Fund/Product" rerender="tstpopup">
+                                            <apex:param name="sortBy" value="popFP" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th>
+                                        <apex:commandLink action="{!sortData}" value="Amount" rerender="tstpopup">
+                                            <apex:param name="sortBy" value="popFA" />
+                                        </apex:commandLink>
+                                    </th>
+                                    <th>
+                                        <apex:commandLink action="{!sortData}" value="Probability" rerender="tstpopup">
+                                            <apex:param name="sortBy" value="popFPr" />
+                                        </apex:commandLink>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr class="headerRow">
+                                    <th>
+                                        <apex:outputText value="Grand Total:"/>
+                                    </th>
+                                    <th colspan="2">
+                                        <apex:outputText id="popupOrgTotal" value="{0,number,$###,###,###.##}">
+                                            <apex:param value="{!popupOrgTotal}" />
+                                        </apex:outputtext>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                            <tbody>
+                                <apex:repeat value="{!popupResults}" var="cs">
+                                    <tr>
+                                        <td>
+                                            <apex:outputText value="{!cs.fundName}" />
+                                        </td>
+                                        <td>
+                                            <apex:inputText value="{!cs.fundAmount}" styleClass="resizedTextbox">
+                                                <apex:actionSupport event="onchange" rerender="popupOrgTotal"/> 
+                                            </apex:inputText>
+                                        </td>
+                                        <td>
+                                            <apex:selectList value="{!cs.fundProbability}" size="1">
+                                                <apex:selectOptions value="{!StageNames}"/>
+                                            </apex:selectList>
+                                        </td>
+                                    </tr>
+                                </apex:repeat>
+                            </tbody>
+                        </table>
+                    </div>        
+                </apex:pageBlock>        
+            </apex:outputPanel>      
+        </apex:outputPanel>  
+    </apex:form>
+</apex:page>

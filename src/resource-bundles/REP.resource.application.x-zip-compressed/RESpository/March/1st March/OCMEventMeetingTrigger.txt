@@ -1,0 +1,44 @@
+trigger OCMEventMeetingTrigger on ocm_Event__c (after delete, after insert, after undelete, 
+after update, before delete, before insert, before update) 
+{
+	if(trigger.isAfter)
+	{
+		if(trigger.isInsert)
+		{
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanAfterInsert && !EventTriggerHandler.hasAlreadyRanAfterInsert)
+			{
+				OCMEventMeetingTriggerHandler.handleAfterInsert(trigger.newMap);
+			}
+		}else if(trigger.isUpdate)
+		{
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanAfterInsert && !EventTriggerHandler.hasAlreadyRanAfterInsert && !OCMEventMeetingTriggerHandler.hasAlreadyRanAfterUpdate)
+			{
+				OCMEventMeetingTriggerHandler.handleAfterUpdate(trigger.newMap,trigger.oldMap);
+			}
+		}else if(trigger.isDelete)
+		{
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanAfterDelete)
+			{
+				OCMEventMeetingTriggerHandler.handleAfterDelete(trigger.oldMap);
+			}
+		}
+	}
+		
+	if(trigger.isBefore)
+	{
+		if(trigger.isInsert)
+		{
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanBeforeInsert)
+				OCMEventMeetingTriggerHandler.handleBeforeInsert(trigger.new);
+		}
+		else if(trigger.isUpdate)
+		{
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanBeforeUpdate)
+				OCMEventMeetingTriggerHandler.handleBeforeUpdate(trigger.newMap, trigger.oldMap);
+		}
+		else if(trigger.isDelete){
+			if(!OCMEventMeetingTriggerHandler.hasAlreadyRanBeforeDelete)
+				OCMEventMeetingTriggerHandler.handleBeforeDelete(trigger.oldMap);
+		}
+	}	
+}

@@ -1,0 +1,8 @@
+<apex:page sidebar="false" standardStylesheets="false" cache="false" standardController="Contact">
+    <apex:includeLightning />
+    <div id="lightning" ></div> 
+    <script>
+        $Lightning.use("c:DemoApp", function() {$Lightning.createComponent("c:Activity_Responsive",
+          { label : "" },"lightning",function(cmp) {});});
+    </script>
+</apex:page>

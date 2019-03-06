@@ -1,0 +1,30 @@
+<apex:page Controller="LeadformController2" >
+    <apex:form >
+        <apex:pageBlock title=" Lead From">
+           <apex:pageblockSection >
+            1.What is your Higher education 
+            <apex:selectRadio value="{!selectedvalue1}" layout="pageDirection">
+                <apex:selectOptions value="{!items}"/>
+                <apex:actionSupport event="onchange"  action="{!save}" reRender="output"/>
+            </apex:selectRadio>
+            2.What is your Gender
+            <apex:selectRadio value="{!selectedvalue2}" layout="pageDirection">
+                <apex:selectOptions value="{!items2}"/> 
+               <!-- <apex:selectOption itemLabel="other" itemValue="other"/> -->
+              
+                <apex:actionSupport event="onchange"  action="{!save}" reRender="output"/>
+            </apex:selectRadio>
+            3.Are you Married 
+            <apex:selectRadio value="{!selectedvalue3}" layout="pageDirection">
+                <apex:selectOptions value="{!items3}"/>
+                <apex:actionSupport event="onchange"  action="{!save}" reRender="output"/>
+            </apex:selectRadio>
+               </apex:pageblockSection>
+        </apex:pageBlock>
+        <apex:outputPanel id="output">
+            <apex:outputPanel id="innerOutput1" rendered="{!iscount}"> 
+                <apex:outputLabel > {!count} Out Of 9</apex:outputLabel>
+            </apex:outputPanel>
+        </apex:outputPanel>
+    </apex:form>
+</apex:page>

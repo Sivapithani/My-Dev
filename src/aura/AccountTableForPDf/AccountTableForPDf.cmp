@@ -1,0 +1,72 @@
+<aura:component controller="AccountListCtrl" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}" />
+    <aura:attribute name="contacts" type="Contact[]"/>
+    <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+    <aura:attribute name="sendData" type="Object[]"/>
+  <!--  <ltng:require scripts="/resource/html2canvasmin,/resource/addImage" />
+    <ltng:require scripts="/resource/png_Support"/>
+    <ltng:require scripts="/resource/png "/>
+    <ltng:require scripts="/resource/Zlib,/resource/from_html"/>
+    <ltng:require scripts="/resource/JsPDF ,/resource/jspdfmin,/resource/addhtml" afterScriptsLoaded="{!c.afterScriptsLoaded}" />
+    -->
+    
+    <div>
+    <div id ="Table_Id"  > 
+    <div class="slds-scrollable_x" style="width:100%;height:30%;">
+        
+        <table > 
+            <div class="slds">
+                
+                <div class="slds-table--header-fixed_container" style="height:200px;width:100%;">
+                    <div class="slds-scrollable_y" style="height:80%;">
+                        <table class="slds-table slds-table_bordered  slds-table--header-fixed"> 
+                            
+                            <thead>
+                                <tr class="slds-text-title_caps">
+                                    <th scope="col">
+                                        <div class="slds-truncate slds-cell-fixed slds-cell-buffer_left" title="contact Name"> Name</div>
+                                    </th>
+                                    <th  scope="col">
+                                        <div class="slds-truncate slds-cell-fixed slds-cell-buffer_left " title="Email">Email</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate slds-cell-fixed slds-cell-buffer_left" title="Mobile">Mobile</div>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <aura:iteration items="{!v.contacts}" var="contact">
+                                    <tr>
+                                        <td data-label="Name" title="Name">
+                                            <div><a data-record="{!contact.Id}" onclick="{!c.redirectToSobject}">{!contact.Name}</a></div>
+                                        </td>
+                                        <td data-label="Email" title="Email">
+                                            <div>{!contact.Email}</div>
+                                        </td>
+                                        <td data-label="Mobile" title="Mobile">
+                                            <div>{!contact.Phone}</div>
+                                        </td>  
+                                        
+                                    </tr> 
+                                </aura:iteration>        
+                            </tbody>
+                            
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </table>
+        </div>
+        
+    </div> 
+    <div  >
+       <button  class="slds-button"   onclick ="{!c.downloadDocument}" >
+          <span >Download Document</span> </button>   
+        <!-- Button component to invoke PDF download  -->
+  <!--  <lightning:button label="Download Document" onclick="{!c.downloadDocument}" />-->
+        </div>  
+      
+    </div>
+</aura:component>

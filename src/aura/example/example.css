@@ -1,0 +1,21 @@
+.THIS.message-window {
+    height:350px;
+}
+.THIS .red-box {
+     height:350px;
+}
+.THIS.red-box {
+    width: 100%;
+    background: red;
+    z-index:1;
+    position:absolute;
+}
+
+.THIS.message-window {
+    width:100%;
+    z-index:2;
+    position:absolute;
+    left:-100%;
+    background:#f90;
+    color:#000;
+}

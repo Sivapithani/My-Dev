@@ -1,0 +1,13 @@
+<apex:page standardController="Account" extensions="extcontroller" renderAs="pdf">
+    <apex:form >
+        <apex:pageBlock title="My Content" mode="edit">
+            
+            <apex:pageBlockSection title="My Content Section" columns="2">
+                <apex:inputField value="{!account.name}"/>
+                <apex:inputField value="{!account.site}"/>
+                <apex:inputField value="{!account.type}"/>
+                <apex:inputField value="{!account.accountNumber}"/>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

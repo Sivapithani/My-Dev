@@ -1,0 +1,33 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction"  controller="Opptytabelcontroller" access="global" >
+    <aura:attribute name="HomeBody" type="Aura.Component[]" access="global"/>
+    <aura:attribute name="MainCompetitor" type="String" />
+    <aura:attribute name="recordId" type="String" />
+
+    <aura:attribute name="oppty" type="opportunity" />
+   <aura:attribute name="ispick" type="Boolean" default="false"/>
+    <aura:attribute name="isTest" type="Boolean" default="false"/>
+    <aura:attribute name="showComp" type="Boolean" default="True"/>
+   <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+     <aura:if isTrue="{!v.showComp}">
+    <div class="slds-align_absolute-center" style="height: 5rem;">
+    
+    <lightning:button variant="brand" label="Save" onclick="{!c.saveRecord}" />
+    </div> 
+         <table>
+             <tr>
+                 <th>MainCompetitor(s)</th>
+                 <td >
+                     <div id="test">
+                         <ui:inputText aura:id="Inputui" value="{!v.MainCompetitor}" change="{!c.uiInputChange}"/> 
+                     </div>
+                     <br/>
+                     <!--<input type="text" id="inputtext"  value="{!v.MainCompetitor}" onchange="{!c.inputchange}"/>   -->
+                     <br/>
+                    <!-- <lightning:input aura:id="myinput" name="quantity" value="{!v.MainCompetitor}"   /> -->
+                 </td>
+             </tr>
+         </table>
+    </aura:if>
+    {!v.HomeBody}
+</aura:component>

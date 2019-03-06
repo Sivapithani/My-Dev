@@ -1,0 +1,23 @@
+<aura:component controller ="ContactController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionWithoutHeader,lightning:actionOverride" access="global" >
+    <aura:attribute name="iscomp" type="Boolean" default="false"/>
+    <aura:if isTrue ="{!!v.iscomp}">
+    Hi
+     <lightning:button variant="neutral" 
+                                      label="New"
+                                      title="New"
+                                      onclick="{! c.closeModel }"/>
+      </aura:if>   
+    <aura:if isTrue ="{!v.iscomp}">
+        <c:Create_Contact/>
+    
+    </aura:if>
+    <!-- <lightning:listView aura:id="listViewContact"
+    objectApiName="Contact"
+    listName="MYList"
+    rows="5"
+    showSearchBar="true"                   
+    showActionBar="true"
+    enableInlineEdit="true"
+    showRowLevelActions="false"
+/>  -->
+</aura:component>

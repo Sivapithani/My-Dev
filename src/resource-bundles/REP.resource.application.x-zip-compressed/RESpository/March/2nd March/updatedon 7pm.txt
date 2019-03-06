@@ -1,0 +1,53 @@
+set<id>eventset =new set<id>();
+            map<id,list<ocm_EventRelation__c>> eventnEventRelationMap = new map<id,list<ocm_EventRelation__c>>();
+            map<id,set<id>>eventnOrgidMap= new  map<id,set<id>>();
+            map<id,set<id>>eventnFundProductidMap= new  map<id,set<id>>();
+            Map<id,List<Opportunity>>eventnOpptymap = new  Map<id,List<Opportunity>>();
+            List<Opportunity> updateOpptyList =new List<Opportunity>();
+            list<ocm_Event__c> evntList =new list<ocm_Event__c>();
+            
+            for(ocm_EventRelation__c er:newEventRel.values()){ 
+                eventset.add(er.Event__c);
+            }
+            
+            if(eventset !=null)
+                evntList = [Select o.Name, o.Id, (Select Event__c, Related_Fund_Product__c, 							 Organization__c From Event_Relations__r)
+                            	From ocm_Event__c o where Id IN:eventset];
+            if(evntList !=null && evntList.size()>0){
+                for(ocm_Event__c e:evntList){
+                    list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+                    Set<id>orgList =new Set<id>();
+                    Set<id>FundProductList =new Set<id>(); 
+                    if(e.Event_Relations__r != null){
+                        for(ocm_EventRelation__c er:e.Event_Relations__r){
+                            if(er.Related_Fund_Product__c !=null ){
+                                FundProductList.add(er.Related_Fund_Product__c);
+                            }
+                            if(er.Organization__c !=null ){
+                                orgList.add(er.Organization__c);
+                            }
+                            erList.add(er);
+                            eventnOrgidMap.put(e.id, orgList);
+                            eventnFundProductidMap.put(e.id,FundProductList);
+                        }
+                    }
+                    eventnEventRelationMap.put(e.id,erList);
+                }
+            }
+            
+            if(eventnEventRelationMap.size()>0 &&eventnOrgidMap.size()>0 && eventnFundProductidMap.size()>0 ){
+                for(id eventid:eventnEventRelationMap.keyset()){
+                    list<opportunity> opptylist =[SELECT Id, Fund_Product__c, AccountId,Most_Recent_Meeting__c FROM Opportunity where AccountId IN:eventnOrgidMap.get(eventid) AND Fund_Product__c IN:eventnFundProductidMap.get(eventid)]; 
+                    eventnOpptymap.put(eventid,opptylist); 
+                }  
+            }
+            if(eventnOpptymap.size()>0){
+                for(id eventId :eventnOpptymap.keySet()){
+                    for(opportunity opp:eventnOpptymap.get(eventId)){
+                        opp.Most_Recent_Meeting__c =eventId;
+                        updateOpptyList.add(opp);
+                    }
+                }
+            }
+            if(updateOpptyList.size()>0)
+                update updateOpptyList; 

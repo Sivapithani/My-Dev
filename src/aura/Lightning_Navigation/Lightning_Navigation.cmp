@@ -1,0 +1,8 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction,lightning:isUrlAddressable" access="global" >
+    <aura:attribute name="showEdit" type="Boolean" default ="false"/>
+     <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="edit"  onclick="{!c.init}"></lightning:button>
+  
+     <aura:if isTrue="{!v.showEdit}" >
+         <c:ForceRecordEdit  editActive="{!v.showEdit}" Serviceid ="{!v.recordId}"/>
+    </aura:if>  
+</aura:component>

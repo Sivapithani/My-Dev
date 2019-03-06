@@ -1,0 +1,191 @@
+@isTest
+public class TimeAllocationTriggerHandlerTest {
+    static testmethod void TestcaseRollupTotalAllocationTime()
+    {
+        String ClientRecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName().get(OCM_Constants.CLIENT_RECORD_TYPE_NAME).getRecordTypeId();
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = ClientRecordTypeId;
+        testOrganization.Name = OCM_Constants.OCM_Oaktree_Employee_Org_Name;
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+        insert testOrganization;
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = false;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = false;
+        
+        String rtypeContact = [select id from RecordType where Name =:OCM_Constants.RT_OAKTREE_CON limit 1].Id;
+        Contact testcontact = UnitTestFactory.buildTestContact();
+        testcontact.RecordTypeId = rtypeContact;
+        testcontact.AccountId = testOrganization.id;
+        testcontact.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        insert testcontact;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = false;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = false;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        
+        String rtypeClientRequest = [select id from RecordType where SObjectType =:OCM_Constants.OBJ_CASE AND developername =:OCM_Constants.CASE_CLIENT_REQ_RECORD_DEV_NAME limit 1].Id;           
+        list<Case> caseList =new list<Case>();
+        Case testcase= UnitTestFactory.buildTestCase();
+        testcase.RecordTypeId=rtypeClientRequest;
+        testcase.Subject ='Test for Allocation time1';
+        testcase.Request_Type__c = 'Administrative - Account Metrics';
+        testcase.Request_Purpose_Internal__c = true;
+        testcase.Overall_Due_Date__c = Date.newInstance(2018,01,03);
+        testcase.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase.Firm_Level_not_strategy_specific__c = true;
+        testcase.Request_Received_Date__c = Date.newInstance(2018,01,03);
+        caseList.add(testcase);
+        
+        Case testcase2 = UnitTestFactory.buildTestCase();
+        testcase2.RecordTypeId = rtypeClientRequest;
+        testcase2.Subject ='Test for Allication time2';
+        testcase2.Request_Type__c = 'Administrative - Account Metrics';
+        testcase2.Request_Purpose_Internal__c = true;
+        testcase2.Overall_Due_Date__c = Date.newInstance(2018,01,03);
+        testcase2.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase2.Firm_Level_not_strategy_specific__c = true;
+        testcase2.Request_Received_Date__c = Date.newInstance(2018,01,03);
+        caseList.add(testcase2);
+        insert caseList;
+        
+        ocm_ProcessTask__c testPT = UnitTestFactory.buildTestProcessTask();
+        testPT.Case__c = caseList[0].id;
+        testPT.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT.Assign_To_Name__c = testcontact.ID;
+        testPT.Assigned_By__c = UserInfo.getUserId();
+        testPT.Assigned_Date__c = Date.newInstance(2018,01,05);
+        testPT.Task_Due_Date__c = Date.newInstance(2018,01,18);        
+        insert testPT;
+           
+        list<ocm_Time_Allocation__c> taList = new list<ocm_Time_Allocation__c>();               
+        ocm_Time_Allocation__c testTA = UnitTestFactory.buildTestTimeAllocation();
+        testTA.Owner__c = UserInfo.getUserId();
+        testTA.Client_Request__c = caseList[0].id;
+        testTA.Total_Allocated_Time__c = 2;
+        taList.add(testTA);
+        
+        ocm_Time_Allocation__c testTA2 = UnitTestFactory.buildTestTimeAllocation();
+        testTA2.Owner__c = UserInfo.getUserId();
+        testTA2.Process_Task__c = testPT.id;
+        testTA2.Total_Allocated_Time__c = 3;
+        taList.add(testTA2);
+        insert taList;
+        
+        ocm_ProcessTask__c ptResuslt =[select id, name,Total_Allocated_Time__c from ocm_ProcessTask__c where ID = :testPT.id];      
+        system.assertEquals(ptResuslt.Total_Allocated_Time__c, testTA2.Total_Allocated_Time__c);
+       
+        Case caseResult =[select id, Total_Allocated_Time__c, Total_Allocated_Time_Case__c from case where id=:caseList[0].id];
+        system.assertEquals(caseresult.Total_Allocated_Time__c, (testTA.Total_Allocated_Time__c + testTA2.Total_Allocated_Time__c));
+        system.assertEquals(caseresult.Total_Allocated_Time_Case__c, testTA.Total_Allocated_Time__c);
+               
+        Test.startTest();
+            TimeAllocationTriggerHandler.isAfterCallFired = false;
+            testTA.Client_Request__c = caseList[1].id;          
+            update testTA;
+        Test.stopTest();
+       
+        map<Id, Case> caseResult2 = new map<Id, Case>([select id ,Total_Allocated_Time__c, Total_Allocated_Time_Case__c from case where (ID = :caseList[0].id OR ID = :caseList[1].id)]);
+        system.assertEquals(caseResult2.get(caseList[0].id).Total_Allocated_Time__c, testTA2.Total_Allocated_Time__c);
+        system.assertEquals(caseResult2.get(caseList[0].id).Total_Allocated_Time_Case__c, null);
+         
+        system.assertEquals(caseResult2.get(caseList[1].id).Total_Allocated_Time__c, testTA.Total_Allocated_Time__c);  
+        system.assertEquals(caseResult2.get(caseList[1].id).Total_Allocated_Time_Case__c, testTA.Total_Allocated_Time__c);
+    }
+    
+    Static testmethod void TestProcessTaskRollupTotalAllocationTime()
+    {
+       
+        RecordType rtypeClient = [select id from RecordType where Name =:OCM_Constants.PROSPECT_RECORD_TYPE_NAME limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.Name = OCM_Constants.OCM_Oaktree_Employee_Org_Name;
+        insert testOrganization;
+        
+        RecordType rtypeContact = [select id from RecordType where Name =:OCM_Constants.RT_OAKTREE_CON limit 1];
+        Contact testcontact =UnitTestFactory.buildTestContact();
+        testcontact.RecordTypeId =rtypeContact.id;
+        testcontact.AccountId =testOrganization.id;
+        testcontact.Status__c ='Active';
+        insert testcontact;
+        
+        RecordType rtypeClientRequest = [select id ,Name from RecordType where SObjectType =:OCM_Constants.OBJ_CASE AND developername =:OCM_Constants.CASE_CLIENT_REQ_RECORD_DEV_NAME limit 1 ];           
+       
+        list<case> caseList =new list<case>();
+        case testcase = UnitTestFactory.buildTestCase();
+        testcase.RecordTypeId =rtypeClientRequest.id;
+        testcase.Subject ='Test for Allication time';
+        testcase.Request_Type__c ='Portfolio and Firm Reporting/Inquiries: Custom report';
+        testcase.Request_Purpose_Internal__c =true;
+        testcase.Client_or_Prospect_Organization__c =testOrganization.id;   
+        testcase.Request_Recieved_From__c ='Client';
+        testcase.Overall_Due_Date__c =Date.newInstance(2018,01,03);
+        testcase.Status ='open';
+        testcase.Strategies_Selected__c ='Real Estate Income';
+        testcase.Fund_Products_Selected__c ='REIF';
+        testcase.Request_Received_Date__c =Date.newInstance(2018,01,03);
+        caseList.add(testcase);
+        
+        case testcase2 = UnitTestFactory.buildTestCase();
+        testcase2.RecordTypeId =rtypeClientRequest.id;
+        testcase2.Subject ='Test for Allication time';
+        testcase2.Request_Type__c ='Portfolio and Firm Reporting/Inquiries: Custom report';
+        testcase2.Request_Purpose_Internal__c =true;
+        testcase2.Client_or_Prospect_Organization__c =testOrganization.id;   
+        testcase2.Request_Recieved_From__c ='Client';
+        testcase2.Overall_Due_Date__c =Date.newInstance(2018,01,03);
+        testcase2.Status='open';
+        testcase2.Strategies_Selected__c ='Real Estate Income';
+        testcase2.Fund_Products_Selected__c ='REIF';
+        testcase2.Request_Received_Date__c =Date.newInstance(2018,01,03);
+        caseList.add(testcase2);
+        insert caseList;
+        
+        list<ocm_ProcessTask__c> ptList =new list<ocm_ProcessTask__c>();
+        ocm_ProcessTask__c testOcmPT = UnitTestFactory.buildTestProcessTask();
+        testOcmPT.Case__c =caseList[0].id;
+        testOcmPT.Name ='Test';
+        testOcmPT.Status__c ='Open';
+        testOcmPT.Assign_To_Name__c =testcontact.ID;
+        testOcmPT.Assigned_By__c =UserInfo.getUserId();//testuser.Id;
+        testOcmPT.Assigned_Date__c =Date.newInstance(2018,01,03);
+        testOcmPT.Task_Due_Date__c =Date.newInstance(2018,01,15);
+        ptList.add(testOcmPT);
+        
+        ocm_ProcessTask__c testOcmPT2 = UnitTestFactory.buildTestProcessTask();
+        testOcmPT2.Case__c =caseList[1].id;
+        testOcmPT2.Name ='Test';
+        testOcmPT2.Status__c ='Open';
+        testOcmPT2.Assign_To_Name__c =testcontact.ID;
+        testOcmPT2.Assigned_By__c =UserInfo.getUserId();//testuser.Id;
+        testOcmPT2.Assigned_Date__c =Date.newInstance(2018,01,05);
+        testOcmPT2.Task_Due_Date__c =Date.newInstance(2018,01,18);
+        ptList.add(testOcmPT2);
+        insert ptList;
+               
+        ocm_Time_Allocation__c testOCMTA =UnitTestFactory.buildTestTimeAllocation();
+        testOCMTA.Owner__c = UserInfo.getUserId();
+        testOCMTA.Process_Task__c = ptList[0].Id;
+        testOCMTA.Total_Allocated_Time__c = 1;
+        insert testOCMTA;
+                
+        ocm_ProcessTask__c resuslt1 =[select id, name,Total_Allocated_Time__c from ocm_ProcessTask__c where ID = :ptList[0].id];      
+        system.assertEquals(resuslt1.Total_Allocated_Time__c, testOCMTA.Total_Allocated_Time__c);
+
+        Test.startTest();
+        TimeAllocationTriggerHandler.isAfterCallFired =false;
+        testOCMTA.Process_Task__c = ptList[1].Id;
+        testOCMTA.Total_Allocated_Time__c = 3;
+        update testOCMTA;
+        Test.stopTest();
+       
+        map<Id, ocm_ProcessTask__c> resuslt2 = new map<Id, ocm_ProcessTask__c>([select id, name,Total_Allocated_Time__c from ocm_ProcessTask__c where (ID = :ptList[0].id OR ID = :ptList[1].id)]);
+        system.assertEquals(resuslt2.get(ptList[0].id).Total_Allocated_Time__c, null);
+        system.assertEquals(resuslt2.get(ptList[1].id).Total_Allocated_Time__c, testOCMTA.Total_Allocated_Time__c);  
+    } 
+}

@@ -1,0 +1,36 @@
+<aura:component controller ="Listviewcontroller"  implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="customlist" type="ListView[]"/>
+    <aura:attribute name="AccountList" type="Account[]"/>
+    
+    <aura:iteration items="{!v.customlist}" var="item">
+      
+        <div class="slds-table_bordered">
+        <table>
+           <th data-label=""  class="slds-cell-wrap "></th>
+           <td style="width:10%;"> <lightning:icon iconName="utility:list" size="small"/></td>
+           <td style="width:90%;">
+               <div class="slds-text-title_bold">
+                  <ui:outputText value="{!item.Name}"/>  
+                   <br></br>
+               </div>
+           </td>
+        </table>
+        </div>
+    </aura:iteration>
+    <aura:iteration items="{!v.AccountList}" var="acc">
+        <div class="slds-table_bordered">
+        <table>
+           <th  data-label=""  class="slds-cell-wrap"></th>
+           <td style="width:10%;"> <lightning:icon iconName="utility:color_swatch" size="small"/></td>
+           <td style="width:90%;">
+               <div >
+                  <p>{!acc.Name}</p> 
+                   <p>{!acc.Type}</p>
+               </div>
+           </td>
+        </table>
+        </div>
+    </aura:iteration>
+       
+</aura:component>

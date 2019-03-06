@@ -1,0 +1,255 @@
+@Istest
+public class CRTimeAllocationTrackingControllerTest 
+{
+    Static testMethod void CRTimeAllocationTrackingtest()
+    {      
+
+        String ClientRecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByName().get(OCM_Constants.CLIENT_RECORD_TYPE_NAME).getRecordTypeId();
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = ClientRecordTypeId;
+        testOrganization.Name = OCM_Constants.OCM_Oaktree_Employee_Org_Name;
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+        insert testOrganization;
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = false;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = false;
+        
+        String rtypeContact = [select id from RecordType where Name =:OCM_Constants.RT_OAKTREE_CON limit 1].Id;
+        Contact testcontact = UnitTestFactory.buildTestContact();
+        testcontact.RecordTypeId = rtypeContact;
+        testcontact.AccountId = testOrganization.id;
+        testcontact.Status__c = OCM_Constants.OCM_STATUS_ACTIVE; 
+        testcontact.Lastname = UserInfo.getLastName();
+        testcontact.Firstname = UserInfo.getFirstName();
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        insert testcontact;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = false;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = false;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = false;
+
+        String testuser = [SELECT Id FROM User where (Profile.Name = 'System Administrator' AND isActive = true) limit 1].id;                
+        String rtypeClientRequest = [select id from RecordType where SObjectType =:OCM_Constants.OBJ_CASE AND developername =:OCM_Constants.CASE_CLIENT_REQ_RECORD_DEV_NAME limit 1].Id;           
+        
+        list<Case> caseList = new list<Case>();
+        Case testcase = UnitTestFactory.buildTestCase();
+        testcase.RecordTypeId = rtypeClientRequest;
+        testcase.Subject ='Test for Allocation time1';
+        testcase.Request_Type__c = 'Administrative - Account Metrics';
+        testcase.Request_Purpose_Internal__c = true;
+        testcase.Overall_Due_Date__c = system.today()+10;
+        testcase.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase.Firm_Level_not_strategy_specific__c = true;
+        testcase.Request_Received_Date__c = system.today();
+        testcase.Strategies_Selected__c = 'Distressed Opportunities';
+        testcase.Fund_Code__c ='OCM5';
+        testcase.OwnerId=UserInfo.getUserId();
+        caseList.add(testcase);
+        
+        Case testcase2 = UnitTestFactory.buildTestCase();
+        testcase2.RecordTypeId = rtypeClientRequest;
+        testcase2.Subject ='Test for Allication time2';
+        testcase2.Request_Type__c = 'Administrative - Account Metrics';
+        testcase2.Request_Purpose_Internal__c = true;
+        testcase2.Overall_Due_Date__c = system.today()+5;
+        testcase2.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase2.Firm_Level_not_strategy_specific__c = true;
+        testcase2.Request_Received_Date__c = system.today();
+        testcase2.OwnerId=UserInfo.getUserId();
+        caseList.add(testcase2); 
+        
+        Case testcase3 = UnitTestFactory.buildTestCase();
+        testcase3.RecordTypeId = rtypeClientRequest;
+        testcase3.Subject ='Test for Allication time2';
+        testcase3.Request_Type__c = 'Administrative - Account Metrics';
+        testcase3.Request_Purpose_Internal__c = true;
+        testcase3.Overall_Due_Date__c = system.today()+4;
+        testcase3.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase3.Firm_Level_not_strategy_specific__c = true;
+        testcase3.Request_Received_Date__c = system.today();
+        testcase3.OwnerId=testuser;
+        caseList.add(testcase3); 
+        
+        Case testcase4 = UnitTestFactory.buildTestCase();
+        testcase4.RecordTypeId = rtypeClientRequest;
+        testcase4.Subject ='Test for Allication time2';
+        testcase4.Request_Type__c = 'Administrative - Account Metrics';
+        testcase4.Request_Purpose_Internal__c = true;
+        testcase4.Overall_Due_Date__c = system.today()+5;
+        testcase4.Status = OCM_Constants.OCM_STATUS_OPEN;
+        testcase4.Firm_Level_not_strategy_specific__c = true;
+        testcase4.Request_Received_Date__c = system.today();
+        testcase4.OwnerId=UserInfo.getUserId();
+        caseList.add(testcase4); 
+        insert caseList; 
+        
+        list<ocm_ProcessTask__c> ptList = new list<ocm_ProcessTask__c>();
+        ocm_ProcessTask__c testPT = UnitTestFactory.buildTestProcessTask();
+        testPT.Case__c = testcase.id;
+        testPT.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT.Assign_To_Name__c = testcontact.ID;
+        testPT.Assigned_By__c = UserInfo.getUserId();
+        testPT.Assigned_Date__c = Date.newInstance(2018,01,05);
+        testPT.Task_Due_Date__c = Date.newInstance(2018,01,14);
+        testPT.Task_Time_Intensity__c =2;
+        ptList.add(testPT);
+        
+        ocm_ProcessTask__c testPT2 = UnitTestFactory.buildTestProcessTask();
+        testPT2.Case__c = testcase2.id;
+        testPT2.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT2.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT2.Assign_To_Name__c = testcontact.ID;
+        testPT2.Assigned_By__c = UserInfo.getUserId();
+        testPT2.Assigned_Date__c = system.today();
+        testPT2.Task_Due_Date__c = system.today()+3;
+        testPT2.Task_Time_Intensity__c =2;
+        ptList.add(testPT2);
+        
+        ocm_ProcessTask__c testPT3 = UnitTestFactory.buildTestProcessTask();
+        testPT3.Case__c = testcase3.id;
+        testPT3.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT3.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT3.Assign_To_Name__c = testcontact.ID;
+        testPT3.Assigned_By__c = UserInfo.getUserId();
+        testPT3.Assigned_Date__c = system.today();
+        testPT3.Task_Due_Date__c = system.today()+3;
+        testPT3.Task_Time_Intensity__c =2;
+        ptList.add(testPT3);
+        
+        ocm_ProcessTask__c testPT4 = UnitTestFactory.buildTestProcessTask();
+        testPT4.Case__c = testcase2.id;
+        testPT4.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT4.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT4.Assign_To_Name__c = testcontact.ID;
+        testPT4.Assigned_By__c = UserInfo.getUserId();
+        testPT4.Assigned_Date__c = system.today();
+        testPT4.Task_Due_Date__c = system.today()+2;
+        testPT4.Task_Time_Intensity__c =3;
+        ptList.add(testPT4);
+        
+        ocm_ProcessTask__c testPT5 = UnitTestFactory.buildTestProcessTask();
+        testPT5.Case__c = testcase3.id;
+        testPT5.Name = OCM_Constants.TEST_ACCOUNT;
+        testPT5.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        testPT5.Assign_To_Name__c = testcontact.ID;
+        testPT5.Assigned_By__c = UserInfo.getUserId();
+        testPT5.Assigned_Date__c = system.today();
+        testPT5.Task_Due_Date__c = system.today()+2;
+        testPT5.Task_Time_Intensity__c =3;
+        ptList.add(testPT5);
+        insert ptList;
+        
+        ocm_Time_Allocation_Period__c tap = new ocm_Time_Allocation_Period__c();
+        tap.Locked__c =false;
+        tap.Start_Date__c = system.today()-5;
+        tap.End_Date__c = system.today()+10;
+        insert tap;
+        
+        ocm_Time_Allocation_Period__c tmperiod =[select id ,Period__c from ocm_Time_Allocation_Period__c where id=:tap.id];
+        list<ocm_Time_Allocation__c> taList = new list<ocm_Time_Allocation__c>();               
+        ocm_Time_Allocation__c testTA = UnitTestFactory.buildTestTimeAllocation();
+        testTA.Owner__c = UserInfo.getUserId();
+        testTA.Client_Request__c = caseList[0].id;
+        testTA.Total_Allocated_Time__c = 2;
+        testTA.Time_Allocation_Period__c=tap.id;
+        taList.add(testTA);
+                
+        ocm_Time_Allocation__c testTA1 = UnitTestFactory.buildTestTimeAllocation();
+        testTA1.Owner__c = UserInfo.getUserId();
+        testTA1.Process_Task__c = ptList[1].id;
+        testTA1.Total_Allocated_Time__c = 3;
+        testTA1.Time_Allocation_Period__c=tap.id;
+        taList.add(testTA1);
+        
+        ocm_Time_Allocation__c testTA2 = UnitTestFactory.buildTestTimeAllocation();
+        testTA2.Owner__c = UserInfo.getUserId();
+        testTA2.Process_Task__c = ptList[2].id;
+        testTA2.Total_Allocated_Time__c = 4;
+        testTA2.Time_Allocation_Period__c=tap.id;
+        taList.add(testTA2);
+        
+        ocm_Time_Allocation__c testTA3 = UnitTestFactory.buildTestTimeAllocation();
+        testTA3.Owner__c = UserInfo.getUserId();
+        testTA3.Process_Task__c = ptList[3].id;
+        testTA3.Total_Allocated_Time__c = 5;
+        testTA3.Time_Allocation_Period__c=tap.id;
+        taList.add(testTA3);
+        insert taList;
+            
+        test.startTest();
+        CRTimeAllocationTrackingController crt =new CRTimeAllocationTrackingController();        
+         
+         
+        crt.getOwnedByOptions();
+        crt.sortData();
+        
+        if(crt.results != null && crt.results.size() > 0)
+        {
+           system.assertEquals(crt.total_size ,caseList.size()-1+ptList.size());
+            
+            crt.results[1].caseRec.Sub_Department_Text__c = '10.00';
+            crt.results[0].processTaskList[0].Sub_Department_Text__c = '6.00';
+            crt.updateData();
+            Map<id,ocm_Time_Allocation__c>result1 =new Map<id,ocm_Time_Allocation__c>([select id,Total_Allocated_Time__c,Process_Task__r.Total_Allocated_Time__c,Client_Request__r.Total_Allocated_Time__c from ocm_Time_Allocation__c where (ID =:taList[0].id OR ID =:taList[1].id OR ID =:taList[2].id OR ID =:taList[3].id ) ]);
+            //system.assertEquals(result1.get(taList[0].id).Total_Allocated_Time__c,  10);
+            system.assertEquals(result1.get(taList[1].id).Total_Allocated_Time__c,  testTA1.Total_Allocated_Time__c);
+            //system.assertEquals(result1.get(taList[2].id).Total_Allocated_Time__c,  6);
+            system.assertEquals(result1.get(taList[3].id).Total_Allocated_Time__c,  testTA3.Total_Allocated_Time__c);
+        }  
+        CRTimeAllocationTrackingController crt1 =new CRTimeAllocationTrackingController();
+        
+        //CRTimeAllocationTrackingController.sortBy ='caseId';
+        ApexPages.currentPage().getParameters().put('sortBy', 'caseId');
+        crt1.sortData();
+        if(crt1.results != null && crt1.results.size() > 0)
+        {   system.debug('crt1.results'+crt1.results);
+            crt1.results[3].caseRec.Sub_Department_Text__c = '7.00';
+            crt1.results[2].processTaskList[1].Sub_Department_Text__c = '8.00';
+            crt1.updateData();
+           
+        } 
+        //CRTimeAllocationTrackingController crt2 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='recOpened';
+        ApexPages.currentPage().getParameters().put('sortBy', 'recOpened');
+        crt1.sortData();
+        
+       // CRTimeAllocationTrackingController crt3 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='ttc';
+        ApexPages.currentPage().getParameters().put('sortBy', 'ttc');
+        crt1.sortData();
+        
+        //CRTimeAllocationTrackingController crt4 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='ss';
+        ApexPages.currentPage().getParameters().put('sortBy', 'ss');
+        crt1.sortData();
+        
+        //CRTimeAllocationTrackingController crt5 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='sfc';
+        ApexPages.currentPage().getParameters().put('sortBy', 'sfc');
+        crt1.sortData();
+        //CRTimeAllocationTrackingController crt6 =new CRTimeAllocationTrackingController();
+       // CRTimeAllocationTrackingController.sortBy ='desc';
+        ApexPages.currentPage().getParameters().put('sortBy', 'desc');
+        crt1.sortData(); 
+        //CRTimeAllocationTrackingController crt7 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='status';
+        ApexPages.currentPage().getParameters().put('sortBy', 'status');
+        crt1.sortData(); 
+        //CRTimeAllocationTrackingController crt8 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='dateClose';
+        ApexPages.currentPage().getParameters().put('sortBy', 'dateClose');
+        crt1.sortData(); 
+        //CRTimeAllocationTrackingController crt9 =new CRTimeAllocationTrackingController();
+        //CRTimeAllocationTrackingController.sortBy ='tat';
+        ApexPages.currentPage().getParameters().put('sortBy', 'tat');
+        crt1.sortData(); 
+        
+        test.stopTest();
+        
+    }
+    
+}

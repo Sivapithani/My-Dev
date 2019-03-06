@@ -1,0 +1,190 @@
+<apex:page standardController="Account"  renderAs="pdf">
+    <head>
+        <style>
+            @page{
+                margin-left: 45px;
+                margin-right: 30px; 
+            }
+            .tableCellBorder 
+            {
+                vertical-align:text-top;
+                border: 0.2px solid black;               
+            }
+           
+        </style>
+    </head>
+   <!--ocm_Event__c extensions="EventDetailCotroller"<apex:form id="meetingpag">
+        <apex:pageBlock id="myPageBlock"  mode="maindetail">
+            <h2>Meeting :{!event.Name} </h2>
+            <table width="100%">
+                      <tr >
+                          <td width="20%" valign="top"><b>Owner</b></td>
+                          <td width="80%" valign="top">  <apex:outputText value="{!event.Assigned_To__r.Name}"/></td>
+                          
+                     </tr>
+                 
+                      <tr>
+                          <td width="20%" ><b>Department</b></td>
+                          <td  width="80%" >   <apex:outputField value="{!event.Department__c}"/></td>
+                          
+                      </tr>
+                       <tr>
+                          <td  width="20%"><b>Subject</b></td>
+                          <td  width="80%">  <apex:outputText value="{!eventSub}" escape="false"/></td>
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Location</b> </td>
+                          <td  width="80%">   <apex:outputText value="{!eventLoc}" escape="false"/></td>
+                          
+                      </tr>
+                      <tr>
+                          <td width="20%" valign="top"><b>Description</b></td>
+                          <td width="80%">  <apex:outputText value="{!eventDes}" escape="false"/></td>
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%" valign="top"><b>Meeting Notes </b> </td>
+                          <td width="80%" valign="top"><apex:outputText value="{!eventNotes}" escape="false"/></td>
+                      </tr>
+                      
+                      <tr>
+                         <td  width="20%"><b>All Day Meeting</b></td>
+                         <td width="80%">   <apex:outputText value="{!if(event.All_Day_Event__c,'Yes','No')}" /> </td> 
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>StartDate</b></td>
+                          <td width="80%"> 
+                                <apex:outputText value="{0,date,MM/dd/yyyy }">
+                                <apex:param value="{!event.StartDate__c}"/> 
+                                 </apex:outputText>
+                         </td>
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Start</b></td>
+                          <td width="80%">
+                                <apex:outputText value="{0,date,MM/dd/yyyy hh:mm aa }" >
+                                <apex:param value="{!event.Start__c-(8/24)}"/> 
+                                 </apex:outputText>
+                          </td>
+                       </tr>
+                      <tr>
+                          <td  width="20%"><b>End</b></td>
+                          <td width="80%">
+                                <apex:outputText value="{0,date,MM/dd/yyyy hh:mm aa }">   
+                                <apex:param value="{!event.End__c-(8/24)}"/>
+                                 </apex:outputText>
+                          </td>
+                       </tr>
+                       <tr>
+                          <td  width="20%"><b>Owner's Time Zone</b></td>
+                          <td width="80%">   <apex:outputText value="{!event.Owner_s_Time_Zone__c}" /></td>
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Meeting Type</b></td>
+                          <td width="80%">    <apex:outputText value="{!event.Event_Type__c}" /></td>
+                          
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Include on Client<br/> Briefing Memo</b></td>
+                          <td width="80%">   <apex:outputText value="{!if(event.Include_on_Client_Briefing_Memo__c,'Yes','No')}" /></td>
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Duration</b></td>
+                          <td width="80%">    <apex:outputText value="{!event.DurationInMins__c}"/></td>
+                          
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Consultant</b></td>
+                          <td width="80%">   <apex:outputText value="{!if(event.Consultant__c,'Yes','No')}" /></td>
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Plan Sponsor</b></td>
+                          <td width="80%"> <apex:outputText value="{!if(event.Plan_Sponsor__c,'Yes','No')}" /></td>
+                         
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Record Keeper</b></td>
+                          <td>  <apex:outputText value="{!if(event.Record_Keeper__c,'Yes','No')}"/></td>
+                        
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Target Date Fund</b></td>
+                          <td width="80%">  <apex:outputText value="{!if(event.Target_Date_Fund__c,'Yes','No')}" /></td>
+                       
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Third Party Administrator</b></td>
+                          <td><apex:outputText value="{!if(event.Third_Party_Administrator__c,'Yes','No')}"  /></td>
+                        
+                      </tr>
+                      <tr>
+                          <td  width="20%"><b>Conference Call?</b></td>
+                          <td width="80%">  <apex:outputText value="{!event.Conference_Call__c}" /></td>
+                        
+                     </tr>
+                     <tr>
+                          <td width="20%"><b>Number of Advisors Present</b></td>
+                          <td width="80%" ><apex:outputText value="{!event.Number_of_Advisors_Present__c}"/></td>
+                    </tr>
+            </table>
+         </apex:pageBlock>  
+    </apex:form>
+    
+    <apex:form id="attchfrom">
+        <apex:pageBlock id="MeetingRelations" title="Meeting Relations" rendered="{!meetingAttachments.size != 0}">
+             <table border="0.5px" cellspacing="0" cellPadding="0">
+                <tr>
+                    <th class="tableCellBorder" width="150px;">Title</th>
+                    <th class="tableCellBorder" width="200px;">Last Modified</th>
+                    <th class="tableCellBorder" width="200px;">Created By</th>
+                    
+                </tr>
+                <apex:repeat value="{!meetingAttachments}" var="att">
+                    <tr>
+                        <td class="tableCellBorder"><apex:outputText value="{!att.Name}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{0,date,MM/dd/yyyy hh:mm}">   
+                                <apex:param value="{!att.LastModifiedDate}"/>
+                                 </apex:outputText>
+                        </td>
+                        <td class="tableCellBorder"><apex:outputText value="{!att.CreatedBy.Name}"/></td>
+                        
+                    </tr>
+                </apex:repeat>
+            </table>
+        </apex:pageBlock>
+    </apex:form>
+   <apex:outputPanel rendered="{!meetingAttachments.size != 0}">
+                <div style="page-break-after:always" />
+            </apex:outputPanel>
+    <apex:form id="reltForm">
+        <apex:pageBlock id="MeetingRelations" title="Meeting Relations">
+            <table border="0.5px" cellspacing="0" cellPadding="0">
+                <tr>
+                    <th class="tableCellBorder" width="150px;">Meeting<br/>Relation Id</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Organization</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Contact</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Client Account</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Legal Entity</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Fund/Product</th>
+                    <th class="tableCellBorder" width="200px;">Related<br/>Strategy</th>
+                </tr>
+                <apex:repeat value="{!selectedResults}" var="result">
+                    <tr>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.relationId}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.relOrgName}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.relContactName}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.FinAccountName}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.LegalEntityName}"/></td>
+                        <td class="tableCellBorder"><apex:outputText value="{!result.FundProductName}"/></td>
+                         <td class="tableCellBorder"><apex:outputText value="{!result.strategyName}"/></td>
+                    </tr>
+                </apex:repeat>
+            </table>
+            <apex:outputText value="0 results found" rendered="{!selectedResults.size == 0}"/>
+        </apex:pageBlock>    
+    </apex:form> -->
+</apex:page>

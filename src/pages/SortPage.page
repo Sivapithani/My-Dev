@@ -1,0 +1,40 @@
+<apex:page controller="AccountClass">
+ <apex:form >
+  <apex:pageBlock id="pb">
+   <apex:pageBlocKTable value="{!wrapperList}" var="wrapObj">
+    <apex:column >
+     <apex:facet name="header">
+      <apex:commandLink value="Name {!IF(sortableField=='name',IF(sortOrder='asc','▼','▲'),'')}" action="{!doSort}" rerender="pb">
+       <apex:param name="name" value="name" assignTo="{!sortableField}"></apex:param>
+      </apex:commandLink>
+     </apex:facet>
+     
+      <apex:outputText value="{!wrapObj.name}"/>
+     
+    </apex:column>
+    <apex:column >
+     <apex:facet name="header">
+      <apex:commandLink value="Ac Number {!IF(sortableField=='num1',IF(sortOrder='asc','▼','▲'),'')}" action="{!doSort}" rerender="pb">
+        <apex:param name="num1" value="num1" assignTo="{!sortableField}"></apex:param>
+      </apex:commandLink>
+     </apex:facet>
+     
+      <apex:outputText value="{!wrapObj.num1}"/>
+         
+    </apex:column>
+    <apex:column >
+     <apex:facet name="header">
+      <apex:commandLink value="Date {!IF(sortableField=='createdDate',IF(sortOrder='asc','▼','▲'),'')}" action="{!doSort}" rerender="pb">
+       <apex:param name="createdDate" value="createdDate" assignTo="{!sortableField}"></apex:param>
+      </apex:commandLink>
+     </apex:facet>
+     
+      <apex:outputText value="{0, date, MM/d/yyyy}">
+       <apex:param value="{!wrapObj.createdDate}"/>
+      </apex:outputText>
+        
+    </apex:column>
+   </apex:pageBlocKTable>
+  </apex:pageBlock>
+ </apex:form>
+</apex:page>

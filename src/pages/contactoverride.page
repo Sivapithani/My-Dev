@@ -1,0 +1,18 @@
+<apex:page standardController="contact" >
+  <apex:form >
+    <apex:includeLightning />
+
+     <script>
+    $Lightning.use("c:LightningPDFGeneratorDemoApp", function() {
+                $Lightning.createComponent("c:Newcontactpageoverrride",
+                {
+                 
+                },
+                "lightning",
+                function(cmp) {
+                    // do some stuff
+                });
+            });
+      </script>
+      </apex:form>  
+</apex:page>

@@ -1,0 +1,8 @@
+<aura:component implements="force:appHostable" >
+    <aura:attribute name="header" type="Aura.Component[]"/>
+    <div >
+        <span class="header">{!v.header}</span><br/>
+        <span class="body">{!v.body}</span><br/>
+    </div>
+  <lightning:input type="number" name="myNumber" label="Pick a Number:" value="54" />
+</aura:component>

@@ -1,0 +1,7 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+
+    <div class="message-window">Here I am !</div>
+<div class="red-box">Fixed div</div>
+
+<a href="#" class="photo-details-messages" style="position:absolute; top:400px">Show/hide Slide Panel</a>
+</aura:component>

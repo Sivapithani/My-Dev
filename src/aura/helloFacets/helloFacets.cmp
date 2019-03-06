@@ -1,0 +1,10 @@
+<aura:component implements="force:appHostable" >
+See how we set the header facet.
+    <c:facetHeader >
+    Nice body!
+        <aura:set attribute="header">
+        Hello header facet.
+        </aura:set>
+    </c:facetHeader>
+     <lightning:input type="number" name="myNumber" label="Pick a Number:" value="54" />
+</aura:component>

@@ -1,0 +1,39 @@
+<apex:page standardController="Contact">
+    <apex:includeLightning />
+    
+    <div id="lightning" />
+    
+    <script>
+    var visualForceFunction = function(event){
+		    var myEventData = event.getParam("data");
+		    console.log(myEventData);
+		};
+ 	var myUserContext = "{!$User.UITheme}";
+     $Lightning.use("c:DemoApp", function() {
+        $Lightning.createComponent("c:contactList_cmp",
+                                   { recordId:"{!Contact.AccountId}" },
+            "lightning",
+             function(cmp) {
+                 $A.eventService.addHandler({ event: "c:ContactNavigationEvent", handler : visualForceFunction});
+                 /* $A.eventService.addHandler({
+                    event: "force:navigateToComponent",
+                    handler: function (event) {
+                        if (myUserContext == "Theme4t" || myUserContext == "Theme4d") {
+                            // The Visualforce page is in S1 or Lightning Experience
+                            console.log('====myUserContext==='+myUserContext+'===Account==');
+                            sforce.one.navigateToComponent("{!Contact.AccountId}");
+                           console.log('====myUserContext===Account==');
+                        } else if (myUserContext == 'Theme3') {
+                            // The Visualforce page is  running in Classic
+                            //window.parent.location = '/' + event.getParams().recordId;
+                        } else {
+                            console.log("Unsupported theme");
+                        }
+                    }
+                }); */
+            
+          
+        });
+     });
+    </script>
+</apex:page>

@@ -1,0 +1,1038 @@
+public without sharing class FinancialAccountTriggerHandler {
+    public static Boolean isFirstCall = false;
+    public static Boolean isFirstCallUpdate = false;
+    public static Boolean isFirstCallCommitedCapital = false;
+    private static Boolean wpFlag = false;    
+    public static Set<Id> contactSet;
+    
+    public static void handleAfterUpdate(map<Id, ocm_FinancialAccount__c> newFA, map<Id, ocm_FinancialAccount__c> oldFA) {
+        if(!isFirstCallUpdate)
+            isFirstCallUpdate = true;
+        //This is impossible unless the trigger handler is called outside a trigger, so this should never happen
+        if (newFA.Size() != oldFA.Size())
+        {
+            throw new OCMException(OCM_Constants.OCM_EXCEPTION_OLD_NEW_MAP_SIZE_DIFFER);
+        }          
+        try {  
+            list<Id> cieIds = new list<Id>();
+            Set<Id> orgIds = new Set<Id>();
+            Set<Id> finIds = new Set<Id>();
+            Set<Id> faCIEIds = new Set<Id>();
+            list<Id> leIds = new list<Id>();
+            
+            Set<Id> ca2leFAIds = new Set<Id>();
+            Set<Id> ca2leOrgIds = new Set<Id>();
+            Set<Id> cieIds4Affiliate = new Set<Id>();
+            for (ocm_FinancialAccount__c fa: newFA.values()) 
+            {
+                ocm_FinancialAccount__c oldRes = oldFA.get(fa.Id);
+                if (fa.Status__c != oldRes.Status__c) 
+                {
+                    cieIds.add(fa.Client_Investment_Entity__c);
+                    finIds.add(fa.Id);
+                }
+                if(fa.Oaktree_Lux_Investor__c != oldRes.Oaktree_Lux_Investor__c)
+                {
+                    leIds.add(fa.Client_Investment_Entity__c);
+                }
+                
+                //Old code with filters
+                // Start 
+                if((fa.Client_Investment_Entity__c != oldFA.get(fa.Id).Client_Investment_Entity__c) || (fa.strategies__c != oldFA.get(fa.Id).strategies__c) || (fa.Fund_Products__c != oldFA.get(fa.Id).Fund_Products__c) || (fa.Status__c != oldFA.get(fa.Id).Status__c))
+                {
+                    if(fa.Client_Investment_Entity__c != null)
+                    	faCIEIds.add(fa.Client_Investment_Entity__c);
+                    if(oldFA.get(fa.Id).Client_Investment_Entity__c != null)	
+                    	faCIEIds.add(oldFA.get(fa.Id).Client_Investment_Entity__c);
+                } 
+                //End
+                                
+                //New code without filters
+                /* Start 
+                if(fa.Client_Investment_Entity__c != null)
+                	faCIEIds.add(fa.Client_Investment_Entity__c);
+                if(fa.Client_Investment_Entity__c != oldFA.get(fa.Id).Client_Investment_Entity__c)	
+                	faCIEIds.add(oldFA.get(fa.Id).Client_Investment_Entity__c);             
+                End 
+                 */
+                if(fa.Client_Investment_Entity__c != oldFA.get(fa.Id).Client_Investment_Entity__c)
+                {
+                	if(fa.Client_Investment_Entity__c != null)
+                    	ca2leFAIds.add(fa.Client_Investment_Entity__c);
+                    if(oldFA.get(fa.Id).Client_Investment_Entity__c != null)	
+                    	ca2leFAIds.add(oldFA.get(fa.Id).Client_Investment_Entity__c);
+                }
+                
+                if(fa.OCM_Affiliate__c != oldRes.OCM_Affiliate__c)
+                    cieIds4Affiliate.add(fa.Client_Investment_Entity__c);	
+            }
+            
+            if(ca2leFAIds.size() > 0)
+            {
+                map<Id, ocm_LegalEntity__c> les = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id IN :ca2leFAIds]);
+                for(ocm_LegalEntity__c le:les.values())
+                {
+                    if(le.Client__c != null)
+                    	ca2leOrgIds.add(le.Client__c);
+                }   
+            }
+            
+            if(cieIds.size() > 0)
+            {
+                map<Id, ocm_LegalEntity__c> les = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id in :cieIds]);
+                for(ocm_LegalEntity__c le:les.values())
+                    orgIds.add(le.Client__c);
+            }
+            
+            //if(ca2leFAIds.size() > 0)
+            	//RelatedFAToLETriggerHandler.updateClientAccountFields(ca2leFAIds);
+            
+            if(ca2leOrgIds.size() > 0)
+            	RelatedFAToLETriggerHandler.updateOrganizationFields(ca2leOrgIds);	
+            
+            if(orgIds.size()>0)
+                RelatedFAToLETriggerHandler.updateOrganizationFields(orgIds);
+            if(finIds.size() > 0 && !RelatedFAToLETriggerHandler.isFirstCallFinAcctStatus)
+                RelatedFAToLETriggerHandler.updateCIECountFinAcctStatus(finIds);
+            
+            if((faCIEIds != null) && (faCIEIds.size() > 0))
+                rollupCIEStratNfund(faCIEIds);
+            
+            if(!ChangeManagementTicketTriggerHandler.hasAlreadyRanAfterUpdateTrigger()) {
+                //Query DCM Rule object for related Config Objects where DCM Rule matches ocm_FinancialAccount__c API name
+                list<ocm_DA_Rule__c> rules = [Select d.Status__c, d.Object_Name__c, d.Id, (Select Id, Field_API_Name__c, Field_Owner__c From Data_Approval_Configs__r) From ocm_DA_Rule__c d Where Object_Name__c = 'ocm_FinancialAccount__c' limit 1];
+                if(rules.size() == 1){
+                    if(rules[0].Status__c == OCM_Constants.OCM_STATUS_ACTIVE) {
+                        DataChangeManagementHelper.processDataApprovals(oldFA, newFA, rules[0]);
+                    }
+                }
+            }
+        	if(cieIds4Affiliate != null && cieIds4Affiliate.size() > 0)
+            	OcmAffiliatePopultion(cieIds4Affiliate);
+        }
+        catch(Exception e){
+            for(ocm_FinancialAccount__c fa : newFA.values()){
+                fa.addError(e.getMessage());
+            }
+        } 
+        //GovernorLimitsHelper.debugLimits();
+    }
+    
+    public static void handleAfterInsertforCommitedCapital(map<Id, ocm_FinancialAccount__c> newFA){
+        try{
+            if(!isFirstCallCommitedCapital)
+                isFirstCallCommitedCapital = true;
+                
+            Set<Id> cieids = new Set<Id>();
+            Set<Id> cieids4DBC = new Set<Id>();
+            Set<Id> stratCIEids = new Set<Id>();
+            Set<Id> fundCIEids = new Set<Id>();
+            Set<Id> cieIds4Affiliate = new Set<Id>();
+            for(ocm_FinancialAccount__c ca : newFA.values())
+            {
+                if(ca.Client_Investment_Entity__c != null)
+                {
+                    cieids.add(ca.Client_Investment_Entity__c);
+                    if(ca.Inception_Date__c != null)
+                    	cieids4DBC.add(ca.Client_Investment_Entity__c);
+                    if(ca.OCM_Affiliate__c != null)
+                    	cieIds4Affiliate.add(ca.Client_Investment_Entity__c);	
+                }   
+                    
+            }
+            //Getting Org Ids for rollup org status
+            set<Id> orgIds = new set<Id>();
+            if(cieids.size() > 0){
+                map<Id, ocm_LegalEntity__c> cieMap = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id in :cieIds]);
+                for(ocm_LegalEntity__c le : cieMap.values()){
+                    if(le.Client__c != null)
+                        orgIds.add(le.Client__c);
+                }
+            }
+            if(orgIds.size() > 0)
+            {
+                list<Account> parentAcc = [select ParentId from Account where id in : orgIds];
+                set<Id> parentIds = new set<Id>();
+                for(Account acc : parentAcc)
+                {
+                    if(acc.ParentId != null)
+                        parentIds.add(acc.ParentId);
+                }
+
+                map<String,Account> orgMap = new map<String,Account>([select Id, Oaktree_Lux_Investor__c,Record_Type_Name__c,Intermediary_Distribution_Channel__c,Number_of_Client_Accounts__c from Account where id in : orgIds]);
+
+                rollupDateBecomeClient(orgIds);
+                rollupActiveClientAccounts(orgMap);
+                rollupIntDistChannel(parentIds,orgMap);
+                rollupOrganizationStatus(parentIds,orgMap);
+                //rollupOaktreeLuxInvestor(parentIds,orgMap);                
+            }
+            
+            
+            //if((cieids4DBC != null) && (cieids4DBC.size() > 0))
+            	//rollupDateBecameClientCIE(cieids4DBC);
+            	
+            if((cieids != null) && (cieids.size() > 0))
+                rollupCIEStratNfund(cieids);
+            if((cieIds4Affiliate != null) && (cieIds4Affiliate.size() > 0))
+                OcmAffiliatePopultion(cieIds4Affiliate);    
+        }catch(Exception e){
+            for(ocm_FinancialAccount__c fa : newFA.values()){
+                fa.addError(e.getMessage());
+            }
+        }
+    }  
+     
+    public static void handleAfterUpdateforCommitedCapital(map<Id, ocm_FinancialAccount__c> newFA, map<Id, ocm_FinancialAccount__c> oldFA) {
+        try{
+            if(!isFirstCallCommitedCapital)
+                isFirstCallCommitedCapital = true;
+                
+            Set<Id> cieids4DBC = new Set<Id>();    
+            Set<Id> cieids = new Set<Id>();
+            Set<Id> caIds = new Set<Id>();
+            Set<Id> cieIdSetForOrgs = new Set<Id>();
+            
+            list<ocm_FinancialAccount__c> finList = new list<ocm_FinancialAccount__c>();
+            for(ocm_FinancialAccount__c ca : newFA.values())
+            {
+                if((ca.Inception_Date__c != oldFA.get(ca.Id).Inception_Date__c) || (ca.Client_Investment_Entity__c != oldFA.get(ca.Id).Client_Investment_Entity__c))
+                {
+                	cieids4DBC.add(ca.Client_Investment_Entity__c);
+                	if(ca.Client_Investment_Entity__c != oldFA.get(ca.Id).Client_Investment_Entity__c)
+	                	cieids4DBC.add(oldFA.get(ca.Id).Client_Investment_Entity__c);
+                }                
+                
+                if(ca.Client_Investment_Entity__c != null)
+                {
+                    finList.add(newFA.get(ca.Id));
+                }   
+                if(ca.Client_Investment_Entity__c != oldFA.get(ca.Id).Client_Investment_Entity__c)
+                {
+                    finList.add(oldFA.get(ca.Id));
+                }
+                if(ca.Client_Investment_Entity__c != oldFA.get(ca.Id).Client_Investment_Entity__c)
+                {
+                    Id newOrgId = SchemaHelper.buildClientIdFromLink(ca.Client__c);
+                    Id oldOrgId = SchemaHelper.buildClientIdFromLink(oldFA.get(ca.Id).Client__c);
+                	if(newOrgId != null)
+                		cieIdSetForOrgs.add(newOrgId);
+                    if(oldOrgId != null)
+                		cieIdSetForOrgs.add(oldOrgId);
+                    if((ca.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES) && (ca.Status__c == OCM_Constants.OCM_STATUS_ACTIVE))
+                        caIds.add(ca.Id);
+                }                  
+            }
+            
+            //Bypassing Wireportal Updates 
+            map<String, String> fieldCheck = new map<String, String>();
+            map<String, Schema.SObjectField> finsAccountSet = Schema.SObjectType.ocm_FinancialAccount__c.fields.getMap();
+            for(String ss: finsAccountSet.keySet())
+            {
+                if (finsAccountSet.get(ss).getDescribe().isAccessible())
+                {
+                    string param = String.ValueOf(finsAccountSet.get(ss));
+                    if(param.length() > = 4)
+                    {
+                        if(param.substring(param.length()-3,param.length()) == '__c')
+                        {
+                            //if(!((param =='Wire_Status__c') || (param =='Wire_Last_Updated_Date__c') || (param =='Wire_Last_Updated_By__c') || (param =='Intermediary_Institution_Address__c') || (param =='Intermediary_Institution_Name__c') || (param =='Beneficiary__c') || (param =='Beneficiary_Bank_Name__c') || (param =='Beneficiary_Bank_Address__c') || (param =='Beneficiary_Address__c')  || (param =='BIC_Routing_Number__c') || (param =='ABA_Routing_Number__c')))
+                            if(!((param == 'Wire_Last_Updated_Date__c') || (param == 'Beneficiary_Name__c') || (param == 'Beneficiary_Account__c') || (param == 'Intermediary_Institution_ABA__c') || (param == 'Wire_Portal_Template_Type__c') || (param == 'Second_Intermediary_Address__c') || (param == 'Intermediary_Institution_BIC__c') || (param == 'Beneficiary_BIC__c') || (param == 'Beneficiary_Bank_BIC__c') || (param == 'Second_Intermediary_Name__c') || (param == 'Beneficiary_Bank_Address__c') || (param == 'Second_Intermediary_BIC__c') || (param == 'Beneficiary_Address__c') || (param == 'Wire_Status__c') || (param == 'Account_at_Beneficiary_Name__c') || (param == 'Beneficiary_Bank_ABA__c') || (param == 'IntermedAccount__c') || (param == 'Account_at_Beneficiary_Account__c') || (param == 'Account_at_Beneficiary_BIC__c') || (param == 'IntermedBIC__c') || (param == 'Account_at_Beneficiary_Address__c') || (param == 'Wire_Portal_Transfer_Type__c') || (param == 'Second_Intermediary_ABA__c') || (param == 'Wire_Portal_Template_Type_Name__c') || (param == 'Beneficiary_Bank_Name__c') || (param == 'Intermediary_Institution_Account__c') || (param == 'IntermedAddr__c') || (param == 'IntermedName__c') || (param == 'Intermediary_Institution_Address__c') || (param == 'Beneficiary_Bank_Account__c') || (param == 'Intermediary_Institution_Name__c') || (param == 'Wire_Last_Updated_By__c') || (param == 'Sender_to_Receiver__c') || (param == 'BenName__c') || (param == 'BenAccount__c') || (param == 'BenBIC__c') || (param == 'BenBankBIC__c') || (param == 'BenBankAddress__c') || (param == 'BenAddress__c') || (param == 'BenBankABA__c') || (param == 'BenBankName__c'))){
+                                fieldCheck.put(param,param);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            for(ocm_FinancialAccount__c ca : finList)
+            {
+                ocm_FinancialAccount__c ca2 = oldFA.get(ca.Id);
+                for(String fc: fieldCheck.values())
+                {                   
+                    if(ca.get(fc) != ca2.get(fc))
+                    {
+                        if(ca.Client_Investment_Entity__c != null)
+                        {
+                            if(!(cieids.contains(ca.Client_Investment_Entity__c)))
+                                cieids.add(ca.Client_Investment_Entity__c);
+                        }   
+                        if(ca.Client_Investment_Entity__c != oldFA.get(ca.Id).Client_Investment_Entity__c)
+                        {
+                            if(!(cieids.contains(oldFA.get(ca.Id).Client_Investment_Entity__c)))
+                                cieids.add(oldFA.get(ca.Id).Client_Investment_Entity__c);
+                        }
+                    }   
+                }
+            }
+            
+            if(cieids != null)
+            {
+                //Getting Org Ids for rollup org status
+                set<Id> orgIds = new set<Id>();
+                if(cieids.size() > 0)
+                {
+                    map<Id, ocm_LegalEntity__c> cieMap = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id in :cieIds]);
+                    for(ocm_LegalEntity__c le : cieMap.values())
+                    {
+                        if(le.Client__c != null)
+                            orgIds.add(le.Client__c);
+                    }
+                }
+                if(orgIds.size() > 0)
+                {
+                    list<Account> parentAcc = [select ParentId from Account where id in : orgIds];
+                    set<Id> parentIds = new set<Id>();
+                    for(Account acc : parentAcc)
+                    {
+                        if(acc.ParentId != null)
+                            parentIds.add(acc.ParentId);
+                    }
+    
+                    map<String,Account> orgMap = new map<String,Account>([select Id, Oaktree_Lux_Investor__c,Record_Type_Name__c,Intermediary_Distribution_Channel__c,Number_of_Client_Accounts__c from Account where id in : orgIds]);
+                        
+                    rollupDateBecomeClient(orgIds);
+                    rollupActiveClientAccounts(orgMap);
+                    rollupOrganizationStatus(parentIds,orgMap);
+                    rollupIntDistChannel(parentIds,orgMap);
+                    //rollupOaktreeLuxInvestor(parentIds,orgMap);
+                }
+            }    
+            if((caIds != null) && (caIds.size() > 0))
+            {
+                generateCaConObjIds(caIds);
+                if(contactSet != null && contactSet.size() > 0)
+                    ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(contactSet);
+            }
+            if((cieIdSetForOrgs != null) && (cieIdSetForOrgs.size() > 0))
+            {
+            	FinancialBalanceTriggerHandler.updateAUMOrg(cieIdSetForOrgs);
+            }
+            
+            //if((cieids4DBC != null) && (cieids4DBC.size() > 0))
+            	//rollupDateBecameClientCIE(cieids4DBC);            
+        }
+        catch(Exception e)
+        {
+            for(ocm_FinancialAccount__c fa : newFA.values())
+            {
+                fa.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void handleAfterDeleteforCommitedCapital(map<Id, ocm_FinancialAccount__c> oldFA) {
+        try{
+            if(!isFirstCallCommitedCapital)
+                isFirstCallCommitedCapital = true;
+            
+            Set<Id> cieIds4Affiliate = new Set<Id>();            
+            Set<Id> cieids = new Set<Id>();
+            set<ocm_Deleted_Records__c> delRecSet = new set<ocm_Deleted_Records__c>();
+            for(ocm_FinancialAccount__c ca : oldFA.values())
+            {
+                cieids.add(ca.Client_Investment_Entity__c);
+                ocm_Deleted_Records__c delRec = new ocm_Deleted_Records__c();
+                delRec.Deleted_Record_ID__c = ca.Id;
+                delRec.Object_Name__c = ca.Id.getSObjectType().getDescribe().getName();
+                delRecSet.add(delRec);
+                
+                if(ca.OCM_Affiliate__c != null && ca.Client_Investment_Entity__c != null)
+                	cieIds4Affiliate.add(ca.Client_Investment_Entity__c);
+            }
+            //Getting Org Ids for rollup org status
+            set<Id> orgIds = new set<Id>();
+            if(cieids.size() > 0)
+            {
+                //rollupDateBecameClientCIE(cieids);
+                map<Id, ocm_LegalEntity__c> cieMap = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id in :cieIds]);
+                for(ocm_LegalEntity__c le : cieMap.values())
+                    orgIds.add(le.Client__c);
+            }
+            if(orgIds.size() > 0)
+            {
+                list<Account> parentAcc = [select ParentId from Account where id in : orgIds];
+                set<Id> parentIds = new set<Id>();
+                for(Account acc : parentAcc)
+                {
+                    if(acc.ParentId != null)
+                        parentIds.add(acc.ParentId);
+                }
+
+                map<String,Account> orgMap = new map<String,Account>([select Id, Oaktree_Lux_Investor__c,Record_Type_Name__c,Intermediary_Distribution_Channel__c,Number_of_Client_Accounts__c from Account where id in : orgIds]);
+                
+                
+                //rollupDateBecomeClient(orgIds);
+                rollupActiveClientAccounts(orgMap);
+                rollupOrganizationStatus(parentIds,orgMap);
+                rollupIntDistChannel(parentIds,orgMap);
+                //rollupOaktreeLuxInvestor(parentIds,orgMap);
+            }
+            
+            if((cieids != null) && (cieids.size() > 0))
+                rollupCIEStratNfund(cieids);
+            
+            if(contactSet != null && contactSet.size() > 0)
+                    ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(contactSet);
+        	if(delRecSet != null && delRecSet.size()>0)
+            {
+            	list<ocm_Deleted_Records__c> delRecList = new list<ocm_Deleted_Records__c>();
+                delRecList.addAll(delRecSet);
+                insert delRecList;
+            }
+            if((cieIds4Affiliate != null) && (cieIds4Affiliate.size() > 0))
+                OcmAffiliatePopultion(cieIds4Affiliate);
+        }catch(Exception e){
+            for(ocm_FinancialAccount__c fa : oldFA.values()){
+                fa.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void rollupDateBecomeClient(set<Id> orgIds)
+    {
+        system.debug('#### RR rollupDateBecomeClient called');
+        set<Id> parentAccIs = new set<id>();
+        set<Id> updatedAccIds = new set<id>();
+        Map<String,Account> orgMap = new Map<String,Account>([select Id, ParentId, Date_Became_Client__c from Account where id in : orgIds]);
+        for(Account acc :orgMap.values())
+        {
+        	if(acc.ParentId != null)
+        		parentAccIs.add(acc.ParentId);	
+        }
+        AggregateResult[] groupedResults = [SELECT Client_Investment_Entity__r.Client__c org, MIN(Inception_Date__c) FROM ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : orgIds GROUP BY Client_Investment_Entity__r.Client__c];	 
+        
+        for(AggregateResult ar : groupedResults)
+        {
+            system.debug('#### Client : ' + orgMap.get((String)ar.get('org')));
+            if(orgMap.containsKey((String)ar.get('org')))
+            {
+                orgMap.get((String)ar.get('org')).Date_Became_Client__c = (Date)ar.get('expr0');
+                updatedAccIds.add(orgMap.get((String)ar.get('org')).Id);
+            }                                
+        }
+        
+        for(Account acc: orgMap.values())
+        {
+        	if(!(updatedAccIds.contains(acc.id)))
+        		orgMap.get(acc.id).Date_Became_Client__c = null;	
+        }
+        
+        update orgMap.values();
+        system.debug('#### orgMap : '+orgMap);
+        
+        list<Account> updatedAccList = new list<Account>();
+        set<Id> updatedIds = new set<Id>();
+        if(parentAccIs != null && parentAccIs.size() > 0)
+        {
+        	AggregateResult[] groupedAccResults = [SELECT ParentId, MIN(Date_Became_Client__c) dateBecameClient FROM Account where ParentId IN : parentAccIs GROUP BY ParentId];
+        	for (AggregateResult arRes : groupedAccResults)  
+        	{ 
+	            Account ac = new Account( Id = (String)arRes.get('ParentId'));
+	            if(arRes.get('dateBecameClient') != null)
+	            	ac.Parent_Organization_Date_Became_Client__c = (date) arRes.get('dateBecameClient');
+	            else
+	            	ac.Parent_Organization_Date_Became_Client__c = null;	            
+	            updatedAccList.add(ac);
+	            updatedIds.add(ac.id);
+	        }
+	        for(Id aId: parentAccIs)
+	        {
+	        	if(!(updatedIds.contains(aId)))
+	        	{
+	        		Account ac = new Account(Id = aId);
+	        		ac.Parent_Organization_Date_Became_Client__c = null;
+	    		 	updatedAccList.add(ac);
+	        	}	
+	        }
+        }        
+        if(updatedAccList != null && updatedAccList.size()>0)
+        {
+    	    AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+    		AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+    		AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        	update updatedAccList;
+        }	
+        //update orgMap.values();
+        //system.debug('#### orgMap : '+orgMap.size());
+    }
+    
+    public static void rollupDateBecomeClientBeforeDelete(map<Id, ocm_FinancialAccount__c> oldFA) {
+        try{
+            /*
+            if(!isFirstCallCommitedCapital)
+                isFirstCallCommitedCapital = true;
+            */
+            Set<Id> cieids = new Set<Id>();
+            Set<Id> caIds = new Set<Id>();
+            for(ocm_FinancialAccount__c ca : oldFA.values())
+            {
+                cieids.add(ca.Client_Investment_Entity__c);
+                if((ca.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES) && (ca.Status__c == OCM_Constants.OCM_STATUS_ACTIVE))
+                    caIds.add(ca.Id);
+            }
+            //Getting Org Ids for rollup org status
+            set<Id> orgIds = new set<Id>();
+            if(cieids.size() > 0){
+                map<Id, ocm_LegalEntity__c> cieMap = new map<Id, ocm_LegalEntity__c>([select o.id,o.Client__c from ocm_LegalEntity__c o where Id in :cieIds]);
+                for(ocm_LegalEntity__c le : cieMap.values()){
+                    orgIds.add(le.Client__c);
+                }
+            }
+            if(orgIds.size() > 0){
+                Map<Id,Account> orgMap = new Map<Id,Account>([select Id, Date_Became_Client__c from Account where id in : orgIds]);
+                AggregateResult[] groupedResults = [SELECT Client_Investment_Entity__r.Client__c org, MIN(Inception_Date__c) FROM ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : orgIds and id Not in : oldFA.keyset() GROUP BY Client_Investment_Entity__r.Client__c];
+                Map<Id,Date> recMap = new Map<Id,Date>();
+                for(AggregateResult ar : groupedResults){
+                    recMap.put((String)ar.get('org'),(Date)ar.get('expr0'));
+                }
+                for(Account org : orgMap.values()){
+                    if(recMap.containsKey(org.Id)){
+                        org.Date_Became_Client__c = recMap.get(org.Id);
+                    }else{
+                        org.Date_Became_Client__c = null;
+                    }
+                }
+                update orgMap.values();
+            }
+            if((caIds != null) && (caIds.size() > 0))
+                generateCaConObjIds(caIds);
+                
+        }catch(Exception e){
+            for(ocm_FinancialAccount__c fa : oldFA.values()){
+                fa.addError(e.getMessage());
+            }
+        }
+    }
+    
+     public static void rollupActiveClientAccounts(Map<String,Account> orgMap)
+    {       
+        set<Id> accIdsForDefaultSet = new set<Id>();
+        // Account.Number_of_Client_Accounts__c update
+        List<Account> accupdateList = new List<Account>();
+        //Map<Id,Account> orgMap = new Map<Id,Account>([select id, Status__c, Number_of_Client_Accounts__c from Account where id in : orgIds]);
+        
+        list<ocm_FinancialAccount__c> faList = [Select o.Status__c, o.Id, o.Name, o.Defaulted__c, o.Client_Investment_Entity__r.Client__c From ocm_FinancialAccount__c o where o.Client_Investment_Entity__r.Client__c IN : orgMap.keyset()];
+        MAP<String, List<ocm_FinancialAccount__c>> financialAccountMap = new MAP<String, List<ocm_FinancialAccount__c>>();
+        for(ocm_FinancialAccount__c fa : faList)
+        {
+            list<ocm_FinancialAccount__c> tempFAList = financialAccountMap.get(fa.Client_Investment_Entity__r.Client__c);
+            if(fa.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+            {
+                if(tempFAList != null)
+                {
+                    tempFAList.add(fa);
+                    financialAccountMap.put(fa.Client_Investment_Entity__r.Client__c, tempFAList);
+                }
+                else
+                {
+                    tempFAList = new List<ocm_FinancialAccount__c>();
+                    tempFAList.add(fa);
+                    financialAccountMap.put(fa.Client_Investment_Entity__r.Client__c, tempFAList);
+                }
+            }
+            //Set Default is true on Org Side 
+            if(fa.Defaulted__c == OCM_Constants.OCM_VALUE_YES)
+            {
+                if(fa.Client_Investment_Entity__r.Client__c != null)
+                {
+                    if(!(accIdsForDefaultSet.contains(fa.Client_Investment_Entity__r.Client__c)))
+                        accIdsForDefaultSet.add(fa.Client_Investment_Entity__r.Client__c);
+                }   
+            }   
+        }
+        
+        for(String orgId : orgMap.keyset())
+        {
+            Account acc = orgMap.get(orgId);
+            List<ocm_FinancialAccount__c> tempFAList = financialAccountMap.get(orgId);
+            if(tempFAList != null && tempFAList.size() > 0)
+            {
+                acc.Number_of_Client_Accounts__c = tempFAList.size();
+            }            
+            else
+            {
+                acc.Number_of_Client_Accounts__c = 0;
+            }
+            if(accIdsForDefaultSet.contains(orgId))
+                acc.Defaulted__c = OCM_Constants.OCM_VALUE_YES;
+            else
+                acc.Defaulted__c = OCM_Constants.OCM_VALUE_NO;
+            accupdateList.add(acc);
+        }
+        
+        if(accupdateList != null && accupdateList.size() > 0)
+            update accupdateList;
+        system.debug('#### RR accupdateList : '+accupdateList.size());
+    }
+    
+    public static void rollupOrganizationStatus(set<Id> parentIds, Map<String,Account> orgMap)
+    {
+        /*
+        List<Account> parentAcc = [select ParentId from Account where id in : orgIds];
+        set<Id> parentIds = new set<Id>();
+        for(Account acc : parentAcc){
+            if(acc.ParentId != null){
+                parentIds.add(acc.ParentId);
+            }
+        }
+        */
+        Map<Id,List<ocm_FinancialAccount__c>> orgFaMap;
+        List<Account> parentAccList = [select id, Status__c from Account where id in : parentIds];
+        Set<Account> parentAccSet = new Set<Account>();
+        if(parentIds.size() > 0){
+            Map<Id,Account> subsidiaryOrgMap = new Map<Id,Account>([select id, ParentId, Status__c, Record_Type_Name__c from Account where ParentId in : parentIds]);
+            system.debug('#### subsidiaryOrgMap : '+subsidiaryOrgMap.keyset());
+            List<ocm_FinancialAccount__c> subsidiaryClientList = [select id, Client_Investment_Entity__r.Client__r.ParentId from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : subsidiaryOrgMap.keyset() and Status__c =: OCM_Constants.OCM_STATUS_ACTIVE];
+            system.debug('#### subsidiaryClientList : '+subsidiaryClientList.size());
+            orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+            for(ocm_FinancialAccount__c fa : subsidiaryClientList){
+                system.debug('#### fa.Client_Investment_Entity__r.Client__r.ParentId : '+fa.Client_Investment_Entity__r.Client__r.ParentId);
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__r.ParentId);
+                if(recList == null){
+                    recList = new List<ocm_FinancialAccount__c>();
+                }
+                recList.add(fa);
+                orgFaMap.put(fa.Client_Investment_Entity__r.Client__r.ParentId,recList);
+            }
+            system.debug('#### orgFaMap : '+orgFaMap);
+            for(Account acc : parentAccList){
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(acc.Id);
+                system.debug('#### recList : '+recList);
+                if(recList != null && recList.size() > 0){
+                    acc.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+                }else{
+                    acc.Status__c = OCM_Constants.OCM_STATUS_FORMER;
+                }
+                //parentAccSet.add(acc);
+            }
+            /*
+            if(parentAccSet.size() > 0){
+                List<Account> parentAccList2 = new List<Account>();
+                parentAccList2.addAll(parentAccSet);
+                update parentAccList;
+            }
+            */
+        }
+        
+        //Map<String,Account> orgMap = new Map<String,Account>([select id, Status__c, Record_Type_Name__c from Account where id in : orgIds]);
+        List<ocm_FinancialAccount__c> faList = [select id, Client_Investment_Entity__r.Client__c from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : orgMap.keyset() and Status__c =: OCM_Constants.OCM_STATUS_ACTIVE];
+        orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+        for(ocm_FinancialAccount__c fa : faList){
+            List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__c);
+            if(recList == null){
+                recList = new List<ocm_FinancialAccount__c>();
+            }
+            recList.add(fa);
+            orgFaMap.put(fa.Client_Investment_Entity__r.Client__c,recList);
+        }
+        for(Account acc : orgMap.values()){
+            if(acc.Record_Type_Name__c == OCM_Constants.CLIENT_RECORD_TYPE_NAME || acc.Record_Type_Name__c == OCM_Constants.ConsultantCLIENT_RECORD_TYPE_NAME){
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(acc.Id);
+                system.debug('#### recs found : '+recList);
+                if(recList != null && recList.size() > 0){
+                    acc.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+                }else{
+                    acc.Status__c = OCM_Constants.OCM_STATUS_FORMER;
+                }
+            }
+        }
+        Set<Account> accSet = new Set<Account>();
+        if(parentAccList.size()>0)
+            accSet.addAll(parentAccList);
+        if(orgMap != null)
+            accSet.addAll(orgMap.values());
+        list<Account> accToUpdate = new list<Account>();
+        if(accSet != null)
+        {
+            accToUpdate.addAll(accSet);
+            update accToUpdate;
+        }   
+        //update orgMap.values();
+    }
+    
+    public static void rollupIntDistChannel(set<Id> parentIds, Map<String,Account> orgMap)
+    {
+        /*
+        List<Account> parentAcc = [select ParentId from Account where id in : orgIds];
+        set<Id> parentIds = new set<Id>();
+        for(Account acc : parentAcc){
+            if(acc.ParentId != null){
+                parentIds.add(acc.ParentId);
+            }
+        }
+        */
+        List<Account> parentAccList = [select id, Intermediary_Distribution_Channel__c from Account where id in : parentIds];
+        Map<Id,List<ocm_FinancialAccount__c>> orgFaMap;
+        if(parentAccList.size() > 0){
+            Map<Id,Account> subsidiaryOrgMap = new Map<Id,Account>([select id, ParentId from Account where ParentId in : parentIds]);
+            List<ocm_FinancialAccount__c> subsidiaryClientList = [select id, Client_Investment_Entity__r.Client__r.ParentId from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : subsidiaryOrgMap.keyset() and (Intermediary_Distribution_Channel__c =: OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT OR Intermediary_Distribution_Channel__c =: OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT)];
+            orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+            for(ocm_FinancialAccount__c fa : subsidiaryClientList){
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__r.ParentId);
+                if(recList == null){
+                    recList = new List<ocm_FinancialAccount__c>();
+                }
+                recList.add(fa);
+                orgFaMap.put(fa.Client_Investment_Entity__r.Client__r.ParentId,recList);
+            }
+            for(Account acc : parentAccList){
+                if(orgFaMap.containsKey(acc.Id)){
+                    acc.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_YES;
+                }else{
+                    acc.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_NO;
+                }
+            }
+            //update parentAccList;
+        }
+        
+        //Map<String,Account> orgMap = new Map<String,Account>([select Id, Intermediary_Distribution_Channel__c from Account where id in : orgIds]);
+        List<ocm_FinancialAccount__c> faList = [select Id, Client_Investment_Entity__r.Client__c from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : orgMap.keyset() and (Intermediary_Distribution_Channel__c =: OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT OR Intermediary_Distribution_Channel__c =: OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT)];
+        orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+        for(ocm_FinancialAccount__c fa : faList)
+        {
+            if(fa.Client_Investment_Entity__r.Client__c != null)
+            {
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__c);
+                if(recList == null){
+                    recList = new List<ocm_FinancialAccount__c>();
+                }
+                recList.add(fa);
+                orgFaMap.put(fa.Client_Investment_Entity__r.Client__c,recList);
+            }
+        }
+        for(Account acc : orgMap.values()){
+            if(orgFaMap.containsKey(acc.Id)){
+                acc.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_YES;
+            }else{
+                acc.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_NO;
+            }
+        }
+        //update orgMap.values();
+        Set<Account> accSet = new Set<Account>();
+        if(parentAccList.size()>0)
+            accSet.addAll(parentAccList);
+        if(orgMap != null)
+            accSet.addAll(orgMap.values());
+        List<Account> accToUpdate = new List<Account>();
+        if(accSet != null)
+        {
+            accToUpdate.addAll(accSet);
+            update accToUpdate;
+        }   
+    }
+    /*
+    public static void rollupOaktreeLuxInvestor(set<Id> parentIds, Map<String,Account> orgMap)
+    {  
+        List<Account> parentAccList = [select id, Oaktree_Lux_Investor__c from Account where id in : parentIds];
+        Map<Id,List<ocm_FinancialAccount__c>> orgFaMap;
+        if(parentAccList.size() > 0){
+            Map<Id,Account> subsidiaryOrgMap = new Map<Id,Account>([select id, ParentId from Account where ParentId in : parentIds]);
+            List<ocm_FinancialAccount__c> subsidiaryClientList = [select id, Client_Investment_Entity__r.Client__r.ParentId from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : subsidiaryOrgMap.keyset() and Oaktree_Lux_Investor__c =: OCM_Constants.OCM_VALUE_YES];
+            orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+            for(ocm_FinancialAccount__c fa : subsidiaryClientList){
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__r.ParentId);
+                if(recList == null){
+                    recList = new List<ocm_FinancialAccount__c>();
+                }
+                recList.add(fa);
+                orgFaMap.put(fa.Client_Investment_Entity__r.Client__r.ParentId,recList);
+            }
+            for(Account acc : parentAccList){
+                if(orgFaMap.containsKey(acc.Id)){
+                    acc.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+                }else{
+                    acc.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+                }
+            }
+        }       
+        //Map<String,Account> orgMap = new Map<String,Account>([select Id, Intermediary_Distribution_Channel__c from Account where id in : orgIds]);
+        List<ocm_FinancialAccount__c> faList = [select Id, Client_Investment_Entity__r.Client__c from ocm_FinancialAccount__c where Client_Investment_Entity__r.Client__c in : orgMap.keyset() and Oaktree_Lux_Investor__c =: OCM_Constants.OCM_VALUE_YES];
+        orgFaMap = new Map<Id,List<ocm_FinancialAccount__c>>();
+        for(ocm_FinancialAccount__c fa : faList)
+        {
+            if(fa.Client_Investment_Entity__r.Client__c != null)
+            {
+                List<ocm_FinancialAccount__c> recList = orgFaMap.get(fa.Client_Investment_Entity__r.Client__c);
+                if(recList == null){
+                    recList = new List<ocm_FinancialAccount__c>();
+                }
+                recList.add(fa);
+                orgFaMap.put(fa.Client_Investment_Entity__r.Client__c,recList);
+            }
+        }
+        for(Account acc : orgMap.values()){
+            if(orgFaMap.containsKey(acc.Id)){
+                acc.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+            }else{
+                acc.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+            }
+        }
+        //update orgMap.values();
+        Set<Account> accSet = new Set<Account>();
+        if(parentAccList.size()>0)
+            accSet.addAll(parentAccList);
+        if(orgMap != null)
+            accSet.addAll(orgMap.values());
+        List<Account> accToUpdate = new List<Account>();
+        if(accSet != null)
+        {
+            accToUpdate.addAll(accSet);
+            update accToUpdate;
+        }
+    }
+    */
+    private static void generateCaConObjIds(set<Id> caConIds)
+    {
+        contactSet = new set<Id>();
+        if(caConIds != null && caConIds.size() > 0)
+        {
+            list<ocm_ContacttoFinancialAccount__c> contact2faList = [Select Id, Name, Contact__c, Financial_Account__c From ocm_ContacttoFinancialAccount__c Where Financial_Account__c IN: caConIds AND Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c =: OCM_Constants.OCM_VALUE_YES];
+            if(contact2faList != null && contact2faList.size() > 0)
+            {
+                for(ocm_ContacttoFinancialAccount__c c2fa: contact2faList)
+                {
+                    if(c2fa.Contact__c != null)
+                        contactSet.add(c2fa.Contact__c);
+                }
+            }
+        }
+    }
+    
+    public static void rollupCIEStratNfund(set<Id> cieIds)
+    {
+        list<ocm_LegalEntity__c> allCAsForCIE = [Select o.Id, o.Fund_Products_Invested__c, o.Strategies_Invested__c , (Select  strategies__c, Status__c, Fund_Products__c, Client_Investment_Entity__c From Financial_Accounts_CIE__r Where (Status__c = 'ACTIVE' and (strategies__c != null or Fund_Products__c != null))) From ocm_LegalEntity__c o where id IN :cieIds];
+        set<ocm_LegalEntity__c> finalSet = new set<ocm_LegalEntity__c>(); 
+        for(ocm_LegalEntity__c cie: allCAsForCIE)
+        {
+            Set<String> uniquestrategies = new Set<String>();
+            Set<String> uniquefundprod = new Set<String>();
+            if(cie.Financial_Accounts_CIE__r.size() > 0)
+            {
+                for(ocm_FinancialAccount__c fa : cie.Financial_Accounts_CIE__r)
+                {
+                    if((fa.Strategies__c != null) && (fa.Strategies__c != ''))
+                    {
+                        list<String> strategies = fa.strategies__c.Split(OCM_Constants.newLineSeparator);
+                        for(Integer k=0; k< strategies.size();k++)
+                        {
+                            if(!(uniquestrategies.contains(strategies.get(k).Trim())))
+                                uniquestrategies.add(strategies.get(k).Trim());
+                        }               
+                    }
+                    if((fa.Fund_Products__c != null) && (fa.Fund_Products__c != ''))
+                    {
+                        list<String> fundprods = fa.Fund_Products__c.Split(OCM_Constants.seperator);
+                        for(Integer k=0; k< fundprods.size();k++)
+                        {
+                            if(!(uniquefundprod.contains(fundprods.get(k).Trim())))
+                                uniquefundprod.add(fundprods.get(k).Trim());
+                        }
+                    }
+                }
+            }
+            String strategies = '';
+            String tempStrategies = '';
+            String fundprod = '';
+			String tempFundprod = '';
+            for(String str : uniquestrategies)
+            {
+                tempStrategies += str+'; ';
+                if(tempStrategies.length() > 995)
+                {
+                	strategies += '; (+)';
+                	break;
+                }
+                else
+                	strategies += str+'; ';
+            }
+            for(String str1 : uniquefundprod)
+            {
+                tempFundprod += str1+'; ';
+                if(tempFundprod.length() > 995)
+                {
+                	fundprod += '; (+)';
+                	break;
+                }
+                else
+                	fundprod += str1+'; ';	
+            }   
+            if((strategies != '') && (strategies.endsWith('(+)')))            
+                cie.Strategies_Invested__c  = strategies;
+			else if(strategies != '')
+				cie.Strategies_Invested__c  = strategies.substring(0,strategies.length()-2);
+			else
+				cie.Strategies_Invested__c  = strategies;
+					                                                    
+            if((fundprod != '') && (fundprod.endsWith('(+)')))
+                cie.Fund_Products_Invested__c = fundprod;
+            else if (fundprod != '')
+				cie.Fund_Products_Invested__c = fundprod.substring(0,fundprod.length()-2);
+			else
+				cie.Fund_Products_Invested__c = fundprod;	    
+                
+            finalSet.add(cie);   
+        }
+        if(finalSet != null)
+        {
+            list<ocm_LegalEntity__c> finalList = new list<ocm_LegalEntity__c>();
+            finalList.addAll(finalSet);
+            update finalList;
+        }       
+    }
+    
+    private static void OcmAffiliatePopultion(set<Id> cieIdSet)
+    {
+    	list<ocm_LegalEntity__c> cieList = [Select o.OCM_Affiliate__c, o.Id, (Select Id, OCM_Affiliate__c From Financial_Accounts_CIE__r) From ocm_LegalEntity__c o where (id IN :cieIdSet AND OCM_Affiliate_Override__c != true)];
+    	if(cieList != null && cieList.size() > 0)
+    	{
+	    	for(ocm_LegalEntity__c cie : cieList)
+	    	{	
+	    		cie.OCM_Affiliate__c = ''; 
+	    		boolean isAffiliate = false;
+	            boolean isNonAffiliate = false; 
+	    		if(cie.Financial_Accounts_CIE__r != null && cie.Financial_Accounts_CIE__r.size() > 0)
+				{
+					for(ocm_FinancialAccount__c fa :cie.Financial_Accounts_CIE__r)
+					{
+						if(string.isNotEmpty(fa.OCM_Affiliate__c))
+						{
+							if(fa.OCM_Affiliate__c == 'Affiliate')
+							{
+	    	                    isAffiliate = true;
+	    	                    break;
+							}
+	        	            else if(fa.OCM_Affiliate__c == 'Non-Affiliate')
+	            	            isNonAffiliate = true;												
+						}
+					}
+					if(isAffiliate == true)
+	                    cie.OCM_Affiliate__c ='Affiliate';
+	                else if(isNonAffiliate == true)
+	                    cie.OCM_Affiliate__c ='Non-Affiliate';
+				}
+	    	}
+	    	
+	    	LegalEntityTriggerHandler.isFirstCall = true;
+			LegalEntityTriggerHandler.isFirstCallAfterUpdate = true;
+			LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = true;
+	    	update cieList;
+	    	LegalEntityTriggerHandler.isFirstCall = false;
+			LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+			LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = false;
+    	}
+    }
+    /*
+    private static void rollupDateBecameClientCIE(set<Id> cieIds)
+    {
+    	set<Id> updatedCieIds = new set<id>();
+        map<Id, ocm_LegalEntity__c> ciesToBeUpdate = new map<Id, ocm_LegalEntity__c>([Select o.Id, o.Date_Became_Client__c From ocm_LegalEntity__c o where id IN :cieIds]);
+        AggregateResult[] groupedResultsCIE = [SELECT Client_Investment_Entity__c cie, MIN(Inception_Date__c) FROM ocm_FinancialAccount__c where Client_Investment_Entity__c IN : cieIds GROUP BY Client_Investment_Entity__c];	 
+        
+        for(AggregateResult ar : groupedResultsCIE)
+        {
+            if(ciesToBeUpdate.containsKey((Id)ar.get('cie')))
+            {
+                ciesToBeUpdate.get((Id)ar.get('cie')).Date_Became_Client__c = (Date)ar.get('expr0');
+                updatedCieIds.add(ciesToBeUpdate.get((Id)ar.get('cie')).Id);
+            }                                
+        }
+        
+        for(ocm_LegalEntity__c cie: ciesToBeUpdate.values())
+        {
+        	if(!(updatedCieIds.contains(cie.id)))
+        		ciesToBeUpdate.get(cie.id).Date_Became_Client__c = null;	
+        }
+        LegalEntityTriggerHandler.isFirstCall = true;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = true;
+        update ciesToBeUpdate.values();
+        LegalEntityTriggerHandler.isFirstCall = false;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;        
+    }
+    */
+    /*
+    public static void updateRelatedForeignCIECAonUpdate(map<Id, ocm_FinancialAccount__c> newFA, map<Id, ocm_FinancialAccount__c> oldFA){
+        // If we reparent a client account's Client_Investment_Entity__c than we need to update the 
+        // related contact to update the Related_Foreign_CIEs_Client_Account__c field
+        
+        try{
+            Set<String> faIds = new Set<String>();
+            for(ocm_FinancialAccount__c fa: newFA.values()){
+                if(fa.Client_Investment_Entity__c != oldFA.get(fa.id).Client_Investment_Entity__c){
+                    faIds.add(fa.id);
+                }
+            }
+            
+            Set<Id> contactIds = new Set<Id>();
+            if(faIds != null && faIds.size() > 0){
+                List<ocm_ContacttoFinancialAccount__c> contact2faList = [Select Id, Name, Contact__c, Financial_Account__c From ocm_ContacttoFinancialAccount__c Where Financial_Account__c IN: faIds AND Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c =: OCM_Constants.OCM_VALUE_YES];
+                if(contact2faList != null && contact2faList.size() > 0){
+                    for(ocm_ContacttoFinancialAccount__c c2fa: contact2faList){
+                        contactIds.add(c2fa.Contact__c);
+                    }
+                    
+                    if(contactIds != null && contactIds.size() > 0){
+                        ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(contactIds);
+                    }
+                }
+            }
+        }catch(Exception e){
+            for(ocm_FinancialAccount__c fa : oldFA.values()){
+                fa.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void updateRelatedForeignCIECAonDelete(map<Id, ocm_FinancialAccount__c> oldFA){
+        // If we delete a client account than we need to update the 
+        // related contact to update the Related_Foreign_CIEs_Client_Account__c field
+        
+        try{
+            Set<String> faIds = new Set<String>();
+            for(ocm_FinancialAccount__c fa: oldFA.values()){
+                faIds.add(fa.id);
+            }
+            
+            Set<Id> contactIds = new Set<Id>();
+            if(faIds != null && faIds.size() > 0){
+                List<ocm_ContacttoFinancialAccount__c> contact2faList = [Select Id, Name, Contact__c, Financial_Account__c From ocm_ContacttoFinancialAccount__c Where Financial_Account__c IN: faIds AND Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c =: OCM_Constants.OCM_VALUE_YES];
+                system.debug('### contact2faList Size : '+contact2faList.size());
+                if(contact2faList != null && contact2faList.size() > 0){
+                    for(ocm_ContacttoFinancialAccount__c c2fa: contact2faList){
+                        contactIds.add(c2fa.Contact__c);
+                    }
+                    
+                    if(contactIds != null && contactIds.size() > 0){
+                        ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(contactIds);
+                    }
+                }
+            }
+        }catch(Exception e){
+            for(ocm_FinancialAccount__c fa : oldFA.values()){
+                fa.addError(e.getMessage());
+            }
+        }
+    }
+    
+    private static boolean compareEvents(ocm_FinancialAccount__c newFA, ocm_FinancialAccount__c oldFA)
+   {
+        if(newFA.Wire_Status__c != oldFA.Wire_Status__c || 
+           newFA.Wire_Last_Updated_Date__c != oldFA.Wire_Last_Updated_Date__c || 
+           newFA.Wire_Last_Updated_By__c != oldFA.Wire_Last_Updated_By__c || 
+           newFA.Intermediary_Institution_Name__c != oldFA.Intermediary_Institution_Name__c || 
+           newFA.Intermediary_Institution_Address__c != oldFA.Intermediary_Institution_Address__c || 
+           newFA.Beneficiary__c != oldFA.Beneficiary__c || 
+           newFA.Beneficiary_Bank_Name__c != oldFA.Beneficiary_Bank_Name__c || 
+           newFA.Beneficiary_Bank_Address__c != oldFA.Beneficiary_Bank_Address__c || 
+           newFA.Beneficiary_Address__c != oldFA.Beneficiary_Address__c || 
+           newFA.BIC_Routing_Number__c != oldFA.BIC_Routing_Number__c || 
+           newFA.ABA_Routing_Number__c != oldFA.ABA_Routing_Number__c)
+        {
+            wpFlag = true;
+            return wpFlag;
+        }
+        wpFlag = false;
+        return wpFlag;
+    }
+    */
+}

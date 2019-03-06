@@ -1,0 +1,54 @@
+ public static void validationonblueSkyrecords(List<ocm_Blue_Sky_Record__c> newBsr )
+    {
+   
+        map<string,ocm_Blue_Sky_Record__c> blueSkyMap = new map<string,ocm_Blue_Sky_Record__c>();
+        map<string,string>contactNameMap = new  map<string,string>();
+        map<string,string>fundNameMap = new  map<string,string>();
+        map<string,string>entityNameMap = new  map<string,string>();
+        set<string>fundSet = new  set<string>();
+        set<string>entitySet = new  set<string>();
+        set<string>emailSet = new  set<string>();  
+        for(ocm_Blue_Sky_Record__c  bsr: newBsr)
+        {
+            if(bsr.Fund_Product__c != null)
+           fundSet.add(bsr.Fund_Product__c) ;
+        if(bsr.Marketing_Entity__c != null)
+             entitySet.add(bsr.Marketing_Entity__c) ;
+        if(bsr.Contact_s_Email__c != null && bsr.Contact_s_Email__c !='')
+            emailSet.add(bsr.Contact_s_Email__c);
+        }
+        
+        if(fundSet !=null && entitySet !=null && emailSet !=null )
+        {
+            list<ocm_Blue_Sky_Record__c> blueskyobj = [select id,name,Fund_Product__r.Name,Marketing_Entity__r.Name,Contact_s_Email__c,Contact__r.Name from ocm_Blue_Sky_Record__c where Fund_Product__c IN:fundSet AND Marketing_Entity__c IN:entitySet AND Contact_s_Email__c IN:emailSet];
+            
+            if(blueskyobj.size()>0)
+            {
+                for(ocm_Blue_Sky_Record__c bsr :blueskyobj)
+                {
+                    if(bsr.Fund_Product__c !=null && bsr.Marketing_Entity__c != null && bsr.Contact_s_Email__c != null && bsr.Contact_s_Email__c !='')
+                    {
+                        string key = bsr.Fund_Product__c+'=>'+bsr.Marketing_Entity__c+'=>'+bsr.Contact_s_Email__c;
+                        blueSkyMap.put(key,bsr);
+                        contactNameMap.put(bsr.Contact_s_Email__c,bsr.Contact__r.Name);
+                        fundNameMap.put(bsr.Fund_Product__c,bsr.Fund_Product__r.Name);
+                        entityNameMap.put(bsr.Marketing_Entity__c,bsr.Marketing_Entity__r.Name);
+                    }
+
+                }
+         
+            } 
+            for(ocm_Blue_Sky_Record__c  bsr: newBsr)
+             {
+                 if(bsr.Fund_Product__c !=null && bsr.Marketing_Entity__c != null && bsr.Contact_s_Email__c != null && bsr.Contact_s_Email__c !=''){
+                    string key = bsr.Fund_Product__c+'=>'+bsr.Marketing_Entity__c+'=>'+bsr.Contact_s_Email__c;
+                    if(blueSkyMap.containsKey(key))
+                    {   
+                        if(blueSkyMap.values() != null )
+                        bsr.addError(contactNameMap.get(bsr.Contact_s_Email__c)+' has already a blue sky record with the combination of '+ fundNameMap.get(bsr.Fund_Product__c)+' and '+entityNameMap.get(bsr.Marketing_Entity__c)+', please choose a different combination!');
+                    }
+                 }   
+             }
+       }
+   }
+    

@@ -1,0 +1,70 @@
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Otto", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Saieh", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "DeMilt", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Allen", "Leslie Lopez", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Powell", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Maletis", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Spendlove", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Curran", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Fergus", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Sweeney", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Kenyon", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Mitchell", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Pajand", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Romero", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Carleton", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Harrington", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Sievers", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Cohen", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Vickers", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Nemetz", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Siciliano", "Azy Kiai", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Loskota", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Randolph", "Erica Comeau", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Cookler", "Leslie Lopez", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Meadow", "Leslie Lopez", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Hilborne", "Leslie Lopez", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.LastName = "Becker", "Leslie Lopez", 
+IF( 
+OR( 
+Client__r.BillingCountry = "Hong Kong", 
+Client__r.BillingCountry = "Singapore", 
+Client__r.BillingCountry = "Brunei"), "Yuki Matsunaga", 
+IF( 
+OR( 
+Client__r.BillingCountry = "China", 
+Client__r.BillingCountry = "Taiwan"), "Sherry Wang", 
+IF( 
+OR( 
+Client__r.BillingCountry = "Australia", 
+Client__r.BillingCountry = "Korea"), "Jenny Kim ", 
+IF( 
+Client__r.Primary_Marketing_Representative__r.Division = "London", "Victoria Rice", 
+"Not Assigned")))))))))))))))))))))))))))))))

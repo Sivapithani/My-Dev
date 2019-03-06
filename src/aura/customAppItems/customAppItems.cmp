@@ -1,0 +1,25 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <ltng:require styles="/resource/SLDS/assets/styles/salesforce-lightning-design-system.min.css"/>  
+    <aura:attribute name="appitem" type="AppMenuItem"/>
+        <li class="slds-p-horizontal_small slds-size_1-of-1 slds-medium-size_1-of-3">
+            <a aria-describedby="drag-instructions" draggable="true" class="slds-app-launcher__tile slds-text-link_reset slds-is-draggable">
+                <div class="slds-app-launcher__tile-figure appClass">
+                    <span class="slds-avatar slds-avatar_large">
+                        <abbr class="slds-avatar__initials slds-icon-custom-27" title="company name">                                                 
+                            <img src="{!v.appitem.LogoUrl}" alt="Placeholder" style="cursor: pointer;" data-id="{!v.appitem.ApplicationId}" onclick="{!c.navigateToApp}" />
+                        </abbr>                                            
+                    </span>
+                    <span class="slds-icon_container" title="Drag item to a new location">
+                       <c:SVG1 class="slds-input__icon slds-show svgclass" xlinkHref="{!$Resource.SLDS + '/assets/icons/utility-sprite/svg/symbols.svg#rows'}" />  
+                    </span>
+                </div>
+                <div class="slds-app-launcher__tile-body">
+                    <span class="slds-text-link" onclick="{!c.navigateToApp}"  data-id="{!v.appitem.ApplicationId}"> {!v.appitem.Label} </span>
+                    <p> {!v.appitem.Description}
+                        <span class="slds-text-link"></span>
+                    </p>
+                </div>
+            </a>
+        </li>
+
+</aura:component>

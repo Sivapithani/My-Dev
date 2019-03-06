@@ -1,0 +1,89 @@
+public with sharing class AssignedProvisionTriggerHandler 
+{
+	public static boolean isBeforeCallFire = false;
+	
+	public static void handleBeforeInsert(list<ocm_Assigned_Provision__c> newList)
+	{
+		try
+		{
+			if(!isBeforeCallFire)
+            	isBeforeCallFire = true;
+            
+            list<ocm_Assigned_Provision__c> toBeUpdatedList = new list<ocm_Assigned_Provision__c>(); 
+            for(ocm_Assigned_Provision__c ap :newList)
+            {
+            	if(string.isNotEmpty(ap.MFN_Formula__c) && ap.MFN_Formula__c == OCM_Constants.OCM_VALUE_YES)
+            		toBeUpdatedList.add(ap);
+            	else
+            		ap.MFN__c = null;	
+            }
+            
+            if(toBeUpdatedList != null && toBeUpdatedList.size() > 0)
+            	updateProvisionData(toBeUpdatedList);            	
+		}
+		catch(Exception e)
+        {        	
+        	for(ocm_Assigned_Provision__c ap :newList)
+            {
+                ap.addError(e.getMessage());
+            }
+        }    
+	}	
+	public static void handleBeforeUpdate(map<id,ocm_Assigned_Provision__c> newApMap, map<id,ocm_Assigned_Provision__c> oldApMap)
+	{
+		try
+		{
+			if(!isBeforeCallFire)
+            	isBeforeCallFire = true;
+            
+            list<ocm_Assigned_Provision__c> toBeUpdatedList = new list<ocm_Assigned_Provision__c>();	
+            for(ocm_Assigned_Provision__c ap :newApMap.values())
+            {
+            	if((ap.Master_Provision__c != oldApMap.get(ap.Id).Master_Provision__c) || (ap.Fund_Product__c != oldApMap.get(ap.Id).Fund_Product__c))             	
+            		toBeUpdatedList.add(ap);
+            }
+            if(toBeUpdatedList != null && toBeUpdatedList.size() > 0)
+            	updateProvisionData(toBeUpdatedList);	
+		}
+		catch(Exception e)
+        {        	
+        	for(ocm_Assigned_Provision__c ap :newApMap.values())
+            {
+                ap.addError(e.getMessage());
+            }
+        }
+	}
+	
+	private static void updateProvisionData(list<ocm_Assigned_Provision__c> newList)
+	{
+		map<String, ocm_Provision__c> provisionMap = new map<String, ocm_Provision__c>();
+		set<String> resGrpSet = new set<String>();
+		set<Id> fpIdSet = new set<Id>();
+		for(ocm_Assigned_Provision__c ap: newList)
+		{
+			if(string.isNotEmpty(ap.Responsible_Group__c))
+				resGrpSet.add(ap.Responsible_Group__c);
+			
+			if(string.isNotEmpty(ap.Fund_Product__c))				
+				fpIdSet.add(ap.Fund_Product__c);
+		}
+		if((fpIdSet != null && fpIdSet.size() > 0) || (resGrpSet != null && resGrpSet.size() > 0))
+		{
+			//list<ocm_Provision__c> proList = [Select o.Responsible_Group__c, o.Provision_Category__c, o.Name, o.MFN_Y_N__c, o.Id, o.Related_Fund_Product__c  From ocm_Provision__c o where (Provision_Category__c = 'MFN' AND Responsible_Group__c = :resGrpSet AND Related_Fund_Product__c = :fpIdSet AND MFN_Y_N__c = :OCM_Constants.OCM_VALUE_YES)];
+			for(ocm_Provision__c pr : [Select o.Responsible_Group__c, o.Provision_Category__c, o.MFN_Y_N__c, o.Id, o.Related_Fund_Product__c  From ocm_Provision__c o where (Provision_Category__c = 'MFN' AND Responsible_Group__c = :resGrpSet AND Related_Fund_Product__c = :fpIdSet AND MFN_Y_N__c != :OCM_Constants.OCM_VALUE_YES)])
+			{
+				String key = pr.Responsible_Group__c+'=>'+pr.Related_Fund_Product__c;
+				if(provisionMap == null || (!provisionMap.containsKey(key)))
+					provisionMap.put(key, pr);					
+			}
+		}
+		for(ocm_Assigned_Provision__c ap: newList)
+		{
+			String key = ap.Responsible_Group__c+'=>'+ap.Fund_Product__c;
+			if(ap.MFN_Formula__c == OCM_Constants.OCM_VALUE_YES && provisionMap != null && provisionMap.size() > 0 && provisionMap.get(key) != null)
+				ap.MFN__c = provisionMap.get(key).Id;
+			else
+				ap.MFN__c = null; 	
+		}		
+	}
+}

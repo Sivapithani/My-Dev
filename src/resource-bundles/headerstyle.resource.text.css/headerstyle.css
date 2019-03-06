@@ -1,0 +1,4 @@
+oneHeader .forceHeaderLayout
+{
+  display: none;
+}

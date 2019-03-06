@@ -1,0 +1,7 @@
+<apex:page standardController="Contact" showHeader="true" extensions="PageRedirectPageController"
+action="{!IF(recordType.Name=='Flow',
+        URLFOR(hostname+'/003/e?retURL=%2F003%2Fo&RecordType='+RecordType.Id,$ObjectType.contact,null,true),
+ 		if(recordType.Name=='GFI',URLFOR(hostname+'/apex/DetailPage?retURL=%2F003%2Fo&RecordType='+RecordType.Id,$ObjectType.contact,null,true),
+		null)) }">
+   
+</apex:page>

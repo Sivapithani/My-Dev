@@ -1,0 +1,65 @@
+<!--<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction"  controller="Opptytabelcontroller" access="global" >
+    
+    <aura:attribute name="MainCompetitor" type="String" default=""/>
+    <aura:attribute name="TrackingNumber" type="String" default=""/>
+    <aura:attribute name="OrderNumber" type="String" default=""/>
+    
+    <lightning:button  variant="brand" label="Save" onclick="{!c.saveRecord}" iconPosition="right"/>
+    <table>
+        <tr>
+            <th>MainCompetitor(s)</th>
+            <td><ui:inputText value="{!v.MainCompetitor}" /></td>
+            
+            <td><ui:inputText value="{!v.TrackingNumber}" /></td>
+            
+            <td><ui:inputText value="{!v.OrderNumber}" /></td>
+            
+            <td>
+                <ui:inputSelect class="single" aura:id="InputSelectSingle" change="{!c.onSingleSelectChange}">
+                   
+                    <ui:inputSelectOption text="Any"/>
+                    <ui:inputSelectOption text="Open" value="true" />
+                    <ui:inputSelectOption text="Closed"/>
+                </ui:inputSelect>
+                <ui:outputText class="result" aura:id="singleResult" value="" />
+            </td>
+        </tr>
+        
+        <tr>
+            <th>TrackingNumber</th>
+            <td><ui:inputText value="{!v.MainCompetitor}" /></td>
+            
+            <td><ui:inputText value="{!v.TrackingNumber}" /></td>
+            
+            <td><ui:inputText value="{!v.OrderNumber}" /></td>
+            
+            <td>
+                <ui:inputSelect class="single" aura:id="InputSelectSingle1" change="{!c.onSingleSelectChange}">
+                   
+                    <ui:inputSelectOption text="Any"/>
+                    <ui:inputSelectOption text="Open" value="true"/>
+                    <ui:inputSelectOption text="Closed"/>
+                </ui:inputSelect>
+                <ui:outputText class="result" aura:id="singleResult1" value="" />
+            </td>
+        </tr>
+        <tr>
+            <th>OrderNumber</th>
+            <td><ui:inputText value="{!v.MainCompetitor}" /></td>
+            
+            <td><ui:inputText value="{!v.TrackingNumber}" /></td>
+            
+            <td><ui:inputText value="{!v.OrderNumber}" /></td>
+            
+            <td>
+                <ui:inputSelect class="single" aura:id="InputSelectSingle2" change="{!c.onSingleSelectChange}">
+                   
+                    <ui:inputSelectOption text="Any"/>
+                    <ui:inputSelectOption text="Open"  value="true"/>
+                    <ui:inputSelectOption text="Closed"/>
+                </ui:inputSelect>
+                <ui:outputText class="result" aura:id="singleResult2" value="" />
+            </td>
+        </tr>
+    </table>
+</aura:component>  -->

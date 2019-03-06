@@ -1,0 +1,36 @@
+/* IOS scrollCss Start */
+.THIS.scrollerWrapper{
+    position: absolute;
+    left: 0;
+    top: 20px;
+    bottom: 1px;
+    width: 100%;
+    z-index: 11;
+    overflow-y: scroll;
+    
+}
+
+.THIS.oneHeader .forceHeaderLayout{
+  display: none !important;;
+}
+.THIS .div { 
+min-height: 700px; 
+}
+.THIS .td{
+    padding-left: 0rem;
+}
+
+.THIS .slds-button_neutral {
+    padding-left: 0.1rem;
+    padding-right: 0.6rem;
+}
+.THIS .slds-button__icon_left {
+    margin-right: 0.25rem;
+}
+.THIS .no-text-overflow {
+    white-space: normal;
+    word-wrap: break-word;
+}
+.THIS.right {
+    float:right ; 
+}

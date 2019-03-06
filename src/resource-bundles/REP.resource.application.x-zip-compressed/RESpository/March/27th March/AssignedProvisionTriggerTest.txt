@@ -1,0 +1,166 @@
+@isTest
+private class AssignedProvisionTriggerTest 
+{
+    static testMethod void updateMFNinsertScenario() 
+    {
+        ocm_Strategy__c testStrategyDD1 = UnitTestFactory.buildTestStrategy();
+        testStrategyDD1.Name  = 'Fund of Fund';
+        insert testStrategyDD1;
+        
+        list<ocm_FundFamily__c> fundList = new list<ocm_FundFamily__c>();
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Name = 'Test Fund Family 1';
+        ff.Fund_Family_Abbreviation__c = 'TFF 1';
+        ff.Fund_Product_Marketing_Name__c = 'TFF 1';
+        ff.Marketing_Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        ff.Strategy__c = testStrategyDD1.id;
+        fundList.add(ff);
+        
+        ocm_FundFamily__c ff2 = UnitTestFactory.buildTestFundFamily();
+        ff2.Name = 'Test Fund Family 2';
+        ff2.Fund_Family_Abbreviation__c = 'TFF 2';
+        ff2.Fund_Product_Marketing_Name__c = 'TFF 2';
+        ff2.Marketing_Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        ff2.Strategy__c = testStrategyDD1.id;
+        fundList.add(ff2);        
+        FundFamilyTriggerHandler.isAfterFired = true;
+        insert fundList;
+		FundFamilyTriggerHandler.isAfterFired = false;
+        
+        list<ocm_Provision__c> proList = new list<ocm_Provision__c>();        
+        ocm_Provision__c pr = new ocm_Provision__c();
+        pr.Provision_Category__c = 'MFN';
+        pr.Provision_Title__c = 'Test';
+        pr.Responsible_Group__c = 'Legal';
+        pr.Provision_Details__c = 'Test';
+        pr.MFN_Y_N__c = OCM_Constants.OCM_VALUE_YES;
+        pr.Related_Fund_Product__c = ff.Id;
+        pr.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        proList.add(pr);
+        
+        ocm_Provision__c pr2 = new ocm_Provision__c();
+        pr2.Provision_Category__c = 'MFN';
+        pr2.Provision_Title__c = 'Test';
+        pr2.Responsible_Group__c = 'Legal';
+        pr2.Provision_Details__c = 'Test';
+        pr2.MFN_Y_N__c = OCM_Constants.OCM_VALUE_NO;
+        pr2.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        pr2.Related_Fund_Product__c = ff2.Id;
+        proList.add(pr2);        
+        insert proList;
+        
+        ocm_Assigned_Provision__c ap = new ocm_Assigned_Provision__c();
+        ap.Master_Provision__c = pr.Id;        
+        ap.Report_Frequency_Other__c = OCM_Constants.TEST_ACCOUNT;
+        ap.Fund_Product__c = ff2.Id;
+        
+        test.startTest();
+        	insert ap;
+        test.stopTest();
+        
+        ocm_Assigned_Provision__c apResult = [Select Id, Fund_Product__c, Master_Provision__c, Provision_Category__c, Responsible_Group__c, MFN_Formula__c, MFN__c from ocm_Assigned_Provision__c where id = :ap.Id];
+        system.assertEquals(apResult.Fund_Product__c, ff2.Id);
+        system.assertEquals(apResult.Master_Provision__c, pr.Id);
+        system.assertEquals(apResult.Provision_Category__c, pr.Provision_Category__c);
+        system.assertEquals(apResult.Responsible_Group__c, pr.Responsible_Group__c);
+        system.assertEquals(apResult.MFN_Formula__c, pr.MFN_Y_N__c);
+        system.assertEquals(apResult.MFN__c, pr2.Id);        
+    }
+    
+    static testMethod void updateMFNUpdateScenario() 
+    {
+        ocm_Strategy__c testStrategyDD1 = UnitTestFactory.buildTestStrategy();
+        testStrategyDD1.Name  = 'Fund of Fund';
+        insert testStrategyDD1;
+        
+        list<ocm_FundFamily__c> fundList = new list<ocm_FundFamily__c>();
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Name = 'Test Fund Family 1';
+        ff.Fund_Family_Abbreviation__c = 'TFF 1';
+        ff.Fund_Product_Marketing_Name__c = 'TFF 1';
+        ff.Marketing_Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        ff.Strategy__c = testStrategyDD1.id;
+        fundList.add(ff);
+        
+        ocm_FundFamily__c ff2 = UnitTestFactory.buildTestFundFamily();
+        ff2.Name = 'Test Fund Family 2';
+        ff2.Fund_Family_Abbreviation__c = 'TFF 2';
+        ff2.Fund_Product_Marketing_Name__c = 'TFF 2';
+        ff2.Marketing_Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        ff2.Strategy__c = testStrategyDD1.id;
+        fundList.add(ff2);        
+        FundFamilyTriggerHandler.isAfterFired = true;
+        insert fundList;
+		FundFamilyTriggerHandler.isAfterFired = false;
+        
+        list<ocm_Provision__c> proList = new list<ocm_Provision__c>();        
+        ocm_Provision__c pr = new ocm_Provision__c();
+        pr.Provision_Category__c = 'MFN';
+        pr.Provision_Title__c = 'Test';
+        pr.Responsible_Group__c = 'Legal';
+        pr.Provision_Details__c = 'Test';
+        pr.MFN_Y_N__c = OCM_Constants.OCM_VALUE_YES;
+        pr.Related_Fund_Product__c = ff.Id;
+        pr.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        proList.add(pr);
+        
+        ocm_Provision__c pr1 = new ocm_Provision__c();
+        pr1.Provision_Category__c = 'MFN';
+        pr1.Provision_Title__c = 'Test';
+        pr1.Responsible_Group__c = 'Legal';
+        pr1.Provision_Details__c = 'Test';
+        pr1.MFN_Y_N__c = OCM_Constants.OCM_VALUE_NO;
+        pr1.Related_Fund_Product__c = ff.Id;
+        pr1.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        proList.add(pr1);
+        
+        ocm_Provision__c pr2 = new ocm_Provision__c();
+        pr2.Provision_Category__c = 'MFN';
+        pr2.Provision_Title__c = 'Test';
+        pr2.Responsible_Group__c = 'Legal';
+        pr2.Provision_Details__c = 'Test';
+        pr2.MFN_Y_N__c = OCM_Constants.OCM_VALUE_YES;
+        pr2.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        pr2.Related_Fund_Product__c = ff2.Id;
+        proList.add(pr2); 
+        
+        ocm_Provision__c pr3 = new ocm_Provision__c();
+        pr3.Provision_Category__c = 'MFN';
+        pr3.Provision_Title__c = 'Test';
+        pr3.Responsible_Group__c = 'Legal';
+        pr3.Provision_Details__c = 'Test';
+        pr3.MFN_Y_N__c = OCM_Constants.OCM_VALUE_NO;
+        pr3.Tiered_MFN__c = OCM_Constants.OCM_VALUE_NO;
+        pr3.Related_Fund_Product__c = ff2.Id;
+        proList.add(pr3);        
+        insert proList;
+        
+        ocm_Assigned_Provision__c ap = new ocm_Assigned_Provision__c();
+        ap.Master_Provision__c = pr.Id;        
+        ap.Report_Frequency_Other__c = OCM_Constants.TEST_ACCOUNT;
+        ap.Fund_Product__c = ff2.Id;
+        insert ap;
+        
+        ocm_Assigned_Provision__c apResult = [Select Id, Fund_Product__c, Master_Provision__c, Provision_Category__c, Responsible_Group__c, MFN_Formula__c, MFN__c from ocm_Assigned_Provision__c where id = :ap.Id];
+        system.assertEquals(apResult.Fund_Product__c, ff2.Id);
+        system.assertEquals(apResult.Master_Provision__c, pr.Id);
+        system.assertEquals(apResult.Provision_Category__c, pr.Provision_Category__c);
+        system.assertEquals(apResult.Responsible_Group__c, pr.Responsible_Group__c);
+        system.assertEquals(apResult.MFN_Formula__c, pr.MFN_Y_N__c);
+        system.assertEquals(apResult.MFN__c, pr3.Id);
+        
+        test.startTest();
+        	ap.Fund_Product__c = ff.Id;
+        	AssignedProvisionTriggerHandler.isBeforeCallFire= false;
+        	update ap;
+        test.stopTest();   
+        
+        ocm_Assigned_Provision__c apResult2 = [Select Id, Fund_Product__c, Master_Provision__c, Provision_Category__c, Responsible_Group__c, MFN_Formula__c, MFN__c from ocm_Assigned_Provision__c where id = :ap.Id];
+        system.assertEquals(apResult2.Fund_Product__c, ff.Id);
+        system.assertEquals(apResult2.Master_Provision__c, pr.Id);
+        system.assertEquals(apResult2.Provision_Category__c, pr.Provision_Category__c);
+        system.assertEquals(apResult2.Responsible_Group__c, pr.Responsible_Group__c);
+        system.assertEquals(apResult2.MFN_Formula__c, pr.MFN_Y_N__c);
+        system.assertEquals(apResult2.MFN__c, pr1.Id);     
+    }
+}

@@ -1,0 +1,44 @@
+/**
+PageRedirectNewPageController this class is the controller for PageRedirectPage to check the record type.
+------------------------------------------------------------
+Modification History
+------------------------------------------------------------
+**/
+
+public class PageRedirectPageController {
+public String selectedRecordType{get;set;}
+public Contact conRec{get;set;}
+public Id recTypeId{set;get;}
+public String FlowRecordTypeID;
+public Id currentPageId;
+public ApexPages.Standardcontroller std;
+public Boolean IsFlowRecordType{get;set;}
+
+   
+/*
+PageRedirectNewPageController Constructor checks for the account record type.
+*/
+public PageRedirectPageController (ApexPages.StandardController std){
+            this.std= std;
+               
+           // conRec = (Contact)std.getRecord(); 
+            currentPageId = ApexPages.currentPage().getParameters().get('id');          
+            selectedRecordType = ApexPages.currentPage().getParameters().get('RecordType');
+            recTypeId = [Select id from RecordType where sObjectType = 'Contact' and developerName ='Flow'].id;
+             system.debug('recTypeId '+recTypeId );
+            FlowRecordTypeID = String.valueOf(recTypeId).subString(0,15);         
+             system.debug('FlowRecordTypeID '+FlowRecordTypeID );
+            if(selectedRecordType!= null && selectedRecordType.length() == 18){
+                        selectedRecordType = selectedRecordType.subString(0,15);
+                 system.debug('selectedRecordType '+selectedRecordType );
+            }
+            if(selectedRecordType == FlowRecordTypeID){
+                 IsFlowRecordType = true; 
+                  system.debug('IsFlowRecordType '+IsFlowRecordType );  
+             }
+             
+            
+  }   
+  
+ 
+}

@@ -1,0 +1,23 @@
+public class FundStrategyHierarchyViewController 
+{  
+    public Boolean selectable {get; set;}    
+    public String selectNodeKeys {get; set;}
+    {
+        selectable = false;
+        selectNodeKeys = 'No value selected';
+    }    
+    public String JsonData {get; set;}    
+    //public String accId {get; set;}
+    public String xpandAll {get; set;}
+    public String selectAllVals {get; set;}
+    public String clonedFPs {get; set;}
+    public String clonedStrats {get; set;}
+    public String getJsonString() 
+    {
+        if (JsonData == null)
+        {            
+            JsonData = FundStrategyHierarchyUtil.getTreeJSON(xpandAll, selectAllVals, clonedFPs, clonedStrats);
+        }
+        return JsonData;
+    }
+}

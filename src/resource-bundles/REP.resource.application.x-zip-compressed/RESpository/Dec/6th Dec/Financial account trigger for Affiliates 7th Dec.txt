@@ -1,0 +1,61 @@
+Set<id>Cieids =new Set<id>();
+        List<ocm_LegalEntity__c > LEupdateList;
+         system.debug('ListAt @@'+LEupdateList);  
+        Map<Id,List<ocm_FinancialAccount__c >> mapLEIDAndFAaccount= new Map<Id,List<ocm_FinancialAccount__c >>();
+        boolean isAffiliate ;
+        boolean isNonAffiliate; 
+        for(ocm_FinancialAccount__c fa:FinAccounts){
+            Cieids.add(fa.Client_Investment_Entity__c);
+        }
+         //system.debug('ListAt for @@'+LEupdateList);  
+        for(ocm_FinancialAccount__c FAobj :[select id, name,OCM_Affiliate__c,Client_Investment_Entity__c from ocm_FinancialAccount__c where Client_Investment_Entity__c IN:Cieids ]){
+            //system.debug('FAobj'+FAobj);
+            if(mapLEIDAndFAaccount.containsKey(FAobj.Client_Investment_Entity__c)) {
+               // system.debug('<<<<<<in if 1st ');
+                mapLEIDAndFAaccount.get(FAobj.Client_Investment_Entity__c).add(FAobj);
+               // system.debug('<<<<<<in if 1st mapLEIDAndFAaccount '+mapLEIDAndFAaccount);
+            } else {
+               // system.debug('<<<<<<in else 1st ');
+                mapLEIDAndFAaccount.put(FAobj.Client_Investment_Entity__c,new List<ocm_FinancialAccount__c>{FAobj});
+               // system.debug('<<<<<<in else 1st mapLEIDAndFAaccount '+mapLEIDAndFAaccount);
+            }
+             system.debug('ListAt for di@@'+LEupdateList); 
+            LEupdateList= new List<ocm_LegalEntity__c >();
+            for(id objId:mapLEIDAndFAaccount.keySet()){
+                system.debug('id@@'+objId);
+                isAffiliate =false;
+                isNonAffiliate=false;
+                ocm_LegalEntity__c LEobj =new   ocm_LegalEntity__c() ;
+                for (ocm_FinancialAccount__c childobj:mapLEIDAndFAaccount.get(objId) ) {
+                    system.debug('childobj@@'+childobj);
+                    if(childobj.OCM_Affiliate__c =='Affiliate')
+                        isAffiliate =true;
+                    if(childobj.OCM_Affiliate__c =='Non-Affiliate')
+                        isNonAffiliate =true;
+                 }
+                 system.debug('isNonAffiliate@@'+isNonAffiliate+'isAffiliate@@'+isAffiliate);
+                system.debug('ListBefore if@@'+LEupdateList);  
+                if(isAffiliate){
+                 system.debug('id@@'+objId);  
+                    system.debug('Inside the isA');  
+                    //LEobj =new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c ='Affiliate');
+                 LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c ='Affiliate'));
+                  //system.debug('LEupdateList@@'+LEupdateList); 
+                }else
+                if(isNonAffiliate ==true && isAffiliate==false){
+                      system.debug('Inside the isNanA');  
+                      LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c ='Non-Affiliate'));
+                   
+                }else
+                if(isNonAffiliate ==false && isAffiliate==false){
+                    LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c =''));
+                    
+                }
+           
+               // LEupdateList.add(LEobj);
+                  system.debug('List@@'+LEupdateList);  
+            }
+            if(!LEupdateList.isEmpty()) {
+            update LEupdateList;
+        }
+        }

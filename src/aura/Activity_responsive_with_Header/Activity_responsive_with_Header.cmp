@@ -1,0 +1,144 @@
+<aura:component implements="force:appHostable,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+  <ui:scrollerWrapper class="scrollerWrapper">
+    <div class="div">
+    <div class="slds-grid slds-wrap">
+        <div class="slds-container-large slds-align_absolute-center">
+            <div class="slds-box" >
+               <div>
+                        <div class="slds-page-header  slds-page-header_record-home " >
+                        <div class="slds-media">
+                          <div class="slds-media__figure">
+                            
+                            <lightning:avatar alternativeText="Activity" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="circle"/> 
+                           
+                              </div>
+                          <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                              <div class="slds-page-header__name-title">
+                                <h1>
+                                  <span class="slds-page-header__title" title="Activity">Activity</span>
+                                </h1>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        </div>  
+                            <div class="slds-grid slds-wrap ">  
+                         <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-5">
+                               <div class="slds-media__figure ">
+                                    <lightning:buttonGroup>
+                                        <lightning:button  class="slds-theme_neutral styleclass" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"/>
+                                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit" onclick="{!c.editcontact}"/>
+                                        
+                                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Add/Edit Relationships" iconName="utility:add"/>
+                                    </lightning:buttonGroup>
+                                </div>
+                            </div>
+                            </div>
+                       
+                
+                    <div class="slds-grid slds-wrap  nobordertop ">
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                            <lightning:input label="Type" placeholder="Activity" readonly="true" type="text" variant="standard"></lightning:input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                            <lightning:input label="Date" readonly="true" type="date" variant="standard" default="07/09/2018"></lightning:input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-wrap ">
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                            <lightning:input label="Subject" value="Meeting with Bill" readonly="true" type="text" variant="standard"></lightning:input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered"> 
+                            <lightning:input label="Owner" placeholder="Abraham Vargas" readonly="true" type="text" variant="standard"></lightning:input>
+                        </div>
+                    </div>
+                    <div class="nobordertop ">
+                    <lightning:textarea  label="Comments" disabled="true" placeholder="Abraham Met with John, Steve and Tom. To Review the sale of the business." variant="standard"></lightning:textarea>
+                    </div>
+                        <div class="slds-grid slds-wrap ">
+                        <div class="slds-col slds-size_1-of-2 slds-large-size_1-of-2"> 
+                            <div class="slds-text-title slds-text-color_weak" >Include on Client Briefing Memo</div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-large-size_1-of-2"> 
+                            <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-wrap ">
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <div class=" slds-text-title slds-text-color_weak" >Consultant</div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <div class=" slds-text-title slds-text-color_weak" >Plan Sponsor</div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <div class=" slds-text-title slds-text-color_weak" >Record Keeper</div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <div class=" slds-text-title slds-text-color_weak" >Target Date</div>
+                        </div>
+                         <div class="slds-col slds-size_2-of-3 slds-large-size_1-of-5">
+                             <div class=" slds-text-title slds-text-color_weak " >Third Party <br/>Administrator</div>
+                        </div>
+                        
+                        
+                    </div>
+                    <div class="slds-grid slds-wrap ">
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <lightning:input type="checkbox"  label=""></lightning:input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <lightning:input type="checkbox"  label=""></lightning:input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <lightning:input type="checkbox"  label=""></lightning:input>
+                        </div>
+                         <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <lightning:input type="checkbox"  label=""></lightning:input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-3 slds-large-size_1-of-5">
+                            <lightning:input type="checkbox"  label=""></lightning:input>
+                        </div>
+                    </div>
+               
+                    <br/>
+                   <div class="slds-grid ">
+                   <table class="slds-table  slds-table--bordered slds-table_fixed-layout  ">
+                        <thead>
+                            <tr >
+                                <th scope="col" style="padding-left: 0rem;">
+                                    <div>Name</div>
+                                </th>
+                                <th  scope="col" >
+                                    <div>Record Type</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr >
+                                <td class="slds-cell-wrap" style="padding-left: 0rem;">
+                                    <div > Testamentary Trust Testamentary Trust Testamentary Trust</div>
+                                </td>
+                                <td class="slds-cell-wrap">
+                                    <div >Organization </div>
+                                </td>
+                            </tr>
+                            <tr >
+                                <td class="slds-cell-wrap"  >
+                                    <div >Sean Kelly </div>
+                                </td>
+                                <td  class="slds-cell-wrap">
+                                    <div >Contact </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                       
+                    </div>
+                </div> 
+            </div>
+        </div>
+    </div>
+    </div>
+   </ui:scrollerWrapper>
+</aura:component>

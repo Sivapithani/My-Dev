@@ -1,0 +1,88 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction"  controller="Opptytabelcontroller" access="global" >
+    <aura:attribute name="HomeBody" type="Aura.Component[]" access="global"/>
+    <aura:attribute name="MainCompetitor" type="String" />
+    <aura:attribute name="recordId" type="String" />
+
+    <aura:attribute name="oppty" type="opportunity" />
+   <aura:attribute name="ispick" type="Boolean" default="false"/>
+    <aura:attribute name="isTest" type="Boolean" default="false"/>
+    <aura:attribute name="showComp" type="Boolean" default="True"/>
+   <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+     <aura:if isTrue="{!v.showComp}">
+    <div class="slds-align_absolute-center" style="height: 5rem;">
+    
+    <lightning:button variant="brand" label="Save" onclick="{!c.saveRecord}" />
+    </div> 
+         <table>
+             <tr>
+                 <th>MainCompetitor(s)</th>
+                 <td >
+                     <div id="test">
+                         <ui:inputText aura:id="Inputui" value="{!v.MainCompetitor}" change="{!c.uiInputChange}"/> 
+                     </div>
+                     <br/>
+                     <!--<input type="text" id="inputtext"  value="{!v.MainCompetitor}" onchange="{!c.inputchange}"/>   -->
+                     <br/>
+                    <!-- <lightning:input aura:id="myinput" name="quantity" value="{!v.MainCompetitor}"   /> -->
+                 </td>
+             </tr>
+         </table>
+    </aura:if>
+    {!v.HomeBody}
+</aura:component>
+--------------------------------------------
+({
+    doInit:function(component,event,helper) {
+        component.set("v.HomeBody", []); 
+        alert('Hi In doinit ');
+        var action1 = component.get("c.getOpportunity");
+        action1.setParams({ oppId : component.get("v.recordId")});
+        action1.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS"){
+                component.set("v.oppty",response.getReturnValue());
+                var temp=component.get("v.oppty");
+                component.set("v.MainCompetitor",temp.MainCompetitors__c);
+            }
+        }); 
+        $A.enqueueAction(action1);
+    },
+    saveRecord:function(component,event,helper) {
+       
+        var id =component.get("v.recordId");
+        //var MCompetitortemp=document.getElementById("test").value;
+        //var MCompetitortemp =component.find("name").get("v.value");
+        var action = component.get("c.getOpportunityAmount");
+        action.setParams({ oppId : component.get("v.recordId"),
+                          MCompetitor : component.get("v.MainCompetitor"),
+                         });
+        action.setCallback(this, function(response) {
+            
+            if (response.getState() === "SUCCESS"){
+              var a = component.get('c.doInit');
+                alert('Doinit@2'+a);
+       		 $A.enqueueAction(a);
+                //component.doInit(component,event,helper);
+            }
+        }); 
+        $A.enqueueAction(action);
+    },
+    onSingleSelectChange: function(cmp) {
+        //alert('hi');
+        var selectCmp = cmp.find("InputSelectSingle");
+        var resultCmp = cmp.find("singleResult");
+        resultCmp.set("v.value", selectCmp.get("v.value"));
+    },
+    inputchange:function(component,event,helper){
+        document.getElementById("inputtext").style.backgroundColor= 'red';
+    },
+    uiInputChange:function(component,event,helper){
+       // var inputId=component.find("Inputui");
+       // alert('id:'+inputId);
+       // inputId.style.backgroundColor="blue";
+       document.getElementById("test").style.backgroundColor = "red";
+	
+    }
+    
+})

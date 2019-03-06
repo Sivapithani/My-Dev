@@ -1,0 +1,2267 @@
+@isTest
+private class LegalEntityTriggerTest 
+{
+    static testMethod void SingleEntitySingleFieldChange() 
+    {
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        //testLE.Global_Account_Type__c = 'Global';
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        //comment        
+        ocm_DA_Rule__c testRule = UnitTestFactory.buildDataApprovalRule();
+        testRule.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testRule.Object_Name__c = OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY;
+        insert testRule;
+        
+        ocm_DA_Config__c testConfigMarketValue = UnitTestFactory.buildDataApprovalConfig();
+        testConfigMarketValue.Field_API_Name__c = OCM_Constants.OBJ_FIELD_PRIVACY_NOTICE;
+        testConfigMarketValue.Data_Approval_Rule__c = testRule.Id;
+          
+        insert testConfigMarketValue;
+        
+         
+        test.StartTest();
+            testLE.Privacy_Notice__c = OCM_Constants.OCM_VALUE_YES;
+            update testLE;
+        test.StopTest();
+        
+        ocm_LegalEntity__c resultLE = [Select a.Id, a.TRS_ID_EXT__c From ocm_LegalEntity__c a Where a.Id =: testLE.Id];//, Global_Account_Type__c
+        List<ocm_Change_Management_Ticket__c> resultTickets = [Select c.Legal_Entity__c, c.Field_Updated__c From ocm_Change_Management_Ticket__c c Where c.Legal_Entity__c = :testLE.Id];
+        
+        System.assertEquals(testLE.TRS_ID_EXT__c, resultLE.TRS_ID_EXT__c);
+        System.assertEquals(1, resultTickets.size());
+    }
+ 
+    static testMethod void TriggerHandlerExceptionTest() 
+    {
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE; 
+        
+        Map<Id, ocm_LegalEntity__c> newMap = new Map<Id, ocm_LegalEntity__c>();
+        Map<Id, ocm_LegalEntity__c> oldMap = new Map<Id, ocm_LegalEntity__c>();
+        newMap.Put(testLE.Id, testLE);
+        
+        boolean exceptionThrown = false;
+        try
+        {
+            test.StartTest(); 
+            LegalEntityTriggerHandler.handleAfterUpdate(newMap, oldMap);
+            test.StopTest();
+        }
+        catch(OCMException ex)
+        {
+            exceptionThrown = true;
+        }
+        
+        system.assert(exceptionThrown);
+
+    }
+    
+    static testmethod void testBeforeInsert(){
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+        leList.add(testLE1);
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        leList.add(testLE2);
+        
+        ocm_LegalEntity__c testLE3 = UnitTestFactory.buildTestLegalEntity();
+        testLE3.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_TAFT_HARTLEY;
+        testLE3.CIE_ID_EXT__c = 'CIEEX3';
+        leList.add(testLE3);
+        
+        ocm_LegalEntity__c testLE4 = UnitTestFactory.buildTestLegalEntity();
+        testLE4.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT;
+        testLE4.CIE_ID_EXT__c = 'CIEEX4';
+        leList.add(testLE4);
+        
+        ocm_LegalEntity__c testLE5 = UnitTestFactory.buildTestLegalEntity();
+        testLE5.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION;
+        testLE5.CIE_ID_EXT__c = 'CIEEX5';
+        leList.add(testLE5);
+        
+        ocm_LegalEntity__c testLE6 = UnitTestFactory.buildTestLegalEntity();
+        testLE6.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATION;
+        testLE6.CIE_ID_EXT__c = 'CIEEX6';
+        leList.add(testLE6);
+        
+        ocm_LegalEntity__c testLE7 = UnitTestFactory.buildTestLegalEntity();
+        testLE7.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INSURANCE_COMPANIES;
+        testLE7.CIE_ID_EXT__c = 'CIEEX7';
+        leList.add(testLE7);
+        
+        ocm_LegalEntity__c testLE8 = UnitTestFactory.buildTestLegalEntity();
+        testLE8.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_MUT_FUNDS;
+        testLE8.CIE_ID_EXT__c = 'CIEEX8';
+        leList.add(testLE8);
+        
+        ocm_LegalEntity__c testLE9 = UnitTestFactory.buildTestLegalEntity();
+        testLE9.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_IND_RET_ASSETS;
+        testLE9.CIE_ID_EXT__c = 'CIEEX9';
+        leList.add(testLE9);
+        
+        ocm_LegalEntity__c testLE10 = UnitTestFactory.buildTestLegalEntity();
+        testLE10.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_GP;
+        testLE10.CIE_ID_EXT__c = 'CIEE10';
+        leList.add(testLE10);
+        
+        ocm_LegalEntity__c testLE51 = UnitTestFactory.buildTestLegalEntity();
+        testLE51.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_FEEDER_FUND;
+        testLE51.CIE_ID_EXT__c = 'CIEE51';
+        leList.add(testLE51);
+        
+        ocm_LegalEntity__c testLE11 = UnitTestFactory.buildTestLegalEntity();
+        testLE11.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT;
+        testLE11.CIE_ID_EXT__c = 'CIEE11';
+        leList.add(testLE11);
+        
+        ocm_LegalEntity__c testLE12 = UnitTestFactory.buildTestLegalEntity();
+        testLE12.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_RELIGIOUS_INST;
+        testLE12.CIE_ID_EXT__c = 'CIEE12';
+        leList.add(testLE12);
+        
+        ocm_LegalEntity__c testLE13 = UnitTestFactory.buildTestLegalEntity();
+        testLE13.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER_FUNDS;
+        testLE13.CIE_ID_EXT__c = 'CIEE13';
+        leList.add(testLE13);
+        
+        ocm_LegalEntity__c testLE14 = UnitTestFactory.buildTestLegalEntity();
+        testLE14.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS;
+        testLE14.CIE_ID_EXT__c = 'CIEE14';
+        leList.add(testLE14);
+        
+        ocm_LegalEntity__c testLE15 = UnitTestFactory.buildTestLegalEntity();
+        testLE15.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_HIGH_NET;
+        testLE15.CIE_ID_EXT__c = 'CIEE15';
+        leList.add(testLE15);
+        
+        ocm_LegalEntity__c testLE16 = UnitTestFactory.buildTestLegalEntity();
+        testLE16.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ADVISOR_MFF_PF;
+        testLE16.CIE_ID_EXT__c = 'CIEE16';
+        leList.add(testLE16);
+        
+        ocm_LegalEntity__c testLE17 = UnitTestFactory.buildTestLegalEntity();
+        testLE17.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INST_FOF;
+        testLE17.CIE_ID_EXT__c = 'CIEE17';
+        leList.add(testLE17);
+        
+        ocm_LegalEntity__c testLE18 = UnitTestFactory.buildTestLegalEntity();
+        testLE18.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_DI;
+        testLE18.CIE_ID_EXT__c = 'CIEE18';
+        leList.add(testLE18);
+        
+        ocm_LegalEntity__c testLE19 = UnitTestFactory.buildTestLegalEntity();
+        testLE19.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_CA;
+        testLE19.CIE_ID_EXT__c = 'CIEE19';
+        leList.add(testLE19);
+        
+        ocm_LegalEntity__c testLE20 = UnitTestFactory.buildTestLegalEntity();
+        testLE20.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_IRA_ASSETS;
+        testLE20.CIE_ID_EXT__c = 'CIEE20';
+        leList.add(testLE20);
+        
+        ocm_LegalEntity__c testLE21 = UnitTestFactory.buildTestLegalEntity();
+        testLE21.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_EI;
+        testLE21.CIE_ID_EXT__c = 'CIEE21';
+        leList.add(testLE21);
+        
+        ocm_LegalEntity__c testLE22 = UnitTestFactory.buildTestLegalEntity();
+        testLE22.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION_EI;
+        testLE22.CIE_ID_EXT__c = 'CIEE22';
+        leList.add(testLE22);
+        
+        ocm_LegalEntity__c testLE23 = UnitTestFactory.buildTestLegalEntity();
+        testLE23.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI;
+        testLE23.CIE_ID_EXT__c = 'CIEE23';
+        leList.add(testLE23);
+        
+        ocm_LegalEntity__c testLE24 = UnitTestFactory.buildTestLegalEntity();
+        testLE24.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INST_FOF_EI;
+        testLE24.CIE_ID_EXT__c = 'CIEE24';
+        leList.add(testLE24);
+        
+        ocm_LegalEntity__c testLE25 = UnitTestFactory.buildTestLegalEntity();
+        testLE25.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT_EI;
+        testLE25.CIE_ID_EXT__c = 'CIEE25';
+        leList.add(testLE25);
+        
+        ocm_LegalEntity__c testLE26 = UnitTestFactory.buildTestLegalEntity();
+        testLE26.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSION_EI;
+        testLE26.CIE_ID_EXT__c = 'CIEE26';
+        leList.add(testLE26);
+        
+        ocm_LegalEntity__c testLE27 = UnitTestFactory.buildTestLegalEntity();
+        testLE27.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATION_EI;
+        testLE27.CIE_ID_EXT__c = 'CIEE27';
+        leList.add(testLE27);
+        
+        ocm_LegalEntity__c testLE28 = UnitTestFactory.buildTestLegalEntity();
+        testLE28.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT;
+        testLE28.CIE_ID_EXT__c = 'CIEE28';
+        leList.add(testLE28);
+        
+        ocm_LegalEntity__c testLE29 = UnitTestFactory.buildTestLegalEntity();
+        testLE29.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE;
+        testLE29.CIE_ID_EXT__c = 'CIEE29';
+        leList.add(testLE29);
+        
+        ocm_LegalEntity__c testLE30 = UnitTestFactory.buildTestLegalEntity();
+        testLE30.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_LEVERAGE_ASSET;
+        testLE30.CIE_ID_EXT__c = 'CIEE30';
+        leList.add(testLE30);
+        
+        ocm_LegalEntity__c testLE31 = UnitTestFactory.buildTestLegalEntity();
+        testLE31.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_INVEST_FUND;
+        testLE31.CIE_ID_EXT__c = 'CIEE31';
+        leList.add(testLE31);
+        
+        ocm_LegalEntity__c testLE32 = UnitTestFactory.buildTestLegalEntity();
+        testLE32.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_SICA_ADVISOR_MFF_PF;
+        testLE32.CIE_ID_EXT__c = 'CIEE32';
+        leList.add(testLE32);
+        
+        ocm_LegalEntity__c testLE33 = UnitTestFactory.buildTestLegalEntity();
+        testLE33.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_SICA_CORPORATION;
+        testLE33.CIE_ID_EXT__c = 'CIEE33';
+        leList.add(testLE33);
+        
+        ocm_LegalEntity__c testLE34 = UnitTestFactory.buildTestLegalEntity();
+        testLE34.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_SICA_CORP_PENSION;
+        testLE34.CIE_ID_EXT__c = 'CIEE34';
+        leList.add(testLE34);
+        
+        test.starttest();
+            insert leList;
+        test.stoptest();
+        
+        system.assertEquals(35, leList.size());
+        
+        SET<String> leIds = new SET<String>();
+        for(ocm_LegalEntity__c le: leList){
+            leIds.add(le.id);
+        }
+        
+        List<ocm_LegalEntity__c> leUpdateRecords = [Select id, Name, Investment_Entity_Type__c, 
+        AUM_Taxable_Tax_Exempt__c, Plan_Type__c, Profile_Page_Category__c,Institutional_Status__c From ocm_LegalEntity__c Where Id IN: leIds];
+        
+        system.assertEquals(35, leUpdateRecords.size());
+        
+        for(ocm_LegalEntity__c le: leUpdateRecords){
+            if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_TAFT_HARTLEY){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_UNIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INSURANCE_COMPANIES){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_INS_COMP, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_MUT_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_IND_RET_ASSETS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_GP){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_FEEDER_FUND){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_RELIGIOUS_INST){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OTHER_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_HIGH_NET){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ADVISOR_MFF_PF){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_FOF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_DI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_CA){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_IRA_ASSETS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_FOF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_LEVERAGE_ASSET){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                                
+            }
+            else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_INVEST_FUND)
+            {               
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);                              
+            }
+            else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_ADVISOR_MFF_PF)
+            {               
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);                              
+            }
+            else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORPORATION)
+            {               
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);                              
+            }
+            else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORP_PENSION)
+            {               
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);                              
+            }
+        }        
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testBeforeInsertException(){
+        try {
+            
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.CIE_ID_EXT__c = 'CIEEXT';
+            insert testLE1;
+            
+            List<ocm_LegalEntity__c> recList = new List<ocm_LegalEntity__c>();
+            recList.add(testLE1);
+            recList = null;
+            
+            test.startTest();
+            try{
+                LegalEntityTriggerHandler.handleBeforeInsert(recList);
+                //system.assert(false);
+            }catch(Exception e){
+                system.assert(true);
+            }
+            test.stopTest();
+        }
+        catch (Exception e) {
+            System.assert(true);
+        }
+    }
+    
+    static testmethod void testBulkifiedBeforeInsert(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.BillingStreet = 'Former Street';
+        testAccount.BillingCountry = OCM_Constants.COUNTRY_NAME_USA;
+        insert testAccount;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=1; i <= 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.Client__c = testAccount.id;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        
+        Test.starttest();
+        if(leList != null && leList.size() > 0){
+            insert leList;
+        }
+        Test.stoptest();
+        
+        system.assertEquals(200, leList.size());
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testBeforeUpdate(){
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+        testLE1.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE1;
+        
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION, testLE1.Investment_Entity_Type__c);
+        system.assertEquals(testLE1.EIDD_Status__c, null);
+        system.assertEquals(testLE1.Tax_K_1_Address_Street__c, null);
+        system.assertEquals(testLE1.Tax_Mailing_Address_Line_2__c, null);
+        system.assertEquals(testLE1.Tax_Mailing_Address_Line_3__c, null);
+        system.assertEquals(testLE1.Tax_K_1_Address_State_Province__c, null);
+        system.assertEquals(testLE1.Tax_K_1_Address_State_Province__c, null);
+        system.assertEquals(testLE1.Tax_K_1_Address_Zip_Postal_Code__c, null);
+        system.assertEquals(testLE1.Tax_K_1_Address_Country__c, null);
+
+        
+        test.starttest();
+            LegalEntityTriggerHandler.isFirstCall = false;
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT;
+            testLE1.Withholding_Form_Type__c = 'W-8BEN(2014)';
+            testLE1.Beneficial_Owner_Recipient_Code__c = '12';
+            testLE1.Permanent_Address_Mailing_Address__c = true;            
+            testLE1.Tax_Permanent_Address_Line_1__c = 'test 1';
+            testLE1.Tax_Permanent_Address_Line_2__c = 'test 1';
+            testLE1.Tax_Permanent_Address_Line_3__c = 'test 1';
+            testLE1.Tax_Permanent_Address_City__c = 'test 1';
+            testLE1.Tax_Permanent_Address_State_Province__c = 'test 1';
+            testLE1.Tax_Permanent_Address_Zip_Postal_Code__c = 'test 1';
+            testLE1.Tax_Permanent_Address_Country__c = 'test 1';
+            update testLE1;
+        test.stoptest();
+        
+        List<ocm_LegalEntity__c> leUpdateRecords = [Select id, Name, Investment_Entity_Type__c, Tax_Mailing_Address_Line_3__c, Tax_Mailing_Address_Line_2__c, Tax_K_1_Address_Zip_Postal_Code__c, Tax_K_1_Address_Street__c, Tax_K_1_Address_State_Province__c, Tax_K_1_Address_Country__c, Tax_K_1_Address_City__c, EIDD_Status__c,  
+        AUM_Taxable_Tax_Exempt__c, Plan_Type__c, Profile_Page_Category__c,Institutional_Status__c From ocm_LegalEntity__c Where Id =: testLE1.id Limit 1];
+        
+        system.assertEquals(1, leUpdateRecords.size());
+        
+        ocm_LegalEntity__c updatedLE = leUpdateRecords.get(0);
+        
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT, updatedLE.Investment_Entity_Type__c);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, updatedLE.AUM_Taxable_Tax_Exempt__c);
+        //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, updatedLE.Plan_Type__c);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, updatedLE.Profile_Page_Category__c);
+        system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, updatedLE.Institutional_Status__c);
+        system.assertEquals(updatedLE.EIDD_Status__c, OCM_Constants.OCM_LE_EIDD_STATUS_PFFI);
+        system.assertEquals(updatedLE.Tax_K_1_Address_Street__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_Mailing_Address_Line_2__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_Mailing_Address_Line_3__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_K_1_Address_State_Province__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_K_1_Address_State_Province__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_K_1_Address_Zip_Postal_Code__c, 'test 1');
+        system.assertEquals(updatedLE.Tax_K_1_Address_Country__c, 'test 1');
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testBeforeUpdateElseBlock(){
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+        testLE1.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE1;
+        
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION, testLE1.Investment_Entity_Type__c);
+        
+        test.starttest();
+            LegalEntityTriggerHandler.isFirstCall = false;
+            testLE1.Investment_Entity_Type__c = null;
+            update testLE1;
+        test.stoptest();
+        
+        List<ocm_LegalEntity__c> leUpdateRecords = [Select id, Name, Investment_Entity_Type__c, 
+        AUM_Taxable_Tax_Exempt__c, Plan_Type__c, Profile_Page_Category__c,Institutional_Status__c From ocm_LegalEntity__c Where Id =: testLE1.id Limit 1];
+        
+        system.assertEquals(1, leUpdateRecords.size());
+        
+        ocm_LegalEntity__c updatedLE = leUpdateRecords.get(0);
+        
+        system.assertEquals(null, updatedLE.Investment_Entity_Type__c);
+        system.assertEquals(null, updatedLE.AUM_Taxable_Tax_Exempt__c);
+        system.assertEquals(null, updatedLE.Plan_Type__c);
+        system.assertEquals(null, updatedLE.Profile_Page_Category__c);
+        system.assertEquals(null, updatedLE.Institutional_Status__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testBeforeUpdateException(){
+        try {
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.CIE_ID_EXT__c = 'CIEEXT';
+            insert testLE1;
+            
+            Map<Id,ocm_LegalEntity__c> recMap = new Map<Id,ocm_LegalEntity__c>();
+            recMap.put(testLE1.Id, null);
+            
+            test.startTest();
+            try{
+                LegalEntityTriggerHandler.isFirstCall = false;
+                LegalEntityTriggerHandler.handleBeforeUpdate(recMap, recMap);
+                system.assert(false);
+            }catch(Exception e){
+                system.assert(true);
+            }
+            test.stopTest();
+  
+        }
+        catch (Exception e) {
+            System.assert(true);
+        }
+    }
+    
+    static testMethod void testAfterUpdateException() {
+        try {
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.CIE_ID_EXT__c = 'CIEEXT';
+            insert testLE1;
+            
+            Map<Id,ocm_LegalEntity__c> recMap = new Map<Id,ocm_LegalEntity__c>();
+            recMap.put(testLE1.Id, null);
+            
+            test.startTest();
+            try{
+                LegalEntityTriggerHandler.isFirstCall = false;
+                LegalEntityTriggerHandler.handleAfterUpdate(recMap, recMap);
+                //system.assert(false);
+            }catch(Exception e){
+                system.assert(true);
+            }
+            test.stopTest();
+  
+        }
+        catch (Exception e) {
+            System.assert(true);
+        }
+    }
+   
+    static testmethod void testBulkifiedBeforeUpdate(){
+        
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.BillingStreet = 'Former Street';
+        testAccount.BillingCountry = OCM_Constants.COUNTRY_NAME_USA;
+        insert testAccount;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=1; i <= 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.client__C = testAccount.id;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        
+        if(leList != null && leList.size() > 0){
+            insert leList;
+        }
+        
+        system.assertEquals(200, leList.size());
+        
+        List<ocm_LegalEntity__c> updateleList = new List<ocm_LegalEntity__c>();
+        
+        for(Integer i=0;i < 200; i++){
+            ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+            if(math.mod(i, 29) == 0){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 1){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 2){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_TAFT_HARTLEY;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 3){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 4){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 5){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATION;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 6){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INSURANCE_COMPANIES;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 7){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_MUT_FUNDS;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 8){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_IND_RET_ASSETS;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 9){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_FEEDER_FUND;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 10){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 11){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_RELIGIOUS_INST;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 12){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER_FUNDS;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 13){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 14){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_HIGH_NET;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 15){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ADVISOR_MFF_PF;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 16){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INST_FOF;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 17){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_DI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 18){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_CA;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 19){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_IRA_ASSETS;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 20){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 21){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 22){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 23){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_INST_FOF_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 24){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 25){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSION_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 26){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATION_EI;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 27){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT;
+                updateleList.add(le);
+            }else if(math.mod(i, 29) == 28){
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE;
+                updateleList.add(le);
+            }else{
+                le = leList[i];
+                le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+                updateleList.add(le);
+            }
+        }
+        
+        Test.startTest();
+        LegalEntityTriggerHandler.isFirstCall = false;
+        if(updateleList != null && updateleList.size() > 0){
+            update updateleList;
+        }
+        Test.stopTest();
+        
+        system.assertEquals(200, updateleList.size());
+        
+        SET<String> leIds = new SET<String>();
+        for(ocm_LegalEntity__c le: updateleList){
+            leIds.add(le.id);
+        }
+        
+        List<ocm_LegalEntity__c> leUpdateRecords = [Select id, Name, Investment_Entity_Type__c, 
+        AUM_Taxable_Tax_Exempt__c, Plan_Type__c, Profile_Page_Category__c,Institutional_Status__c From ocm_LegalEntity__c Where Id IN: leIds];
+        
+        system.assertEquals(200, leUpdateRecords.size());
+        
+        for(ocm_LegalEntity__c le: leUpdateRecords){
+            if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_TAFT_HARTLEY){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_UNIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INSURANCE_COMPANIES){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_INS_COMP, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_MUT_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_IND_RET_ASSETS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_FEEDER_FUND){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_RELIGIOUS_INST){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OTHER_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_HIGH_NET){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ADVISOR_MFF_PF){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_FOF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_DI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_CA){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_IRA_ASSETS){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_FOF, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION_EI){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAXABLE, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                
+            }else if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE){
+                
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT, le.AUM_Taxable_Tax_Exempt__c);
+                //system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT, le.Plan_Type__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS, le.Profile_Page_Category__c);
+                system.assertEquals(OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL, le.Institutional_Status__c);
+                                
+            }
+        }
+        
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+ 
+    static testmethod void testGovernmentEntityAfterInsert(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.RecordTypeId = ClientRecordTypeId;
+        testAccount.BillingStreet = 'Former Street';
+        testAccount.BillingCountry = OCM_Constants.COUNTRY_NAME_USA;
+        insert testAccount;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+        testLE.Client__c = testAccount.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        
+        Test.starttest();
+            insert testLE;
+        Test.stoptest();
+        
+        Account acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals('Yes', acc.Government_Entity__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterInsertBulkified(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        
+        
+        //Create the test Account object
+        List<Account> accList = new List<Account>();
+        for(Integer i=1; i <= 200; i++){
+            Account testAccount = UnitTestFactory.buildTestAccount();
+            testAccount.RecordTypeId = ClientRecordTypeId;
+            testAccount.BillingStreet = 'Former Street';
+            testAccount.BillingCountry = OCM_Constants.COUNTRY_NAME_USA;
+            accList.add(testAccount);
+        }
+        insert accList;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=0; i < 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+            testLE1.Client__c = accList[i].Id;
+            //testLE1.Privacy_Notice__c = OCM_Constants.OCM_VALUE_YES;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        
+        Test.starttest();
+        if(leList != null && leList.size() > 0){
+            insert leList;
+        }
+        Test.stoptest();
+        
+        system.assertEquals(200, leList.size());
+        
+        //List<Account> resultAccList = [Select id, Name, Government_Entity__c, Privacy_Notice__c From Account Where Id IN: accList];
+        //for(Account acc: resultAccList){
+        //  system.assertEquals('Yes', acc.Government_Entity__c);
+        //  system.assertEquals(true, acc.Privacy_Notice__c);
+        //}
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterUpdate(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.RecordTypeId = ClientRecordTypeId;
+        testAccount.BillingStreet = 'Former Street';
+        insert testAccount;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+        testLE.Client__c = testAccount.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        Test.starttest();
+            testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+            update testLE;
+        Test.stoptest();
+        
+        Account acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals('Yes', acc.Government_Entity__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterUpdate1(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.RecordTypeId = ClientRecordTypeId;
+        testAccount.BillingStreet = 'Former Street';
+        insert testAccount;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+        testLE.Client__c = testAccount.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        Account acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals('Yes', acc.Government_Entity__c);
+        
+        Test.starttest();
+            testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            update testLE;
+        Test.stoptest();
+        
+        acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals('No', acc.Government_Entity__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterUpdateBulkified(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        List<Account> accList = new List<Account>();
+        for(Integer i=1; i <= 200; i++){
+            Account testAccount = UnitTestFactory.buildTestAccount();
+            testAccount.RecordTypeId = ClientRecordTypeId;
+            testAccount.BillingStreet = 'Former Street';
+            accList.add(testAccount);
+        }
+        insert accList;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=0; i < 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            testLE1.Client__c = accList[i].Id;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        insert leList;
+        
+        List<Account> resultAccList = [Select id, Name, Government_Entity__c From Account Where Id IN: accList];
+        for(Account acc: resultAccList){
+            system.assertEquals('No', acc.Government_Entity__c);
+        }
+        
+        Set<String> leIds = new Set<String>();
+        for(ocm_LegalEntity__c le : leList){
+            leIds.add(le.Id);
+        }
+        
+        List<ocm_LegalEntity__c> resultLEList = [Select id, Name, Client__c, Investment_Entity_Type__c From ocm_LegalEntity__c Limit 200];
+        for(ocm_LegalEntity__c le : resultLEList){
+            le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+        }
+        
+        Test.starttest();
+        if(resultLEList != null && resultLEList.size() > 0){
+            update resultLEList;
+        }
+        Test.stoptest();
+        
+        system.assertEquals(200,resultLEList.size());
+        resultAccList = [Select id, Name, Government_Entity__c From Account Where Id IN: accList];
+        for(Account acc: resultAccList){
+            system.assertEquals('Yes', acc.Government_Entity__c);
+        }
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterUpdateBulkified1(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        List<Account> accList = new List<Account>();
+        for(Integer i=1; i <= 200; i++){
+            Account testAccount = UnitTestFactory.buildTestAccount();
+            testAccount.RecordTypeId = ClientRecordTypeId;
+            testAccount.BillingStreet = 'Former Street';
+            accList.add(testAccount);
+        }
+        insert accList;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=0; i < 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+            testLE1.Client__c = accList[i].Id;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        insert leList;
+        
+        //List<Account> resultAccList = [Select id, Name, Government_Entity__c, Privacy_Notice__c From Account Where Id IN: accList];
+        //for(Account acc: resultAccList){
+        //  system.assertEquals(OCM_Constants.OCM_VALUE_YES, acc.Government_Entity__c);
+        //  system.assertEquals(false, acc.Privacy_Notice__c);
+        //}
+        
+        Set<String> leIds = new Set<String>();
+        for(ocm_LegalEntity__c le : leList){
+            leIds.add(le.Id);
+        }
+        
+        List<ocm_LegalEntity__c> resultLEList = [Select id, Name, Privacy_Notice__c, Client__c, Investment_Entity_Type__c From ocm_LegalEntity__c Limit 200];
+        for(ocm_LegalEntity__c le : resultLEList){
+            le.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION;
+            le.Privacy_Notice__c = OCM_Constants.OCM_VALUE_YES;
+        }
+        
+        Test.starttest();
+        if(resultLEList != null && resultLEList.size() > 0){
+            update resultLEList;
+        }
+        Test.stoptest();
+        
+        system.assertEquals(200,resultLEList.size());
+        
+        //resultAccList = [Select id, Name, Government_Entity__c, Privacy_Notice__c From Account Where Id IN: accList];
+        //for(Account acc: resultAccList){
+        //  system.assertEquals(OCM_Constants.OCM_VALUE_NO, acc.Government_Entity__c);
+        //  system.assertEquals(true, acc.Privacy_Notice__c);
+        //}
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterDelete(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.RecordTypeId = ClientRecordTypeId;
+        testAccount.BillingStreet = 'Former Street';
+        insert testAccount;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+        testLE.Client__c = testAccount.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        Account acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals(OCM_Constants.OCM_VALUE_YES, acc.Government_Entity__c);
+        
+        Test.starttest();
+            delete testLE;
+        Test.stoptest();
+        
+        acc = [Select id, Name, Government_Entity__c From Account Where Id =: testAccount.Id Limit 1];
+        system.assertEquals(OCM_Constants.OCM_VALUE_NO, acc.Government_Entity__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testGovernmentEntityAfterDeleteBulkified(){
+        String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+        
+        //Create the test Account object
+        List<Account> accList = new List<Account>();
+        for(Integer i=1; i <= 200; i++){
+            Account testAccount = UnitTestFactory.buildTestAccount();
+            testAccount.RecordTypeId = ClientRecordTypeId;
+            testAccount.BillingStreet = 'Former Street';
+            testAccount.BillingCountry = OCM_Constants.COUNTRY_NAME_USA;
+            accList.add(testAccount);
+        }
+        insert accList;
+        
+        List<ocm_LegalEntity__c> leList = new List<ocm_LegalEntity__c>();
+        for(Integer i=0; i < 200; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Investment_Entity_Type__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION;
+            testLE1.Client__c = accList[i].Id;
+            //testLE1.Privacy_Notice__c = OCM_Constants.OCM_VALUE_YES;
+            testLE1.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE1);
+        }
+        insert leList;
+        
+        system.assertEquals(200, leList.size());
+        //List<Account> resultAccList = [Select id, Name, Government_Entity__c, Privacy_Notice__c From Account Where Id IN: accList];
+        //for(Account acc: resultAccList){
+        //  system.assertEquals(OCM_Constants.OCM_VALUE_YES, acc.Government_Entity__c);
+        //  system.assertEquals(true, acc.Privacy_Notice__c);
+        //}
+        
+        Test.starttest();
+            delete leList;
+        Test.stoptest();
+        
+        //resultAccList = [Select id, Name, Government_Entity__c, Privacy_Notice__c From Account Where Id IN: accList];
+        //for(Account acc: resultAccList){
+        //  system.assertEquals(OCM_Constants.OCM_VALUE_NO, acc.Government_Entity__c);
+        //  system.assertEquals(false, acc.Privacy_Notice__c);
+        //}
+        
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testRollupCIETypeAfterInsert(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testAccount.Id;
+        testLE.RecordTypeId = CIERecordTypeId;
+        testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        test.startTest();
+        insert testLE;
+        test.stopTest();
+        
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE,result.Client_Investment_Entity_Types__c);
+    }
+    
+    static testmethod void testRollupCIETypeAfterUpdate(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testAccount.Id;
+        testLE.RecordTypeId = CIERecordTypeId;
+        testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_CORPORATE,result.Client_Investment_Entity_Types__c);
+        
+        test.startTest();
+        testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterDelete = false;
+        update testLE;
+        test.stopTest();
+        
+        result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_UNIONS,result.Client_Investment_Entity_Types__c);
+    }
+ 
+    static testmethod void testRollupCIETypeAfterDelete(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.Client__c = testAccount.Id;
+        testLE1.RecordTypeId = CIERecordTypeId;
+        testLE1.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        testLE1.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE1.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE1;
+        
+        LegalEntityTriggerHandler.hasAlreadyRanAfterInsert = false;
+        
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(OCM_Constants.OCM_INV_ENTTYPE_UNIONS,result.Client_Investment_Entity_Types__c);
+        
+        test.startTest();
+        LegalEntityTriggerHandler.hasAlreadyRanAfterDelete = false;
+        delete testLE1;
+        test.stopTest();
+        
+        result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(null,result.Client_Investment_Entity_Types__c);
+    }
+ 
+    static testmethod void testRollupCIETypeBulkInsert(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 100 ; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Client__c = testAccount.Id;
+            testLE1.RecordTypeId = CIERecordTypeId;
+            testLE1.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+            testLE1.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE1.CIE_ID_EXT__c = 'CI1'+i;
+            leList.add(testLE1);
+            
+            ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+            testLE2.Client__c = testAccount.Id;
+            testLE2.RecordTypeId = CIERecordTypeId;
+            testLE2.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+            testLE2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE2.CIE_ID_EXT__c = 'CI2'+i;
+            leList.add(testLE2);
+        }
+        test.startTest();
+        insert leList;
+        test.stopTest();
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        String cieType = '';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_CORPORATE+'\n';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        system.assert(cieType.contains(result.Client_Investment_Entity_Types__c));
+    }
+    
+    static testmethod void testRollupCIETypeBulkUpdate(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 100 ; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Client__c = testAccount.Id;
+            testLE1.RecordTypeId = CIERecordTypeId;
+            testLE1.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+            testLE1.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE1.CIE_ID_EXT__c = 'CIE1'+i;
+            leList.add(testLE1);
+            
+            ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+            testLE2.Client__c = testAccount.Id;
+            testLE2.RecordTypeId = CIERecordTypeId;
+            testLE2.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+            testLE2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE2.CIE_ID_EXT__c = 'CIE2'+i;
+            leList.add(testLE2);
+        }
+        insert leList;
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        String cieType = '';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_CORPORATE+'\n';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        system.assert(cieType.contains(result.Client_Investment_Entity_Types__c));
+        
+        test.startTest();
+        for(integer i = 0 ; i < leList.size() ; i++){
+            if(leList[i].Profile_Page_Category__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATE){
+                leList[i].Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS;
+            }else{
+                leList[i].Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+            }
+        }
+        update leList;
+        test.stopTest();
+        result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        cieType = '';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS+'\n';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+        system.assert(cieType.contains(result.Client_Investment_Entity_Types__c));
+    }
+ 
+    static testmethod void testRollupCIETypeBulkDelete(){
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 100 ; i++){
+            ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+            testLE1.Client__c = testAccount.Id;
+            testLE1.RecordTypeId = CIERecordTypeId;
+            testLE1.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+            testLE1.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE1.CIE_ID_EXT__c = 'CIE1'+i;
+            leList.add(testLE1);
+            
+            ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+            testLE2.Client__c = testAccount.Id;
+            testLE2.RecordTypeId = CIERecordTypeId;
+            testLE2.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+            testLE2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE2.CIE_ID_EXT__c = 'CIE2'+i;
+            leList.add(testLE2);
+        }
+        insert leList;
+        
+        Account result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        String cieType = '';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_CORPORATE+'\n';
+        cieType += OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        system.assert(cieType.contains(result.Client_Investment_Entity_Types__c));
+        
+        test.startTest();
+        delete leList;
+        test.stopTest();
+        
+        result = [select id, Client_Investment_Entity_Types__c from Account where id =: testAccount.Id limit 1];
+        system.assert(result != null);
+        system.assertEquals(null,result.Client_Investment_Entity_Types__c);
+    }
+
+    static testmethod void testIntermidiaryOnInsert() {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String UnderLyingPartnerRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_REC_TYPE_UNDERLYING_PARTNER Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        parentLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testAccount.Id;
+        testLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE.Parent_Investment_Entity__c = parentLE.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEX1';
+        LegalEntityTriggerHandler.isFirstCall = false;
+        insert testLE;
+        
+        ocm_LegalEntity__c resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.Client__c = testAccount.Id;
+        testLE2.RecordTypeId = UnderLyingPartnerRecTypeId;
+        testLE2.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE2.Parent_Investment_Entity__c = testLE.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        LegalEntityTriggerHandler.isFirstCall = false;
+        test.startTest();
+        insert testLE2;
+        test.stopTest();
+        
+        resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: testLE.Id limit 1];
+        system.assertEquals(resultLE.Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+    }
+ 
+    static testmethod void testIntermidiaryOnBulkInsert() {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String UnderLyingPartnerRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_REC_TYPE_UNDERLYING_PARTNER Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        parentLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+        
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 100 ; i++){
+            ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+            testLE.Client__c = testAccount.Id;
+            testLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+            testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+            testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE.Parent_Investment_Entity__c = parentLE.Id;
+            testLE.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE);
+        }
+        LegalEntityTriggerHandler.isFirstCall = false;
+        test.startTest();
+        insert leList;
+        test.stopTest();
+        
+        ocm_LegalEntity__c resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testIntermidiaryOnUpdate() {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String UnderLyingPartnerRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_REC_TYPE_UNDERLYING_PARTNER Limit 1].id;
+        
+        list<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        parentLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        leList.add(parentLE);
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testAccount.Id;
+        testLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE.CIE_ID_EXT__c = 'CIEEX1';
+        LegalEntityTriggerHandler.isFirstCall = false;
+        leList.add(testLE);
+        insert leList;
+        
+        List<ocm_LegalEntity__c> resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id and Is_Intermediary__c =: OCM_Constants.OCM_VALUE_YES limit 1];
+        system.assertEquals(resultLE.size(),0);
+        
+        LegalEntityTriggerHandler.isFirstCall = false;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+        testLE.Parent_Investment_Entity__c = parentLE.Id;
+        update testLE;
+        
+        resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE[0].Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.Client__c = testAccount.Id;
+        testLE2.RecordTypeId = UnderLyingPartnerRecTypeId;
+        testLE2.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+        testLE2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        LegalEntityTriggerHandler.isFirstCall = false;
+        insert testLE2;
+        
+        resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: testLE.Id and Is_Intermediary__c =: OCM_Constants.OCM_VALUE_YES limit 1];
+        system.assertEquals(resultLE.size(),0);
+        
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+        test.startTest();
+        testLE2.Parent_Investment_Entity__c = testLE.Id;
+            update testLE2;
+        test.stopTest();
+        
+        resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: testLE.Id limit 1];
+        system.assertEquals(resultLE[0].Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testIntermidiaryOnBulkUpdate() {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String UnderLyingPartnerRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_REC_TYPE_UNDERLYING_PARTNER Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+        parentLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+        
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 100 ; i++){
+            ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+            testLE.Client__c = testAccount.Id;
+            testLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+            testLE.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+            testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE);
+        }
+        insert leList;
+        list<ocm_LegalEntity__c> resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id and Is_Intermediary__c =: OCM_Constants.OCM_VALUE_YES limit 1];
+        system.assertEquals(resultLE.size(),0);
+        
+        for(ocm_LegalEntity__c le : leList){
+            le.Parent_Investment_Entity__c = parentLE.Id;
+        }
+        LegalEntityTriggerHandler.isFirstCall = false;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+        test.startTest();
+        update leList;
+        test.stopTest();
+        
+        resultLE = [select Is_Intermediary__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE[0].Is_Intermediary__c,OCM_Constants.OCM_VALUE_YES);
+    }    
+    static testmethod void testrollupForeignCIEsOwnedOnInsert() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String cieRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.Name = 'Test CIE record';
+        parentLE.RecordTypeId = cieRecTypeId;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-8BEN';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        
+        test.startTest();
+            insert parentLE;
+        test.stopTest();
+    
+        ocm_LegalEntity__c resultLE = [select Tax_US_Non_US__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Tax_US_Non_US__c,OCM_Constants.OCM_NON_US);
+    
+        
+        Account result = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result.Foreign_CIEs_Owned__c,parentLE.Name);
+    }
+    
+    static testmethod void testrollupForeignCIEsOwnedOnBulkInsert() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String UnderLyingPartnerRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_REC_TYPE_UNDERLYING_PARTNER Limit 1].id;
+        List<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        for(integer i = 0 ; i < 200 ; i++)
+        {
+            ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+            testLE.Client__c = testAccount.Id;
+            testLE.Name = 'Test CIE record'+i;
+            testLE.RecordTypeId = UnderLyingPartnerRecTypeId;
+            testLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testLE.Withholding_Form_Type__c = 'W-8BEN';
+            testLE.CIE_ID_EXT__c = 'CIE'+i;
+            leList.add(testLE);
+        }
+        LegalEntityTriggerHandler.isFirstCall = false;
+        
+        test.startTest();
+        insert leList;
+        test.stopTest();
+    }
+    
+    static testmethod void testrollupForeignCIEsOwnedOnUpdate() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String cieRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.Name = 'Test CIE record';
+        parentLE.RecordTypeId = cieRecTypeId;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-9 (2013)';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+
+        ocm_LegalEntity__c resultLE = [select Tax_US_Non_US__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Tax_US_Non_US__c,'US');
+
+        Account result1 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result1.Foreign_CIEs_Owned__c,null);
+
+        test.startTest();
+             LegalEntityTriggerHandler.isFirstCall = false;
+             parentLE.Withholding_Form_Type__c = 'W-8BEN';
+             update parentLE;
+        test.stopTest();
+        
+        Account result = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result.Foreign_CIEs_Owned__c,parentLE.Name);
+    }
+    
+    static testmethod void testrollupForeignCIEsOwnedOnUpdate2() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String cieRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.Name = 'Test CIE record';
+        parentLE.RecordTypeId = cieRecTypeId;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-9 (2013)';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+
+        ocm_LegalEntity__c resultLE = [select Tax_US_Non_US__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Tax_US_Non_US__c,'US');
+
+        Account result1 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result1.Foreign_CIEs_Owned__c,null);
+
+        LegalEntityTriggerHandler.isFirstCall = false;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        parentLE.Withholding_Form_Type__c = 'W-8BEN';
+        update parentLE;
+
+        ocm_LegalEntity__c resultLE2 = [select Tax_US_Non_US__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE2.Tax_US_Non_US__c,OCM_Constants.OCM_NON_US);
+
+        Account result2 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result2.Foreign_CIEs_Owned__c,parentLE.Name);
+
+        test.startTest();
+             LegalEntityTriggerHandler.isFirstCall = false;
+             LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = false;
+             parentLE.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+             update parentLE;
+        test.stopTest();
+        
+        Account result3 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result3.Foreign_CIEs_Owned__c,null);
+    }
+    
+    static testmethod void testrollupForeignCIEsOwnedOnDelete() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String cieRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.Name = 'Test CIE record';
+        parentLE.RecordTypeId = cieRecTypeId;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-9 (2011)';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+
+        ocm_LegalEntity__c resultLE = [select Tax_US_Non_US__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Tax_US_Non_US__c,'US');
+
+        Account result1 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result1.Foreign_CIEs_Owned__c,null);
+
+        LegalEntityTriggerHandler.isFirstCall = false;
+        parentLE.Withholding_Form_Type__c = 'W-8BEN';
+        update parentLE;
+
+        Account result2 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result2.Foreign_CIEs_Owned__c,parentLE.Name);
+        
+        test.startTest();
+            delete parentLE;
+        test.stopTest();
+        
+        Account result3 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result3.Foreign_CIEs_Owned__c,null);
+    }
+    
+    static testMethod void testOrgClientTypeAfterUpdate1(){
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];       
+        
+        //Has Series Trigger
+        ocm_Series__c ser= UnitTestFactory.buildTestSeries(); 
+        ser.Name = OCM_Constants.OCM_LABEL_SERIES_INVESTOR;
+        insert ser;
+        
+        //Case: 1 Client Account 2 different strategies
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.Name = 'Test Account';
+        testAccount.RecordTypeId = rtypeClient.Id;
+        insert testAccount;
+        
+        Account accResult = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(OCM_Constants.OCM_OAK_INV_ONLY, accResult.Client_Type__c);
+        
+        RecordType rtypeclientlegalentity = [select id from RecordType where Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1];
+        
+        //set up client invesment entity
+        ocm_LegalEntity__c testLegalEntity = UnitTestFactory.buildTestLegalEntity();
+        testLegalEntity.RecordTypeId = rtypeclientlegalentity.Id;
+        testLegalEntity.Client__c = testAccount.Id;
+        testLegalEntity.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLegalEntity;
+        
+        //set up client account
+        ocm_FinancialAccount__c testFinancialAccount = UnitTestFactory.buildTestFinancialAccount();
+        testFinancialAccount.Name = 'Test Financial Account';
+        testFinancialAccount.Client_Investment_Entity__c = testLegalEntity.Id;
+        testFinancialAccount.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFinancialAccount;
+        
+        String recid = [Select id from RecordType Where SobjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_FUND_LEGAL_ENTITY].id;
+        //******************************set up distressed debt
+        ocm_Strategy__c testStrategyDD = UnitTestFactory.buildTestStrategy();
+        testStrategyDD.Name  = 'Fund of Fund';
+        insert testStrategyDD;
+        
+        ocm_FundFamily__c testFFDD = UnitTestFactory.buildTestFundFamily();
+        testFFDD.Name = 'FF DD';
+        testFFDD.Oaktree_Fund__c = OCM_Constants.OCM_VALUE_NO;
+        testFFDD.Strategy__c = testStrategyDD.id;
+        insert testFFDD;
+
+        ocm_FundFamily__c testFFDD2 = UnitTestFactory.buildTestFundFamily();
+        testFFDD2.Name = 'FF DD2';
+        testFFDD2.Oaktree_Fund__c = OCM_Constants.OCM_VALUE_YES;
+        testFFDD2.Strategy__c = testStrategyDD.id;
+        insert testFFDD2;
+        
+        ocm_LegalEntity__c testFLEDD = UnitTestFactory.buildTestLegalEntity();
+        testFLEDD.Fund_Family__c = testFFDD.Id;
+        testFLEDD.Name = 'FLE DD';
+        testFLEDD.RecordTypeId = recid;
+        testFLEDD.Type_of_OCM_Entity__c = 'Feeder';
+        testFLEDD.CIE_ID_EXT__c = 'CIEEX1';
+        insert testFLEDD;
+        
+        ocm_FinancialAccounttoLegalEntity__c testFAToFLEDD = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        testFAToFLEDD.Financial_Account__c = testFinancialAccount.Id;
+        testFAToFLEDD.Legal_Entity__c = testFLEDD.Id;
+        testFAToFLEDD.Series__c = ser.Id;
+        testFAToFLEDD.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        RelatedFAToLETriggerHandler.isFirstCallClientInvestment = false;
+        insert testFAToFLEDD;
+        
+        Account accResult2 = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(OCM_Constants.OCM_NON_OAK_INV_ONLY, accResult2.Client_Type__c);
+        
+        test.StartTest();
+            LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+            testFLEDD.Fund_Family__c = testFFDD2.Id;
+            update testFLEDD;
+        test.StopTest();
+        
+        Account accResult3 = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(OCM_Constants.OCM_OAK_INV_ONLY, accResult3.Client_Type__c);
+    }
+    
+    static testMethod void testOrgClientTypeAfterUpdate2(){
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];       
+        
+        //Has Series Trigger
+        ocm_Series__c ser= UnitTestFactory.buildTestSeries(); 
+        ser.Name = OCM_Constants.OCM_LABEL_SERIES_INVESTOR;
+        insert ser;
+        
+        //Case: 1 Client Account 2 different strategies
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.Name = 'Test Account';
+        testAccount.RecordTypeId = rtypeClient.Id;
+        insert testAccount;
+        
+        Account accResult = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(OCM_Constants.OCM_OAK_INV_ONLY, accResult.Client_Type__c);
+        
+        //Case: 1 Client Account 2 different strategies
+        Account testAccount2 = UnitTestFactory.buildTestAccount();
+        testAccount2.Name = 'Test Account2';
+        testAccount2.RecordTypeId = rtypeClient.Id;
+        insert testAccount2;
+        
+        Account accResultOrg = [Select id, Name, Client_Type__c From Account Where Id =: testAccount2.Id];
+        system.assertEquals(OCM_Constants.OCM_OAK_INV_ONLY, accResultOrg.Client_Type__c);
+        
+        RecordType rtypeclientlegalentity = [select id from RecordType where Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1];
+        
+        //set up client invesment entity
+        ocm_LegalEntity__c testLegalEntity = UnitTestFactory.buildTestLegalEntity();
+        testLegalEntity.RecordTypeId = rtypeclientlegalentity.Id;
+        testLegalEntity.Client__c = testAccount.Id;
+        testLegalEntity.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLegalEntity;
+        
+        //set up client account
+        ocm_FinancialAccount__c testFinancialAccount = UnitTestFactory.buildTestFinancialAccount();
+        testFinancialAccount.Name = 'Test Financial Account';
+        testFinancialAccount.Client_Investment_Entity__c = testLegalEntity.Id;
+        testFinancialAccount.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFinancialAccount;
+        
+        String recid = [Select id from RecordType Where SobjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_FUND_LEGAL_ENTITY].id;
+        //******************************set up distressed debt
+        ocm_Strategy__c testStrategyDD = UnitTestFactory.buildTestStrategy();
+        testStrategyDD.Name  = 'Fund of Fund';
+        insert testStrategyDD;
+        
+        ocm_FundFamily__c testFFDD = UnitTestFactory.buildTestFundFamily();
+        testFFDD.Name = 'FF DD';
+        testFFDD.Oaktree_Fund__c = OCM_Constants.OCM_VALUE_NO;
+        testFFDD.Strategy__c = testStrategyDD.id;
+        insert testFFDD;
+
+        ocm_LegalEntity__c testFLEDD = UnitTestFactory.buildTestLegalEntity();
+        testFLEDD.Fund_Family__c = testFFDD.Id;
+        testFLEDD.Name = 'FLE DD';
+        testFLEDD.RecordTypeId = recid;
+        testFLEDD.Type_of_OCM_Entity__c = 'Feeder';
+        testFLEDD.CIE_ID_EXT__c = 'CIEEX1';
+        insert testFLEDD;
+        
+        ocm_FinancialAccounttoLegalEntity__c testFAToFLEDD = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        testFAToFLEDD.Financial_Account__c = testFinancialAccount.Id;
+        testFAToFLEDD.Legal_Entity__c = testFLEDD.Id;
+        testFAToFLEDD.Series__c = ser.Id;
+        testFAToFLEDD.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;        
+        RelatedFAToLETriggerHandler.isFirstCallClientInvestment = false;
+        insert testFAToFLEDD;
+        
+        Account accResult2 = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(OCM_Constants.OCM_NON_OAK_INV_ONLY, accResult2.Client_Type__c);
+        
+        test.StartTest();
+            LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+            testLegalEntity.Client__c = testAccount2.Id;
+            update testLegalEntity;
+        test.StopTest();
+        
+        Account accResult3 = [Select id, Name, Client_Type__c From Account Where Id =: testAccount.Id];
+        system.assertEquals(null, accResult3.Client_Type__c);
+        
+        Account accResultOrg2 = [Select id, Name, Client_Type__c From Account Where Id =: testAccount2.Id];
+        system.assertEquals(OCM_Constants.OCM_NON_OAK_INV_ONLY, accResultOrg2.Client_Type__c);
+    }
+    
+    static testmethod void testReSolicitationStatus() 
+    {
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        insert testAccount;
+        
+        String cieRecTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.Name = 'Test CIE record';
+        parentLE.RecordTypeId = cieRecTypeId;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-9 (2013)';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert parentLE;
+
+        ocm_LegalEntity__c resultLE = [select Tax_US_Non_US__c, Re_solicitation_Status__c, Tax_Request_for_Resolicit_Sent_to_CS__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE.Tax_US_Non_US__c,'US');
+        system.assertEquals(resultLE.Re_solicitation_Status__c,null);
+        system.assertEquals(resultLE.Tax_Request_for_Resolicit_Sent_to_CS__c,null);
+
+        Account result1 = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result1.Foreign_CIEs_Owned__c,null);
+
+        test.startTest();
+             LegalEntityTriggerHandler.isFirstCall = false;
+             parentLE.Withholding_Form_Type__c = 'W-8BEN';
+             parentLE.Re_solicitation_Status__c = 'Complete';            
+             update parentLE;
+        test.stopTest();
+        
+        Account result = [select id, Foreign_CIEs_Owned__c from Account where id =: testAccount.Id limit 1];
+        system.assertEquals(result.Foreign_CIEs_Owned__c,parentLE.Name);
+        
+        ocm_LegalEntity__c resultLE2 = [select Tax_US_Non_US__c, Re_solicitation_Status__c, Tax_Request_for_Resolicit_Sent_to_CS__c from ocm_LegalEntity__c where id =: parentLE.Id limit 1];
+        system.assertEquals(resultLE2.Re_solicitation_Status__c,'Complete');
+    }
+    
+    static testMethod void testHandleERISA() 
+    {
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];
+        String cieRecid = [Select id from RecordType Where SobjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_CLIENT_INVESTMENT_ENTITY].id;
+        
+        Account testAccount = UnitTestFactory.buildTestAccount();
+        testAccount.RecordTypeId = rtypeClient.Id;
+        insert testAccount;        
+        
+        ocm_LegalEntity__c parentLE = UnitTestFactory.buildTestLegalEntity();
+        parentLE.Client__c = testAccount.Id;
+        parentLE.RecordTypeId = cieRecid;
+        parentLE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        parentLE.Withholding_Form_Type__c = 'W-9 (2013)';
+        parentLE.CIE_ID_EXT__c = 'CIEEXT';        
+        insert parentLE;  
+        
+        ocm_LegalEntity__c resultLe = [select id, ERISA__c from ocm_LegalEntity__c where id =: parentLE.Id];
+        system.assertNotEquals(resultLe.ERISA__c,OCM_Constants.OCM_VALUE_YES);
+        
+        test.startTest();
+            parentLE.Tax_Entity_Classification__c = OCM_Constants.OCM_LE_TAX_ENTITY_IRA_KEOGH_PLAN;
+            update parentLE;
+        test.stopTest();
+        
+        ocm_LegalEntity__c resultLe2 = [select id, ERISA__c, Plan_Assets_Subject_to_ERISA__c from ocm_LegalEntity__c where id =: parentLE.Id];
+        system.assertEquals(resultLe2.ERISA__c,OCM_Constants.OCM_VALUE_YES);
+        system.assertEquals(resultLe2.Plan_Assets_Subject_to_ERISA__c, 100);
+    }
+    
+    static testMethod void testMLeW8StatusUpdation() 
+    {
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];
+        String cieRecid = [Select id from RecordType Where SobjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_CLIENT_INVESTMENT_ENTITY].id;
+    	string flRecType = [Select id from RecordType Where SobjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_FUND_LEGAL_ENTITY].id;
+        
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.RecordTypeId = rtypeClient.Id;
+        acc.Name = 'Test Client Organization';
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = true;        
+        insert acc;
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = false;        
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.FirstName = 'Test';
+        con.LastName = 'Con';
+    	con.OCP_Primary_Email__c = 'Email 1';
+    	con.Email = 'test@test.com';
+        con.AccountId = acc.Id;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = true;        
+        insert con;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = false;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = false;
+        
+        ocm_Strategy__c testStrategyDD = UnitTestFactory.buildTestStrategy();
+        testStrategyDD.Name  = 'Fund of Fund';
+        insert testStrategyDD;
+        
+        ocm_FundFamily__c testFFDD = UnitTestFactory.buildTestFundFamily();
+        testFFDD.Name = 'FF DD';
+        testFFDD.Strategy__c = testStrategyDD.id;
+        FundFamilyTriggerHandler.isAfterFired = true;
+        insert testFFDD;
+        FundFamilyTriggerHandler.isAfterFired = false;
+        
+        list<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+    	ocm_LegalEntity__c leCIE = UnitTestFactory.buildTestLegalEntity();
+        leCIE.Legal_Entity_Full_Name__c = 'Client Investment Entity';
+        leCIE.Name = 'CIE Test Record';
+    	leCIE.RecordTypeId = cieRecid;
+    	leCIE.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+    	leCIE.Withholding_Form_Type__c = 'W-8BEN';
+    	leCIE.CIE_ID_EXT__c = 'CIEEXT';
+    	leCIE.Client__c = acc.Id;
+    	leCIE.eW8_Status__c = null;
+        leList.add(leCIE);
+    	
+    	ocm_LegalEntity__c fle = UnitTestFactory.buildTestLegalEntity();
+        fle.Legal_Entity_Full_Name__c = 'Fund Legal Entity';
+        fle.RecordTypeId = flRecType;
+        fle.Fund_Family__c = testFFDD.Id;
+        leList.add(fle);
+        insert leList;        
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = leCIE.Id;
+        fa.Name = 'test FA';
+        FinancialAccountTriggerHandler.isFirstCall = true;
+	    FinancialAccountTriggerHandler.isFirstCallUpdate = true;
+	    FinancialAccountTriggerHandler.isFirstCallCommitedCapital = true;
+        insert fa;
+        FinancialAccountTriggerHandler.isFirstCall = false;
+	    FinancialAccountTriggerHandler.isFirstCallUpdate = false;
+	    FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = fle.Id;
+        RelatedFAToLETriggerHandler.isFirstCall = true;
+	    RelatedFAToLETriggerHandler.isFirstCallClientInvestment = true;
+	    RelatedFAToLETriggerHandler.isFirstCallFinAcctStatus = true;
+        insert fa2le;
+        RelatedFAToLETriggerHandler.isFirstCall = false;
+	    RelatedFAToLETriggerHandler.isFirstCallClientInvestment = false;
+	    RelatedFAToLETriggerHandler.isFirstCallFinAcctStatus = false;
+        
+        ocm_OrganizationsToFinancialAccount__c orgToFA = UnitTestFactory.buildOrganizationsToFinancialAccount();
+        orgToFA.Organization__c = acc.Id;
+        orgToFA.Financial_Account__c = fa.Id;
+        orgToFA.Relationship__c = OCM_Constants.OCM_CLIENT;
+        orgToFa.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert orgToFA;
+        
+        string mailrecType = [Select r.Name, r.Id From RecordType r  where r.DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING and SobjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST limit 1].Id;
+		ocm_Mailing_List__c mailingList = UnitTestFactory.buildMailingList();
+        mailingList.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        mailingList.Contact__c = con.Id;
+        mailingList.Client_Account_Legal_Entity_Relationship__c = fa2le.id;       
+        mailingList.RecordTypeId = mailrecType; 
+        mailingList.Downgrade_Notification_Delivery_Method__c = 'Email';
+        mailingList.Downgrade_Notification_Email_Type__c = 'Email 1';        
+        mailingList.Tax_Mailings_K_1__c = 'Email';
+        mailingList.Tax_Mailings_Email__c = 'Email 1';
+		mailingList.Drawdown_Notices__c = 'Email';
+		mailingList.Drawdown_Notices_Email__c = 'Email 1';
+		mailingList.Distribution_Notices__c = 'Email';
+		mailingList.Distribution_Notices_Email__c = 'Email 1';
+		mailingList.Legal_Mailings__c = 'Email';
+		mailingList.Legal_Mailings_Email__c = 'Email 1';
+		mailingList.Quarterly_Letters__c = 'Email';
+		mailingList.Quarterly_Letters_Email__c = 'Email 1';
+		MailingListTriggerHandler.hasAlreadyRanAfterInsert = true;
+        insert mailingList;
+        MailingListTriggerHandler.hasAlreadyRanAfterInsert = false;
+        
+        ocm_Mailing_List__c mailingListResult = [Select id, Name, eW8_Status__c From ocm_Mailing_List__c where id = :mailingList.id];
+        system.assertEquals(mailingListResult.eW8_Status__c,leCIE.eW8_Status__c);
+        
+        test.StartTest();
+        	LegalEntityTriggerHandler.isFirstCallAfterUpdate = false;
+	        leCIE.eW8_Status__c = 'Pending Creation';
+	        update leCIE;
+        test.StopTest(); 
+        
+        ocm_Mailing_List__c mailingListResult2 = [Select id, Name, eW8_Status__c From ocm_Mailing_List__c where id = :mailingList.id];
+        system.assertEquals(mailingListResult2.eW8_Status__c,leCIE.eW8_Status__c); 
+    }
+}

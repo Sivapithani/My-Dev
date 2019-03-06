@@ -1,0 +1,73 @@
+<aura:component controller ="ContactController" implements="force:appHostable,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionwithoutHeader" access="global" >
+  <aura:handler name="init" value ="{!this}" action ="{!c.doInit}" />
+    <aura:attribute name="activityid" type="string" default="{!v.recordId}"/>
+     <aura:attribute name="selectedid" type="string" default=""/>
+     <aura:attribute name="fullfilment" type="Fulfillment__c[]" default=""/>
+    <aura:attribute name="isview" type="Boolean" default="true"/>
+    <aura:attribute name="isNew" type="Boolean" default="false"/>
+     <aura:attribute name="isactivity" type="Boolean" default="false"/>
+   <aura:if isTrue="{!v.isview}">
+    <lightning:button class="right"  label=" X"  onclick="{! c.handleclose}" variant="bare"/>  
+            <div class="slds-grid slds-wrap">
+                <div class="slds-container-large slds-align_absolute-center">
+                    <div class="slds-box" >
+                        <div>
+                            <div class="slds-page-header  slds-page-header_record-home " style =" background-color:#edeaea;">
+                                <div class="slds-page-header__row">
+                                    <div class="slds-page-header__col-title">
+                                        <div class="slds-media">
+                                            <div class="slds-media__figure">
+                                                <span class="slds-icon_container slds-icon-standard-Activity" title="Activity">
+                                                    <lightning:avatar alternativeText="Activity" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="square"/> 
+                                                </span>
+                                            </div>
+                                            <div class="slds-media__body">
+                                                <div class="slds-page-header__name">
+                                                    <div class="slds-page-header__name-title">
+                                                        <h1>
+                                                            <span class="slds-page-header__title slds-truncate" title="Activity">Activity</span>
+                                                        </h1>
+                                                        
+                                                    </div>
+                                                </div>
+                                                <p class="slds-page-header__name-meta">Mark Jaeckal • Unlimited Customer </p>
+                                            </div>
+                                        </div>
+                                    </div> 
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="slds-grid slds-wrap ">  
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-5">
+                                    <div class="slds-media__figure ">
+                                        <lightning:buttonGroup>
+                                            <lightning:button  class="slds-theme_neutral styleclass" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"/>
+                                            <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit" onclick="{!c.editcontact}"/>
+                                            
+                                            <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="New" iconName="utility:add" onclick="{!c.createfulli}"/>
+                                            <lightning:buttonMenu aura:id="menu" onselect="{! c.handleSelect }" alternativeText="Show menu" menuAlignment="bottom-right.">
+                                                
+                                                <lightning:menuItem value="Edit" label="Edit"  />
+                                                <lightning:menuItem value="Delete" label="Delete" />
+                                                
+                                            </lightning:buttonMenu>
+                                        </lightning:buttonGroup>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    </div>
+      <div class="slds-truncate" title="Account Name">Account Name</div>
+     <aura:iteration var="a" items="{!v.fullfilment}">
+             <div Id="{a.Id}" class="slds-truncate" title="" onclick="{! c.gotodetails}" >{!a.Name}</div>  
+     </aura:iteration>
+    </aura:if>
+     <aura:if isTrue="{!v.isactivity}">
+         <c:Activity_Responsive contactid="{!v.recordId}"/>
+    </aura:if>
+     <aura:if isTrue="{!v.isNew}">
+         <c:create_Fullfiment contact="{!v.recordId}" acctivity="{v.fullfilment.ActivityType__c}"/>
+    </aura:if>
+</aura:component>

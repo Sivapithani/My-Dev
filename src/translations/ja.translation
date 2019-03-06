@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customApplications>
+        <label><!-- AppMenu --></label>
+        <name>AppMenu</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Console App --></label>
+        <name>Console_App</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Custom App --></label>
+        <name>Custom_App</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Dreamhouse Lightning --></label>
+        <name>Dreamhouse_Lightning</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Education --></label>
+        <name>Education</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Relaxation Gauntlet --></label>
+        <name>Relaxation_Gauntlet</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Service Console --></label>
+        <name>Service_Console</name>
+    </customApplications>
+    <customApplications>
+        <label><!-- Warehouse --></label>
+        <name>Warehouse</name>
+    </customApplications>
+    <customLabels>
+        <label><!-- Dev_HI --></label>
+        <name>Dev_HI</name>
+    </customLabels>
+    <customLabels>
+        <label><!-- Dev_HI2 --></label>
+        <name>Dev_HI2</name>
+    </customLabels>
+    <customTabs>
+        <label><!-- ACtivity_lightning --></label>
+        <name>ACtivity_lightning</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- AccountTable_2 --></label>
+        <name>AccountTable_2</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Account table --></label>
+        <name>Account_table</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Activity --></label>
+        <name>Activity</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Custom Action PL --></label>
+        <name>Custom_Action_PL</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Custom Action Page --></label>
+        <name>Custom_Action_Page</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Data --></label>
+        <name>Data</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- DataTable --></label>
+        <name>DataTable</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Data Import --></label>
+        <name>Data_Import</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- FieldSet --></label>
+        <name>FieldSet</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Fieldsetforlookup --></label>
+        <name>Fieldsetforlookup</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Final --></label>
+        <name>Final</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- ForceLookUp --></label>
+        <name>ForceLookUp</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Grid_InlineEdit --></label>
+        <name>Grid_InlineEdit</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- INlineEdit --></label>
+        <name>INlineEdit</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- LOOKUP --></label>
+        <name>LOOKUP</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Leads --></label>
+        <name>Leads</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Marketing --></label>
+        <name>Marketing</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- MobileApp --></label>
+        <name>MobileApp</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- MyData --></label>
+        <name>MyData</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- MyTab --></label>
+        <name>MyTab</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- My Page PDf --></label>
+        <name>My_Page_PDf</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- PagewithoutHeader --></label>
+        <name>PagewithoutHeader</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Quickstart --></label>
+        <name>Quickstart</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- RecordFrom --></label>
+        <name>RecordFrom</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- ResponsiveTable --></label>
+        <name>ResponsiveTable</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- SaveCustomObject --></label>
+        <name>SaveCustomObject</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Search text --></label>
+        <name>Search_text</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Staffing Report --></label>
+        <name>Staffing_Report</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- SwapExample --></label>
+        <name>SwapExample</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Swipe --></label>
+        <name>Swipe</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- TableOpty --></label>
+        <name>TableOpty</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- VF_Lightning --></label>
+        <name>VF_Lightning</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- Wizard --></label>
+        <name>Wizard</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- contact --></label>
+        <name>contact</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- excel --></label>
+        <name>excel</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- my contact --></label>
+        <name>my_contact</name>
+    </customTabs>
+    <customTabs>
+        <label><!-- my pdf --></label>
+        <name>my_pdf</name>
+    </customTabs>
+    <flowDefinitions>
+        <flows>
+            <fullName>Update_the_contact_address-1</fullName>
+        </flows>
+        <fullName>Update_the_contact_address</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Lead-1</fullName>
+        </flows>
+        <fullName>Lead</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Quick_Lead-1</fullName>
+            <screens>
+                <fields>
+                    <name>Company_Name</name>
+                </fields>
+                <fields>
+                    <name>Last_Name</name>
+                </fields>
+                <name>New_Lead</name>
+            </screens>
+            <screens>
+                <fields>
+                    <name>RelatedRecordID</name>
+                </fields>
+                <name>Upload_File</name>
+            </screens>
+        </flows>
+        <fullName>Quick_Lead</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Fulfillment_Creation1-8</fullName>
+        </flows>
+        <fullName>Fulfillment_Creation1</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Closed_Won_Opportunities-1</fullName>
+        </flows>
+        <fullName>Closed_Won_Opportunities</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>LeadStatus-1</fullName>
+        </flows>
+        <fullName>LeadStatus</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Clone_Opportunity-1</fullName>
+        </flows>
+        <fullName>Clone_Opportunity</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Opportunity_Management-3</fullName>
+        </flows>
+        <fullName>Opportunity_Management</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Account_Update-2</fullName>
+            <screens>
+                <fields>
+                    <name>AccountFiles</name>
+                </fields>
+                <name>Upload_Files</name>
+            </screens>
+            <screens>
+                <fields>
+                    <name>Account_Name</name>
+                </fields>
+                <fields>
+                    <name>Phone_Number</name>
+                </fields>
+                <name>New_Account</name>
+            </screens>
+        </flows>
+        <fullName>Account_Update</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>New_Lead-2</fullName>
+            <screens>
+                <fields>
+                    <name>Company_Name</name>
+                </fields>
+                <fields>
+                    <name>Last_Name</name>
+                </fields>
+                <name>New_Lead</name>
+            </screens>
+            <screens>
+                <fields>
+                    <name>Upload_File</name>
+                </fields>
+                <name>Upload_File1</name>
+            </screens>
+        </flows>
+        <fullName>New_Lead</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Account_owner_change-1</fullName>
+        </flows>
+        <fullName>Account_owner_change</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <fullName>Fulfillment_Creation-7</fullName>
+        </flows>
+        <fullName>Fulfillment_Creation</fullName>
+    </flowDefinitions>
+    <quickActions>
+        <label><!-- Contactquickaction --></label>
+        <name>Contactquickaction</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Guest Community Case --></label>
+        <name>GuestCommunityCase</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- LogACall --></label>
+        <name>LogACall</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewAccount --></label>
+        <name>NewAccount</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewCase --></label>
+        <name>NewCase</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- New Community Case --></label>
+        <name>NewCommunityCase</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewContact --></label>
+        <name>NewContact</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewEvent --></label>
+        <name>NewEvent</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewGroup --></label>
+        <name>NewGroup</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewLead --></label>
+        <name>NewLead</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewNote --></label>
+        <name>NewNote</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewOpportunity --></label>
+        <name>NewOpportunity</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- NewTask --></label>
+        <name>NewTask</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- SendEmail --></label>
+        <name>SendEmail</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Case_OfflineCaseQuickAction_08h0I000000KyoG --></label>
+        <name>Snapins_Case_OfflineCaseQuickAction_08h0I000000KyoG</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Case_PrechatQuickAction_08h0I0000008OLs --></label>
+        <name>Snapins_Case_PrechatQuickAction_08h0I0000008OLs</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Case_PrechatQuickAction_08h0I0000008OLx --></label>
+        <name>Snapins_Case_PrechatQuickAction_08h0I0000008OLx</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Case_PrechatQuickAction_08h0I000000KyoG --></label>
+        <name>Snapins_Case_PrechatQuickAction_08h0I000000KyoG</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Contact_PrechatQuickAction_08h0I0000008OLs --></label>
+        <name>Snapins_Contact_PrechatQuickAction_08h0I0000008OLs</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Contact_PrechatQuickAction_08h0I0000008OLx --></label>
+        <name>Snapins_Contact_PrechatQuickAction_08h0I0000008OLx</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- Snapins_Contact_PrechatQuickAction_08h0I000000KyoG --></label>
+        <name>Snapins_Contact_PrechatQuickAction_08h0I000000KyoG</name>
+    </quickActions>
+    <quickActions>
+        <label><!-- VFforLightning --></label>
+        <name>VFforLightning</name>
+    </quickActions>
+    <reportTypes>
+        <description><!-- Accounts with Entitlements with Contacts --></description>
+        <label><!-- Accounts with Entitlements with Contacts --></label>
+        <name>Accounts_with_Entitlements_with_Contacts</name>
+        <sections>
+            <label><!-- Accounts --></label>
+            <name>Accounts</name>
+        </sections>
+        <sections>
+            <label><!-- Contacts --></label>
+            <name>Contacts</name>
+        </sections>
+        <sections>
+            <label><!-- Entitlements --></label>
+            <name>Entitlements</name>
+        </sections>
+    </reportTypes>
+    <reportTypes>
+        <description><!-- Service Contracts with Contract Line Items --></description>
+        <label><!-- Service Contracts with Contract Line Items --></label>
+        <name>Service_Contracts_with_Contract_Line_Items</name>
+        <sections>
+            <label><!-- Contract Line Items --></label>
+            <name>Contract Line Items</name>
+        </sections>
+        <sections>
+            <label><!-- Service Contracts --></label>
+            <name>Service Contracts</name>
+        </sections>
+    </reportTypes>
+    <reportTypes>
+        <description><!-- Service Contracts with Entitlements --></description>
+        <label><!-- Service Contracts with Entitlements --></label>
+        <name>Service_Contracts_with_Entitlements</name>
+        <sections>
+            <label><!-- Entitlements --></label>
+            <name>Entitlements</name>
+        </sections>
+        <sections>
+            <label><!-- Service Contracts --></label>
+            <name>Service Contracts</name>
+        </sections>
+    </reportTypes>
+</Translations>

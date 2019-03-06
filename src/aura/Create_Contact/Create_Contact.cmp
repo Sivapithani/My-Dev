@@ -1,0 +1,84 @@
+<aura:component controller ="ContactController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionWithoutHeader,lightning:actionOverride" access="global" >
+    <aura:handler name="init" value ="{!this}" action ="{!c.myAction1}" />
+    <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+    <aura:attribute name="acctivity" type="string" />
+    <aura:attribute name="isOpen" type="boolean" default="false"/>
+    <aura:attribute name="dateValidationError" type="boolean" />
+    <!-- <aura:html tag="style">
+        .oneHeader .forceHeaderLayout {
+         display: none;
+        } 
+     
+   </aura:html>  -->
+    <aura:handler name="change" value="{!v.value}" action="{!c.valueChangeValidation}"/>
+    <!-- Define Attribute-->
+    <aura:handler name="SelectedRecordEvent" event="c:aok_evt_selectedsObjectRecordEvent" action="{!c.myAction}"/>
+    <aura:attribute name="contact" type="Contact" default="{'sobjectType': 'Contact',
+                                                           'FirstName': '',
+                                                           'LastName': '',
+                                                           'Email': '', 
+                                                           'Birthdate': '',
+                                                           AccountId:''
+                                                           }"/>
+    
+    <aura:attribute name="selectedLookUpRecord1" type="Account" default="{!v.contact.Id}"/>
+    <aura:attribute name="searchkey" type="string"/>
+   <!-- <aura:if isTrue="{!v.isOpen}">
+        <!###### MODAL BOX Start######
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <! ###### MODAL BOX HEADER Start ######
+                <header class="slds-modal__header">
+                    <lightning:buttonIcon iconName="utility:close"
+                                          onclick="{! c.closeModel }"
+                                          alternativeText="close"
+                                          variant="bare-inverse"
+                                          class="slds-modal__close"/>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">About Sfdcmonkey.com</h2>
+                </header>
+                <!###### MODAL BOX BODY Part Start######
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                  -->  Create contact:
+                    <div   class="adapetr-config-sec" style ="width:50%">
+                        
+                        <lightning:input  label="FirstName"  type="text" value ="{!v.contact.FirstName}"/>
+                        
+                        <lightning:input  label="Lastname"  type="text" value ="{!v.contact.LastName}" required ="True" messageWhenValueMissing="Did you forget me?"/>
+                        
+                        <lightning:input  id ="dateid" type="date"  label="BirthDate" value ="{!v.contact.Birthdate}"  pattern="[0-9]{2}-[0-9]{2}-[0-9]{4}" title="mm/dd/yyyy" required ="True" messageWhenValueMissing="Did you forget me?"/>
+                      <!--  <aura:if isTrue="{!v.dateValidationError}">
+                            <div class="slds-text-color_error slds-p-left_x-small">
+                                Date must be in present 
+                            </div>
+                    	</aura:if>  -->
+                        
+                        <!--<c:customLookup selectedRecord="{!v.accountid}" SearchKeyWord="{!v.searchkey}" label="Account Name"/>  -->
+                       <!-- <c:ResualbeLookUp objectAPIName="account" IconName="standard:account" selectedRecord="{!v.selectedLookUpRecord}" label="Account Name" record="{!v.recordId}"/>  -->
+                        <!-- <label>Account Name</label>
+                       
+        <force:inputField aura:id="accountLookup" value="{!v.contact.AccountId}"/>
+        <lightning:input  type="text" label="Accout Name" aura:id="name1"  value="{!v.selectedLookUpRecord}" readonly ="true"/>--> 
+                        <lightning:input  type="email" label="Email" aura:id="emailId"  value="{!v.contact.Email}" placeholder ="abc@gmail.com "/> 
+                        
+                        <div class="slds-align_absolute-center" >
+                            <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Save"  onclick="{!c.createContact}"/>
+                        </div> 
+                        
+                    </div>
+               <!--  </div>
+               ###### MODAL BOX FOOTER Part Start ######
+                <footer class="slds-modal__footer">
+                    <lightning:button variant="neutral" 
+                                      label="Cancel"
+                                      title="Cancel"
+                                      onclick="{! c.closeModel }"/>
+                    <lightning:button variant="brand" 
+                                      label="Like and Close"
+                                      title="Like and Close"
+                                      onclick="{! c.likenClose }"/>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>-->
+</aura:component>

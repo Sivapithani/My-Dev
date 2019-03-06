@@ -1,0 +1,67 @@
+public class OpportunityAmountComponentController {
+
+    @AuraEnabled
+    public static void getOpportunityAmount(String oppId,integer Amount){
+     opportunity opp=  [SELECT id, Amount FROM Opportunity WHERE Id=:oppId];
+        opp.Amount =Amount;
+        update opp;
+    }
+
+}
+
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" controller="OpportunityAmountComponentController">
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:attribute name="oppAmount" type="String" default="0.00"/>
+    <aura:handler event="force:showToast" action="{!c.doInit}"/>
+    <ui:inputText label="Amount" value="{!v.oppAmount}" />
+
+</aura:component>
+
+({
+    doInit : function(component, event, helper) {
+     var id=component.get("v.recordId");
+       alert('id##'+id);
+        var action = component.get("c.getOpportunityAmount");
+        action.setParams({ oppId : component.get("v.recordId"),Amount:compnent.get("v.oppAmount") });
+        action.setCallback(this, function(response) {
+            //component.set('v.oppAmount',response.getReturnValue());
+        }); 
+        $A.enqueueAction(action);
+    }
+})
+
+
+
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction"  controller="Opptytabelcontroller" access="global" >
+    
+    <aura:attribute name="MainCompetitor" type="String" default=""/>
+     <aura:attribute name="TrackingNumber" type="String" default=""/>
+    <aura:attribute name="OrderNumber" type="String" default=""/>
+   
+     <lightning:button  variant="brand" label="Save" onclick="{!c.saveRecord}" iconPosition="right"/>
+    <table>
+        <tr>
+            <th>MainCompetitor(s)</th>
+            <td><ui:inputText value="{!v.MainCompetitor}" /></td>
+        </tr>
+        
+        <tr>
+             <th>Tracking Number</th>
+            <td><ui:inputText value="{!v.TrackingNumber}" /></td>
+        </tr>
+        <tr>
+             <th>Order Number</th>
+            <td><ui:inputText value="{!v.OrderNumber}" /></td>
+        </tr>
+        <th>DB Competitor</th>
+        <td>
+        <ui:inputSelect class="single" aura:id="InputSelectSingle" change="{!c.onSingleSelectChange}">
+            <ui:inputSelectOption text="--None--"/>
+            <ui:inputSelectOption text="Any"/>
+            <ui:inputSelectOption text="Open" value="true"/>
+            <ui:inputSelectOption text="Closed"/>
+        </ui:inputSelect>
+        <ui:outputText class="result" aura:id="singleResult" value="" />
+    </td>
+    </table>
+</aura:component>

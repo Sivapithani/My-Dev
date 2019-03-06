@@ -1,0 +1,65 @@
+<aura:component controller="AccountListCtrl"  implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+	 <aura:handler name="init" value="{!this}" action="{!c.initRecords}"/>
+     <aura:attribute name="AccountList" type="Account[]"/>
+    <aura:attribute name="resultkey" type="String"/>
+     <aura:attribute name="searchResult" type="List" description="use for store and display account list return from server"/>
+    <aura:attribute name="searchKeyword" type="String" description="use for store user search input"/>
+   <aura:attribute name="Message" type="boolean" default="false" description="use for display no record found message"/>
+    <aura:attribute name="tMessage" type="boolean" default="false" description="use for display no record found message"/>
+    <!-- SHOW LOADING SPINNER--> 
+    <lightning:spinner variant="brand" size="large" aura:id="Id_spinner" class="slds-hide" />
+    <!-- SEARCH INPUT AND SEARCH BUTTON-onclick="{!c.Search}"--> 
+    <div class="slds-m-around_medium">
+                Search Accounts:
+                <lightning:input value="{!v.searchKeyword}"
+                                 required="false"
+                                 placeholder="search Accounts.."
+                                 aura:id="searchField"
+                                  onchange="{!c.Search}"/>
+           
+          
+              
+    </div>
+    <aura:if isTrue="{!v.tMessage}">
+    <div> Serach key:{!v.resultkey} </div>
+    </aura:if>
+     <!-- ERROR MESSAGE IF NOT RECORDS FOUND--> 
+        <aura:if isTrue="{!v.Message}">
+            <div class="slds-notify_container slds-is-relative">
+                <div class="slds-notify slds-notify_toast slds-theme_error" role="alert">
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small">No Records Found...</h2>
+                    </div>
+                </div>
+            </div>
+        </aura:if>
+   <!--  <aura:if isTrue="{!!v.Message}">
+    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+            <thead>
+                <tr class="slds-text-title_caps">
+                    
+                    
+                    <th scope="col">
+                        <div class="slds-truncate" title="Account Name">Account Name</div>
+                    </th>
+                    <th scope="col">
+                        <div class="slds-truncate" title="Type">Website</div>
+                    </th>
+                    
+                </tr>
+            </thead>
+            <tbody> 
+                ### display all records of searchResult attribute by aura:iteration ###
+                <aura:iteration items="{!v.AccountList}" var="acc" >
+                   <tr>
+                        <td>{!acc.Name}</td>
+                    <td>{!acc.Website}</td>
+                    </tr>
+                      
+                   
+                    
+                </aura:iteration>
+            </tbody>
+        </table>
+    </aura:if> -->
+</aura:component>

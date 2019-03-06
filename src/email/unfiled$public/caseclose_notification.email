@@ -1,0 +1,12 @@
+Dear {!Contact.FirstName},
+
+your case is <a> {!Case.Id}</a> is closed.
+
+Thank you,
+
+{!User.Name}
+{!Organization.Name}
+
+Your comment:
+
+{!Case.Description}

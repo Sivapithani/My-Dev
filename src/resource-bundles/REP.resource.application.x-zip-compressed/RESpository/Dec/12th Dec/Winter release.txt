@@ -1,0 +1,7 @@
+Update Record Owners from List Views
+Announced the ability to update record owners from list
+New Objects
+Added two new APIs: ListEmail and ListEmailRecipientSource.
+New and Changed Lightning Components
+Added information about new components, lightning:outputField and lightning:recordViewForm, and
+changes to lightning:datatable and lightning:verticalNavigation.

@@ -1,0 +1,900 @@
+global with sharing class TargetListController 
+{
+    public list<BlueSkyContactModel> finalResults1 {get; set;}
+    public list<BlueSkyContactModel> finalResults2 {get; set;}
+    public list<BlueSkyContactModel> finalResults3 {get; set;}
+    private transient list<BlueSkyContactModel> blueSkyContactModelList;
+    
+    // Object instantiation to production Fund/Product Lookup for search1
+    public ocm_Blue_Sky_Record__c  searchSectionA {get; set;}
+    public ocm_Blue_Sky_Record__c  searchSectionB {get; set;}
+    public ocm_Blue_Sky_Record__c  searchSectionBPTL {get; set;}
+    
+    public Boolean includeConsultant {get; set;}
+    public string selectedFP {get;set;}
+    public string selectedFPForPTL {get;set;}
+    
+    // Variable to set the filter values in Section B
+    public Boolean myCustomListSectionB {get; set;}
+    
+    public String selectedGamePlan {get; set;}
+    public String selectedInvestedInPicklist {get; set;}
+    
+    public Set<Id> existingContactsWithBlueSky {get; set;}
+    public map<String, Contact> contactMapBlueSky;
+    public Boolean unSavedChangeinBlueSkyRecordsFlag {get; set;}
+    
+    public String reviewListButton {get; set;}
+    public String searchButton {get; set;}
+    
+    private static String sortBy {get;set;}
+    private boolean sortAscending {get;set;}
+    public ocm_Event__c filterInputEvent {get;set;}
+    
+    public String JSString {get; set;}
+    private Boolean isError;
+    
+    public TargetListController()
+    {
+        isError = false;
+        JSString = '';
+        
+        blueSkyContactModelList = new List<BlueSkyContactModel>();
+        filterInputEvent = new ocm_Event__c();        
+        existingContactsWithBlueSky = new Set<Id>();
+        unSavedChangeinBlueSkyRecordsFlag = false;
+        
+        searchSectionA = new ocm_Blue_Sky_Record__c ();
+        searchSectionB = new ocm_Blue_Sky_Record__c ();
+        searchSectionBPTL = new ocm_Blue_Sky_Record__c ();
+        includeConsultant = false;
+        
+        selectedFP = '';
+        selectedFPForPTL = '';
+        searchSectionA.Marketing_Rep__c = UserInfo.getUserId();
+        
+        // To track if Review List button clicked
+        reviewListButton = '';
+        // To track is Search button clicked
+        searchButton = '';
+        
+        // To apply the filter in Section-B
+        myCustomListSectionB = false;
+        
+        selectedGamePlan = OCM_Constants.OCM_STATUS_NONE;
+        selectedInvestedInPicklist = OCM_Constants.OCM_STATUS_NONE;
+        
+        //searchApplyFiltersContact();
+    }
+    
+    public void sortActivities() 
+    {
+        try {
+            if(ApexPages.currentPage().getParameters().get(OCM_Constants.OCM_SORT_BY) != null){   
+                sortBy = ApexPages.currentPage().getParameters().get(OCM_Constants.OCM_SORT_BY);
+            }
+            
+            if(filterInputEvent.Subject__c == sortBy) {
+                sortAscending = !sortAscending;
+            } else {
+                sortAscending = true;
+                isError = false;
+            }
+            
+            filterInputEvent.Subject__c = sortBy;
+            blueSkyContactModelList = new List<BlueSkyContactModel>();
+            if(searchButton == 'clicked'){
+                isError = false;
+                searchApplyFiltersContact();
+            }else if(reviewListButton == 'clicked'){
+                isError = false;
+                reviewList();
+            }else{
+                isError = false;
+                searchApplyFiltersContact();
+            }
+            
+            blueSkyContactModelList.sort();
+            
+            if(!sortAscending) {
+                list<BlueSkyContactModel> cloneList = blueSkyContactModelList.clone();
+                Integer size = blueSkyContactModelList.size();
+                for(Integer i=0; i < size; i++) {
+                    blueSkyContactModelList[i] = cloneList[size-1-i];
+                }
+            }
+            
+            dataSet();
+        }
+        catch (Exception e) {
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, e.getMessage()));
+        }
+    }
+    
+    public list<SelectOption> getgamePlanOptions()
+    {
+        list<SelectOption> options = new list<SelectOption>();
+        options.add(new SelectOption(OCM_Constants.OCM_STATUS_NONE, OCM_Constants.OCM_STATUS_NONE_VALUE));
+        Schema.DescribeFieldResult fieldResult1 = Opportunity.Game_Plan_Year__c.getDescribe();
+        List<Schema.PicklistEntry> ple1 = fieldResult1.getPicklistValues();
+        for(Schema.PicklistEntry f: ple1)
+        {
+            options.add(new SelectOption(f.getLabel(), f.getValue()));
+        }
+        return options;
+    } 
+    
+    public list<SelectOption> getInvestedInPicklist()
+    {   
+        list<SelectOption> options = new list<SelectOption>();
+        options.add(new SelectOption(OCM_Constants.OCM_STATUS_NONE, OCM_Constants.OCM_STATUS_NONE_VALUE));
+        options.add(new SelectOption(OCM_Constants.OCM_strategy, 'Strategy'));
+        options.add(new SelectOption(OCM_Constants.OBJ_DISP_NAME_FUNDPRODUCT, OCM_Constants.OBJ_DISP_NAME_FUNDPRODUCT));
+        return options;
+    } 
+    
+    public list<SelectOption> getFundProducts()
+    {
+        //list<ocm_FundFamily__c> fundNamesList = [Select o.Name, o.Id, o.Fund_Family_Abbreviation__c, o.Strategy__r.Name, o.Strategy__c From ocm_FundFamily__c o where (Marketing_Status__c = 'Active' OR Marketing_Status__c = 'Pending') AND (RecordType.DeveloperName =: OCM_Constants.OCM_FF_REC_TYPE_EV OR RecordType.DeveloperName =: OCM_Constants.OCM_FF_REC_TYPE_CE) order by Name];
+        list<SelectOption> options = new list<SelectOption>();
+        options.add(new SelectOption(OCM_Constants.OCM_STATUS_NONE, OCM_Constants.OCM_STATUS_NONE_VALUE));
+        for(ocm_FundFamily__c ff : [Select o.Name, o.Id, o.Fund_Family_Abbreviation__c, o.Strategy__r.Name, o.Strategy__c From ocm_FundFamily__c o where ((Marketing_Status__c = 'Active' OR Marketing_Status__c = 'Pending')) order by Name])
+        {
+            options.add(new SelectOption(ff.Id, ff.Name));
+        }
+        return options;
+    }
+    
+    public list<SelectOption> getFundProductPTLOptions()
+    {
+        list<SelectOption> options = new list<SelectOption>();
+        options.add(new SelectOption(OCM_Constants.OCM_STATUS_NONE, OCM_Constants.OCM_STATUS_NONE_VALUE));
+        for(AggregateResult ff : [Select MAX(Fund_Product__c) id, Fund_Product__r.Name From ocm_Blue_Sky_Record__c where (Fund_Product__r.Marketing_Status__c = 'Active' OR Fund_Product__r.Marketing_Status__c = 'Pending') group by Fund_Product__r.Name order by Fund_Product__r.Name])
+            options.add(new SelectOption(string.valueOf(ff.get('id')), string.valueOf(ff.get('Name'))));
+        return options;
+    }
+    
+    /*public list<SelectOption> getFundCloses()
+    {
+        list<SelectOption> options = new list<SelectOption>();
+        options.add(new SelectOption('', '--None--'));
+        if(!(string.isEmpty(selectedFP)))
+        {
+            list<ocm_Fund_Close__c> fundCloseList = [Select o.Id, o.Fund_Close_Name__c From ocm_Fund_Close__c o where Fund_Family__c = :selectedFP Order by Fund_Close_Name__c];
+            for(ocm_Fund_Close__c fc : fundCloseList)
+                options.add(new SelectOption(fc.Id, fc.Fund_Close_Name__c));
+        }
+        return options;
+    }*/
+    
+    public void reviewList()
+    {
+        if(reviewListButton == 'clicked')
+            searchButton ='';
+        if(reviewListButton == 'clicked' && (searchSectionA.Marketing_Entity__c == null || searchSectionA.Marketing_Rep__c == null)){
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, 'Please enter a Fund, Entity, and Rep to proceed.'));
+            searchButton = '';
+            isError = true;
+        }else{
+            isError = false;
+        }
+        
+        existingContactsWithBlueSky = new Set<Id>();        
+        blueSkyContactModelList = new List<BlueSkyContactModel>();
+        
+        if(!isError)
+        {
+            String soqlString = 'Select Id, Title, FirstName, LastName, MailingCountry, Email, AccountId, Marketing_Rep_Custom_Target_List__c,';
+            soqlString += ' Account.Primary_Marketing_Representative__c, (Select Id, Name, Blue_Sky_Status__c, Contact__c,';
+            soqlString += ' Contact_s_Email__c, Fund_Product__c, Fund_Close__c, Fund_Close__r.Fund_Close_Name__c,';
+            soqlString += ' Marketing_Rep__c, Opportunity__c, Organization__c, Strategy__c, Marketing_Entity__c';
+            soqlString += ' From Blue_Sky_Records__r';
+            /*
+            if(searchSectionB.Fund_Close__c != null)
+            {
+                String fundCloseFundProduct = [Select ID, Name, Fund_Family__c From ocm_Fund_Close__c Where Id =: searchSectionB.Fund_Close__c Limit 1].Fund_Family__c;
+                if(fundCloseFundProduct != null && fundCloseFundProduct.trim().length() > 0)
+                {
+                    soqlString += ' AND Fund_Product__c = \''+fundCloseFundProduct+'\'';
+                }
+                soqlString += ' AND Fund_Close__c = \''+searchSectionB.Fund_Close__c+'\'';
+            }
+            */
+            String wrClause = ' Where Blue_Sky_Status__c != \'Removed\'';
+            if(String.isNotEmpty(selectedFP))
+                wrClause += ' AND Fund_Product__c = \''+selectedFP+'\'';
+                
+            if(searchSectionA.Marketing_Entity__c != null){
+                wrClause += ' AND Marketing_Entity__c = \''+searchSectionA.Marketing_Entity__c+'\'';
+            }
+            
+            if(searchSectionA.Marketing_Rep__c != null){
+                wrClause += ' AND Marketing_Rep__c = \''+searchSectionA.Marketing_Rep__c+'\'';
+            }
+            
+            if(selectedInvestedInPicklist != null && selectedInvestedInPicklist.trim().length() > 0 && selectedInvestedInPicklist != OCM_Constants.OCM_STATUS_NONE){
+                if(selectedInvestedInPicklist == OCM_Constants.OCM_strategy && searchSectionB.Strategy__c != null){
+                    Set<Id> orgIds = getInvestedInStrategyOrganizations(searchSectionB.Strategy__c);
+                    String orgIdString = quoteKeySet(orgIds);
+                    wrClause += ' AND Organization__c IN '+orgIdString;
+                }
+                
+                if(selectedInvestedInPicklist == OCM_Constants.OBJ_DISP_NAME_FUNDPRODUCT && searchSectionB.Fund_Product__c != null){
+                    Set<Id> orgIds = getInvestedInFundProductOrganizations(searchSectionB.Fund_Product__c);
+                    String orgIdString = quoteKeySet(orgIds);
+                    wrClause += ' AND Organization__c IN '+orgIdString;
+                }
+            }
+            
+            if(searchSectionB.Organization__c != null){
+                wrClause += ' AND Organization__c = \''+searchSectionB.Organization__c+'\'';
+            }
+            
+            /*
+            String bsString = 'Select Id, Contact__c from ocm_Blue_Sky_Record__c '+wrClause;
+            system.debug('===bsString===: '+bsString);
+            list<Id> conSet = new list<Id>();
+            for(ocm_Blue_Sky_Record__c bs: Database.Query(bsString)) 
+            	conSet.add(bs.Contact__c);
+            
+            if(reviewListButton == 'clicked')
+            	soqlString += ') From Contact Where (Account.Primary_Marketing_Representative__c = \''+searchSectionA.Marketing_Rep__c+'\')';
+            else 
+            	soqlString += wrClause+ ') From Contact Where Id IN ('+SchemaHelper.buildIdset(conSet)+')';
+            */	
+        	soqlString += wrClause+ ') From Contact Where Id IN (Select Contact__c from ocm_Blue_Sky_Record__c '+wrClause+')';
+            if(myCustomListSectionB == true){
+                soqlString += ' AND Marketing_Rep_Custom_Target_List__c = \'Yes\'';
+            }            
+            
+            system.debug('### soqlString : '+soqlString);
+            List<Contact> contactsReviewList = Database.Query(soqlString);
+            system.debug('### contactsReviewList Size : '+contactsReviewList.size());
+            
+            if(contactsReviewList != null && contactsReviewList.size() > 0){
+                Set<Id> accountIds = new Set<Id>();
+                for(Contact con: contactsReviewList){
+                    if(con.AccountId != null){
+                        accountIds.add(con.AccountId);
+                    }
+                }
+                
+                string oppGamePlanRCID = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Game Plan').getRecordTypeId();
+                map<String, Account> accountMap = new map<String, Account>([Select Id, Name, Primary_Marketing_Representative__c,
+                                                                                (Select Id, Name, Game_Plan_Amount__c, 
+                                                                                Fund_Product__c, Game_Plan_Year__c 
+                                                                                From Opportunities 
+                                                                                Where RecordTypeId =: oppGamePlanRCID AND
+                                                                                Fund_Product__c =: selectedFP) 
+                                                                            From Account 
+                                                                            Where Id IN: accountIds]);
+                
+                contactMapBlueSky = new map<String, Contact>();
+                Integer i=1;
+                for(Contact con: contactsReviewList)
+                {
+                    list<Opportunity> gamePlanList = new list<Opportunity>();
+                    Account contactsAccountforGamePlan = new Account();
+                    Boolean isGamePlanExist = false;
+                    Boolean addToCustomList = false;
+                    if(con.AccountId != null)
+                    {
+                        contactsAccountforGamePlan = accountMap.get(con.AccountId);
+                        if(contactsAccountforGamePlan != null && contactsAccountforGamePlan.Opportunities != null && contactsAccountforGamePlan.Opportunities.size() > 0)
+                        {
+                            gamePlanList = contactsAccountforGamePlan.Opportunities;
+                            for(Opportunity opp: gamePlanList)
+                            {
+                                if(selectedGamePlan != null && selectedGamePlan.trim().length() > 0 && selectedGamePlan != OCM_Constants.OCM_STATUS_NONE && opp.Game_Plan_Year__c == selectedGamePlan)
+                                {
+                                    isGamePlanExist = true;
+                                }
+                            }
+                        }
+                    }
+                    if(contactsAccountforGamePlan != null)// && contactsAccountforGamePlan.Primary_Marketing_Representative__c == searchSectionA.Marketing_Rep__c)
+                    {
+                        if(con.Marketing_Rep_Custom_Target_List__c == 'Yes')
+                        {
+                            addToCustomList = true;
+                        }
+                        else
+                        {
+                            addToCustomList = false;
+                        }
+                        
+                        //system.debug('### BlueSkyRecord selectedGamePlan : '+selectedGamePlan);
+                        if(con.Blue_Sky_Records__r != null && con.Blue_Sky_Records__r.size() > 0)
+                        {
+                            if((selectedGamePlan != null && selectedGamePlan.trim().length() > 0 && selectedGamePlan != OCM_Constants.OCM_STATUS_NONE && isGamePlanExist == true) || ((selectedGamePlan == null || selectedGamePlan == OCM_Constants.OCM_STATUS_NONE) && isGamePlanExist == false)){
+                                contactMapBlueSky.put(con.Id, con);
+                                existingContactsWithBlueSky.add(con.Id);
+                                blueSkyContactModelList.add(new BlueSkyContactModel(String.valueOf(i), true, addToCustomList, con.Blue_Sky_Records__r, true, con));
+                                i++;
+                            }
+                        }
+                    }
+                }
+                if(reviewListButton == 'clicked'){// && blueSkyContactModelList != null && blueSkyContactModelList.size() > 0){
+                    dataset();
+                }
+            }
+        }
+    }
+    
+    public void confirmationForContactSearch()
+    {
+        blueSkyContactModelList = new list<BlueSkyContactModel>();
+        unSavedChangeinBlueSkyRecordsFlag = false;
+        JSString = '';
+        if(finalResults1 != null && finalResults1.size() > 0)
+            blueSkyContactModelList.addAll(finalResults1);
+        if(finalResults2 != null && finalResults2.size() > 0)
+            blueSkyContactModelList.addAll(finalResults2);
+        if(finalResults3 != null && finalResults3.size() > 0)
+            blueSkyContactModelList.addAll(finalResults3);
+        if(blueSkyContactModelList != null && blueSkyContactModelList.size() > 0){
+            for(BlueSkyContactModel bscm:blueSkyContactModelList){
+                if(bscm.bsrList != null && bscm.bsrList.size() > 0){
+                    for(ocm_Blue_Sky_Record__c  bsr: bscm.bsrList){
+                        if(bsr != null && bsr.Id != null && bsr.Blue_Sky_Status__c != 'Removed' && bscm.addFlag != true){
+                            unSavedChangeinBlueSkyRecordsFlag = true;
+                        }
+                        
+                        if(contactMapBlueSky != null && bscm.con != null && bscm.con.Id != null && contactMapBlueSky.get(bscm.con.Id) != null){
+                            if(contactMapBlueSky.get(bscm.con.Id).Marketing_Rep_Custom_Target_List__c == 'Yes' && bscm.addToCustomListFlag != true){
+                                unSavedChangeinBlueSkyRecordsFlag = true;
+                            }
+                            
+                            if(contactMapBlueSky.get(bscm.con.Id).Marketing_Rep_Custom_Target_List__c == 'No' && bscm.addToCustomListFlag == true){
+                                unSavedChangeinBlueSkyRecordsFlag = true;
+                            }
+                        }
+                    }
+                }else{
+                    unSavedChangeinBlueSkyRecordsFlag = false;
+                }
+            }
+        }
+        if(unSavedChangeinBlueSkyRecordsFlag == true){
+            isError = true;
+            JSString = '<script> confirmForSearch(); </script>';
+        }else{
+            JSString = '';
+            searchButton = 'clicked';
+            blueSkyContactModelList = new list<BlueSkyContactModel>();
+            searchApplyFiltersContact();
+        }
+    }
+    
+    //convert a Set<String> into a quoted, comma separated String literal for inclusion in a dynamic SOQL Query
+    private String quoteKeySet(Set<Id> mapKeySet)
+    {
+        String newSetStr = String.format( '(\'\'{0}\'\')', new List<String> { String.join( new List<Id>(mapKeySet) , '\',\'') });
+        return newSetStr;
+    }
+    
+    public void searchApplyFiltersContact()
+    {
+        JSString = '';
+        if(searchButton == 'clicked' && (searchSectionA.Marketing_Entity__c == null || searchSectionA.Marketing_Rep__c == null)){
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, 'Please enter a Fund, Entity, and Rep to proceed.'));
+            isError = true;
+        }else{
+            isError = false;
+        }
+        
+        if(blueSkyContactModelList != null && blueSkyContactModelList.size() > 0)
+            blueSkyContactModelList.clear();
+        blueSkyContactModelList = new List<BlueSkyContactModel>();
+            
+        if(!isError)
+        {
+            //searchButton = 'clicked';
+            reviewListButton = '';
+            reviewList();
+            String blueSkyContacts = quoteKeySet(existingContactsWithBlueSky);
+            String soqlStringContact = 'Select Id, Title, FirstName, LastName, MailingCountry, Email, AccountId, Account.Primary_Marketing_Representative__c, Marketing_Rep_Custom_Target_List__c';
+            
+            if(selectedInvestedInPicklist != null && selectedInvestedInPicklist.trim().length() > 0 && selectedInvestedInPicklist != OCM_Constants.OCM_STATUS_NONE && ((selectedInvestedInPicklist == OCM_Constants.OBJ_DISP_NAME_FUNDPRODUCT && searchSectionB.Fund_Product__c != null) || (selectedInvestedInPicklist == OCM_Constants.OCM_strategy && searchSectionB.Strategy__c != null)))
+            {
+                // Filter Applied to Legal_Entiry's Fund_Product Field in CA2LE object.
+                String soqlSttforInvestedIn = 'Select Id, Name, client__c, Financial_Account__r.Client_Investment_Entity__c,';
+                soqlSttforInvestedIn += ' Financial_Account__r.Client_Investment_Entity__r.Client__c,';
+                soqlSttforInvestedIn += ' Financial_Account__r.Client_Investment_Entity__r.Fund_Family__r.Strategy__c'; 
+                soqlSttforInvestedIn += ' From ocm_FinancialAccounttoLegalEntity__c';
+                
+                Boolean whereFlag = false;
+                
+                if(selectedInvestedInPicklist == OCM_Constants.OBJ_DISP_NAME_FUNDPRODUCT && searchSectionB.Fund_Product__c != null){
+                    if(whereFlag){
+                        soqlSttforInvestedIn += ' AND Legal_Entity__r.Fund_Family__c = \''+searchSectionB.Fund_Product__c+'\'';
+                    }else{
+                        soqlSttforInvestedIn += ' Where Legal_Entity__r.Fund_Family__c = \''+searchSectionB.Fund_Product__c+'\'';
+                        whereFlag = true;
+                    }
+                }
+                
+                if(selectedInvestedInPicklist == OCM_Constants.OCM_strategy && searchSectionB.Strategy__c != null){
+                    if(whereFlag){
+                        soqlSttforInvestedIn += ' AND Legal_Entity__r.Fund_Family__r.Strategy__c = \''+searchSectionB.Strategy__c+'\'';
+                    }else{
+                        soqlSttforInvestedIn += ' Where Legal_Entity__r.Fund_Family__r.Strategy__c = \''+searchSectionB.Strategy__c+'\'';
+                        whereFlag = true;
+                    }
+                }
+                
+                list<ocm_FinancialAccounttoLegalEntity__c> ca2Le = Database.Query(soqlSttforInvestedIn);
+                set<Id> accIds = new set<Id>();
+                if(ca2Le != null && ca2Le.size() > 0){
+                    for(ocm_FinancialAccounttoLegalEntity__c cale :ca2Le){
+                        accIds.add(cale.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+                    }
+                }
+                
+                String strAccountIds = '';
+                if(accIds != null){
+                    strAccountIds = quoteKeySet(accIds);
+                }
+                
+                //Contacts & BlueSkys for above accounts.
+                soqlStringContact += ', (Select Name, Blue_Sky_Status__c, Contact__c, Strategy__c From Blue_Sky_Records__r';
+                soqlStringContact += ' where ((Blue_Sky_Status__c = \'Approved for PPM\' OR Blue_Sky_Status__c = \'PPM Sent\')';
+                soqlStringContact += ' AND Contact__c NOT IN '+blueSkyContacts+')) From Contact';
+                soqlStringContact += ' where (Status__c = \'Active\' AND Id NOT IN '+blueSkyContacts;
+                soqlStringContact += ' AND AccountId IN '+strAccountIds;
+                soqlStringContact += 'AND Account.Primary_Marketing_Representative__c = \''+searchSectionA.Marketing_Rep__c+'\')';
+            }else{
+                soqlStringContact += ' From Contact';
+                soqlStringContact += ' Where Status__c = \'Active\' AND Id NOT IN '+blueSkyContacts;
+                if(searchSectionB.Organization__c == null){
+                    soqlStringContact += ' AND Account.Primary_Marketing_Representative__c = \''+searchSectionA.Marketing_Rep__c+'\'';
+                }
+            }
+            
+            if(myCustomListSectionB == true){
+                soqlStringContact += ' AND Marketing_Rep_Custom_Target_List__c = \'Yes\'';
+            }
+            
+            if(searchSectionB.Organization__c != null){
+                soqlStringContact += ' AND AccountId = \''+searchSectionB.Organization__c+'\'';
+            }        
+            soqlStringContact += ' Order By Account.Name';
+            list<Contact> contactList = new list<Contact>();
+            //if(string.isNotEmpty(selectedFPForPTL))
+            if(selectedFPForPTL != null && selectedFPForPTL != '' && selectedFPForPTL != OCM_Constants.OCM_STATUS_NONE)
+                contactList = getPTLContactsList();        
+            else
+                contactList = Database.Query(soqlStringContact);
+            system.debug('### contactList Size - In Search : '+contactList.size());
+            Set<Id> accountIds = new Set<Id>();
+            if(contactList != null && contactList.size() > 0){
+                for(Contact con: contactList){
+                    if(con.AccountId != null){
+                        accountIds.add(con.AccountId);
+                    }
+                }
+                
+                string oppGamePlanRCID = Schema.SObjectType.Opportunity.getRecordTypeInfosByName().get('Game Plan').getRecordTypeId();
+                map<String, Account> accountMap = new map<String, Account>([Select Id, Name, Primary_Marketing_Representative__c,
+                                                                                (Select Id, Name, Game_Plan_Amount__c, 
+                                                                                Fund_Product__c, Game_Plan_Year__c 
+                                                                                From Opportunities 
+                                                                                Where RecordTypeId =: oppGamePlanRCID AND
+                                                                                Fund_Product__c =: selectedFP) 
+                                                                            From Account 
+                                                                            Where Id IN: accountIds order by Name]);
+                
+                for(Contact con: contactList){
+                    
+                    list<Opportunity> gamePlanList = new list<Opportunity>();
+                    Boolean isGamePlanExist = false;
+                    Account contactsAccountforGamePlan = new Account();
+                    if(con.AccountId != null){
+                        contactsAccountforGamePlan = accountMap.get(con.AccountId);
+                        if(contactsAccountforGamePlan != null && contactsAccountforGamePlan.Opportunities != null && contactsAccountforGamePlan.Opportunities.size() > 0){
+                            gamePlanList = contactsAccountforGamePlan.Opportunities;
+                            for(Opportunity opp: gamePlanList){
+                                if(selectedGamePlan != null && selectedGamePlan.trim().length() > 0 && selectedGamePlan != OCM_Constants.OCM_STATUS_NONE && opp.Game_Plan_Year__c == selectedGamePlan){
+                                    isGamePlanExist = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    Boolean addToCustomList = false;
+                    if(con.Marketing_Rep_Custom_Target_List__c == 'Yes'){
+                        addToCustomList = true;
+                    }
+                    
+                    list<ocm_Blue_Sky_Record__c > tempBsrList = new list<ocm_Blue_Sky_Record__c >();
+                    tempBsrList.add(new ocm_Blue_Sky_Record__c (Contact__c = con.Id));
+                    
+                    if(selectedGamePlan != null && selectedGamePlan.trim().length() > 0 && selectedGamePlan != OCM_Constants.OCM_STATUS_NONE && isGamePlanExist == true){
+                        blueSkyContactModelList.add(new BlueSkyContactModel(String.valueOf(blueSkyContactModelList.size()+1), false, addToCustomList, tempBsrList, false, con));
+                    }else if((selectedGamePlan == null || selectedGamePlan == OCM_Constants.OCM_STATUS_NONE) && isGamePlanExist == false){
+                        blueSkyContactModelList.add(new BlueSkyContactModel(String.valueOf(blueSkyContactModelList.size()+1), false, addToCustomList, tempBsrList, false, con));
+                    }
+                }
+            }
+            dataSet();
+        }        
+        
+    }
+    
+    private void dataSet()
+    {
+        finalResults1 = new list<BlueSkyContactModel>();
+        finalResults2 = new list<BlueSkyContactModel>();
+        finalResults3 = new list<BlueSkyContactModel>();
+        if(blueSkyContactModelList.size() > 1000)
+        {
+            for(integer i = 0; i < 1000; i++)
+                finalResults1.add(blueSkyContactModelList[i]); 
+
+            if(blueSkyContactModelList.size() > 2000)
+            {
+                for(integer i = 1000; i < 2000; i++)
+                    finalResults2.add(blueSkyContactModelList[i]); 
+
+                /*
+                if(blueSkyContactModelList.size() > 3000)
+                {
+                    for(integer i = 2000; i < 3000; i++)
+                        finalResults3.add(blueSkyContactModelList[i]);
+                }
+                else
+                {
+                    for(integer i = 2000; i < blueSkyContactModelList.size() ; i++)
+                        finalResults3.add(blueSkyContactModelList[i]); 
+                }
+                */
+            }
+            else
+            {
+                for(integer i = 1000; i < blueSkyContactModelList.size() ; i++)
+                    finalResults2.add(blueSkyContactModelList[i]); 
+            }
+        }
+        else
+            finalResults1 = blueSkyContactModelList;
+    }
+    
+    public void saveToList(){
+        system.debug('### save called');
+        Savepoint sp = Database.setSavepoint();
+        try{
+            if(!isError){
+                List<ocm_FundFamily__c> fundProducts = new List<ocm_FundFamily__c>();
+                List<ocm_Fund_Close__c> fundClose = new List<ocm_Fund_Close__c>();
+                List<ocm_Marketing_Entity__c> marketingEntities = new List<ocm_Marketing_Entity__c>();
+                
+                String blueSkyName = '';
+                if(selectedFP != null && selectedFP.trim().length() > 0 && selectedFP != OCM_Constants.OCM_STATUS_NONE){
+                    fundProducts = [Select Id, Name, Fund_Family_Abbreviation__c, Strategy__c, Strategy__r.Name From ocm_FundFamily__c Where Id =: selectedFP Limit 1];
+                    if(fundProducts != null && fundProducts.size() > 0){
+                        blueSkyName += fundProducts[0].Fund_Family_Abbreviation__c;
+                    }
+                }
+                
+                if(searchSectionA.Marketing_Entity__c != null){
+                    marketingEntities = [Select Id, Name From ocm_Marketing_Entity__c Where Id =: searchSectionA.Marketing_Entity__c Limit 1];
+                    if(marketingEntities != null && marketingEntities.size() > 0){
+                        blueSkyName += ' | '+marketingEntities[0].Name;
+                    }
+                }
+                
+                map<String, Contact> conExistingblueSkyRecordMap = new map<String, Contact>();
+                if((selectedFP != null && selectedFP.trim().length() > 0 && selectedFP != OCM_Constants.OCM_STATUS_NONE) && searchSectionA.Marketing_Entity__c != null && searchSectionA.Marketing_Rep__c != null)
+                {                    
+                    blueSkyContactModelList = new list<BlueSkyContactModel>();
+                    if(finalResults1 != null && finalResults1.size()>0)
+                        blueSkyContactModelList.addAll(finalResults1);
+                    if(finalResults2 != null && finalResults2.size()>0)
+                        blueSkyContactModelList.addAll(finalResults2);
+                    if(finalResults3 != null && finalResults3.size()>0)
+                        blueSkyContactModelList.addAll(finalResults3);      
+                    
+                    Set<Id> contactIds = new Set<Id>();
+                    if(blueSkyContactModelList != null && blueSkyContactModelList.size() > 0)
+                    {
+                        for(BlueSkyContactModel bscm : blueSkyContactModelList){
+                            if(bscm.addFlag == true){
+                                contactIds.add(bscm.con.Id);
+                            }
+                        }
+                    }
+                    
+                    conExistingblueSkyRecordMap = new  map<String, Contact>([Select Id, Name, 
+                                                                                (Select Id, Name 
+                                                                                    From Blue_Sky_Records__r 
+                                                                                    Where Fund_Product__c =: selectedFP 
+                                                                                    AND Marketing_Entity__c =: searchSectionA.Marketing_Entity__c 
+                                                                                    AND Marketing_Rep__c =: searchSectionA.Marketing_Rep__c 
+                                                                                    AND Blue_Sky_Status__c = 'Removed' 
+                                                                                    Order by CreatedDate DESC) 
+                                                                            From Contact 
+                                                                            Where Id IN: contactIds]);
+                    system.debug('### conExistingblueSkyRecordMap Size : '+conExistingblueSkyRecordMap.size());
+                }
+                
+                if(blueSkyContactModelList != null && blueSkyContactModelList.size() > 0){
+                    List<ocm_Blue_Sky_Record__c> insertBlueSkyRecords = new List<ocm_Blue_Sky_Record__c>();
+                    List<ocm_Blue_Sky_Record__c> updateBlueSkyRecords = new List<ocm_Blue_Sky_Record__c>();
+                    map<Id, Contact> updateContactsMap = new map<Id, Contact>();
+                    for(BlueSkyContactModel bscm : blueSkyContactModelList)
+                    {
+                        Boolean contactUpdateFlag = false;
+                        if(bscm.isBlueSkyExist)
+                        {
+                            for(ocm_Blue_Sky_Record__c bsr: bscm.bsrList)
+                            {
+                                if(bscm.addFlag)
+                                {
+                                    if(string.isEmpty(bsr.Blue_Sky_Status__c))
+                                    {
+                                        bsr.Blue_Sky_Status__c = 'Selected by Rep';
+                                        updateBlueSkyRecords.add(bsr);
+                                    }    
+                                }
+                                else
+                                {
+                                    bsr.Blue_Sky_Status__c = 'Removed';
+                                    updateBlueSkyRecords.add(bsr);
+                                }                                
+                            }
+                        }
+                        else
+                        {
+                            if(bscm.addFlag == true)
+                            {
+                                if(selectedFP != null && selectedFP.trim().length() > 0 && selectedFP != OCM_Constants.OCM_STATUS_NONE && searchSectionA.Marketing_Entity__c != null && searchSectionA.Marketing_Rep__c != null)
+                                {
+                                    boolean isBlueSkyExist = false;
+                                    if(conExistingblueSkyRecordMap != null && conExistingblueSkyRecordMap.size() > 0)
+                                    {
+                                        Contact resultContactFromBSR = conExistingblueSkyRecordMap.get(bscm.con.Id);
+                                        if(resultContactFromBSR != null && resultContactFromBSR.Blue_Sky_Records__r != null && resultContactFromBSR.Blue_Sky_Records__r.size() > 0)
+                                        {
+                                            isBlueSkyExist = true;
+                                        }
+                                    }
+                                    
+                                    if(isBlueSkyExist){
+                                        Contact resultContactFromBSR = conExistingblueSkyRecordMap.get(bscm.con.Id);
+                                        if(resultContactFromBSR != null && resultContactFromBSR.Blue_Sky_Records__r != null && resultContactFromBSR.Blue_Sky_Records__r.size() > 0){
+                                            resultContactFromBSR.Blue_Sky_Records__r[0].Blue_Sky_Status__c = 'Selected by Rep';
+                                            updateBlueSkyRecords.add(resultContactFromBSR.Blue_Sky_Records__r[0]);
+                                        }
+                                    }else{
+                                        bscm.bsrList[0].Name = blueSkyName;
+                                        bscm.bsrList[0].Blue_Sky_Status__c = 'Selected by Rep';
+                                        bscm.bsrList[0].Contact__c = bscm.con.Id;
+                                        bscm.bsrList[0].Strategy__c = fundProducts[0].Strategy__c;
+                                        if(bscm.con.AccountId != null){
+                                            bscm.bsrList[0].Organization__c = bscm.con.AccountId;
+                                        }
+                                        
+                                        if(selectedFP != null){
+                                            bscm.bsrList[0].Fund_Product__c = selectedFP;
+                                        }
+                                        
+                                        if(searchSectionA.Marketing_Entity__c != null){
+                                            bscm.bsrList[0].Marketing_Entity__c = searchSectionA.Marketing_Entity__c;
+                                        }
+                                        
+                                        if(searchSectionA.Marketing_Rep__c != null){
+                                            bscm.bsrList[0].Marketing_Rep__c = searchSectionA.Marketing_Rep__c;
+                                        }
+                                        insertBlueSkyRecords.addAll(bscm.bsrList);
+                                    }
+                                    
+                                    
+                                    /*if(searchSectionB.Fund_Close__c != null){
+                                        String fundCloseFundProduct = [Select ID, Name, Fund_Family__c From ocm_Fund_Close__c Where Id =: searchSectionB.Fund_Close__c Limit 1].Fund_Family__c;
+                                        soqlExistingBSR += ' AND Fund_Product__c = \''+fundCloseFundProduct+'\'';
+                                        soqlExistingBSR += ' AND Fund_Close__c = \''+searchSectionB.Fund_Close__c+'\'';
+                                    }
+                                    
+                                    if(searchSectionB.Fund_Product__c != null){
+                                        Set<Id> orgIds = getInvestedInFundProductOrganizations(searchSectionB.Fund_Product__c);
+                                        String orgIdString = quoteKeySet(orgIds);
+                                        soqlString += ' AND Organization__c IN '+orgIdString;
+                                    }else if(searchSectionB.Strategy__c != null){
+                                        Set<Id> orgIds = getInvestedInStrategyOrganizations(searchSectionB.Strategy__c);
+                                        String orgIdString = quoteKeySet(orgIds);
+                                        soqlString += ' AND Organization__c IN '+orgIdString;
+                                    }else if(searchSectionB.Organization__c != null){
+                                        soqlString += ' AND Organization__c = \''+searchSectionB.Organization__c+'\'';
+                                    }*/
+                                    
+                                    
+                                }else{
+                                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, 'Please enter a Fund, Entity, and Rep to proceed.'));
+                                }
+                            }
+                        }
+                        
+                        if(bscm.addToCustomListFlag){
+                            // && bscm.con.Marketing_Rep_Custom_Target_List__c == 'No'
+                            bscm.con.Marketing_Rep_Custom_Target_List__c = 'Yes';
+                            updateContactsMap.put(bscm.con.Id, bscm.con);
+                        }else if(bscm.addToCustomListFlag != true){
+                            // && bscm.con.Marketing_Rep_Custom_Target_List__c == 'Yes'
+                            bscm.con.Marketing_Rep_Custom_Target_List__c = 'No';
+                            updateContactsMap.put(bscm.con.Id, bscm.con);
+                        }
+                    }
+                    
+                    if(insertBlueSkyRecords != null && insertBlueSkyRecords.size() > 0)
+                        insert insertBlueSkyRecords;
+                    
+                    
+                    if(updateBlueSkyRecords != null && updateBlueSkyRecords.size() > 0)
+                        update updateBlueSkyRecords;
+                    
+                    
+                    if(updateContactsMap != null && updateContactsMap.size() > 0)
+                        update updateContactsMap.values();
+                    
+                }
+                if(searchButton == 'clicked')
+                    searchApplyFiltersContact();
+                else
+                    reviewList();    
+            }
+        }catch(Exception e){
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, e.getMessage()));
+        }
+    }
+    
+    //Satish **Start***
+    private list<Contact> getPTLContactsList()
+    {
+        list<Contact> contactsList = new list<Contact>();
+        
+        //ocm_Fund_Close__c fc = [Select o.Name, o.Id, o.Fund_Family__c, o.Fund_Close_Name__c From ocm_Fund_Close__c o where id = :searchSectionB.Fund_Close__c limit 1];
+        
+        //list<ocm_Blue_Sky_Record__c> bsList = [Select b.Name, b.Contact__c From ocm_Blue_Sky_Record__c  b where (Fund_Product__c =: selectedFPForPTL AND Marketing_Rep__c = :searchSectionA.Marketing_Rep__c AND Marketing_Entity__c = :searchSectionA.Marketing_Entity__c AND (Blue_Sky_Status__c = 'Approved for PPM' OR Blue_Sky_Status__c = 'PPM Sent'))];// AND Fund_Product__c = :searchSectionA.Fund_Product__c
+        list<ocm_Blue_Sky_Record__c> bsList = [Select b.Name, b.Contact__c From ocm_Blue_Sky_Record__c  b where (Fund_Product__c =: selectedFPForPTL AND Marketing_Rep__c = :searchSectionA.Marketing_Rep__c)];// AND Fund_Product__c = :searchSectionA.Fund_Product__c
+        set<Id> completeConSet = new set<Id>();
+        for(ocm_Blue_Sky_Record__c  bsr:bsList)
+        {
+            if(!(existingContactsWithBlueSky.contains(bsr.Contact__c)))
+                completeConSet.add(bsr.Contact__c);
+        }
+        /*
+        //This is to get fund/products invested Accounts by fund/close
+        list<ocm_FinancialAccounttoLegalEntity__c> ca2Le = [Select o.Name, o.client__c, o.Financial_Account__r.Client_Investment_Entity__r.Client__c, o.Id From ocm_FinancialAccounttoLegalEntity__c o where (Legal_Entity__r.Fund_Family__c = :fc.Fund_Family__c AND Financial_Account__r.Client_Investment_Entity__r.Client__r.Primary_Marketing_Representative__c = :searchSectionA.Marketing_Rep__c)];
+
+        set<Id> accIds = new set<Id>();
+        for(ocm_FinancialAccounttoLegalEntity__c cale :ca2Le)
+            accIds.add(cale.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+        */
+        
+        //Contacts & BlueSkys for above accounts.
+        contactsList= [Select c.Title, c.Name, c.MailingCountry, c.Email, c.Marketing_Rep_Custom_Target_List__c, c.LastName, c.Id, c.FirstName, c.AccountId, (Select Name, Blue_Sky_Status__c, Contact__c From Blue_Sky_Records__r where (Blue_Sky_Status__c = 'Approved for PPM' OR Blue_Sky_Status__c = 'PPM Sent' OR Blue_Sky_Status__c = 'Selected by Rep')) From Contact c where (c.Id IN :completeConSet AND c.Status__c = :OCM_Constants.OCM_STATUS_ACTIVE) order by Account.Name];
+        
+        return contactsList;
+    }
+    
+    private set<Id> getInvestedInStrategyOrganizations(Id strategyId){
+        list<ocm_FinancialAccounttoLegalEntity__c> ca2Le = [Select o.Name, o.client__c, o.Financial_Account__r.Client_Investment_Entity__r.Client__c, o.Id From ocm_FinancialAccounttoLegalEntity__c o where (Legal_Entity__r.Fund_Family__r.Strategy__c =: strategyId AND Financial_Account__r.Client_Investment_Entity__r.Client__r.Primary_Marketing_Representative__c =: searchSectionA.Marketing_Rep__c)];
+        
+        set<Id> accIds = new set<Id>();
+        for(ocm_FinancialAccounttoLegalEntity__c cale :ca2Le)
+            accIds.add(cale.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+        
+        if(includeConsultant != null && includeConsultant == true){
+            list<ocm_OrganizationsToFinancialAccount__c> includeConsultantRecs = [Select Id, Name, Organization__c, Relationship__c, Status__c From ocm_OrganizationsToFinancialAccount__c Where Organization__c IN: accIds AND Status__c =: OCM_Constants.OCM_STATUS_ACTIVE AND Relationship__c =: OCM_Constants.RT_CONSULTANT_FIN_ADV];
+            if(includeConsultantRecs != null && includeConsultantRecs.size() > 0){
+                set<Id> includeConsultantAccounts = new set<Id>();
+                for(ocm_OrganizationsToFinancialAccount__c org2fa: includeConsultantRecs){
+                    includeConsultantAccounts.add(org2fa.Organization__c);
+                }
+                return includeConsultantAccounts;
+            }
+        }else{
+            return accIds;
+        }
+        return null;
+    }
+    
+    private set<Id> getInvestedInFundProductOrganizations(Id fundProductId){
+        list<ocm_FinancialAccounttoLegalEntity__c> ca2Le = [Select o.Name, o.client__c, o.Financial_Account__r.Client_Investment_Entity__r.Client__c, o.Id From ocm_FinancialAccounttoLegalEntity__c o where (Legal_Entity__r.Fund_Family__c =: fundProductId AND Financial_Account__r.Client_Investment_Entity__r.Client__r.Primary_Marketing_Representative__c =: searchSectionA.Marketing_Rep__c)];
+        
+        set<Id> accIds = new set<Id>();
+        for(ocm_FinancialAccounttoLegalEntity__c cale :ca2Le)
+            accIds.add(cale.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+        
+        if(includeConsultant != null && includeConsultant == true){
+            list<ocm_OrganizationsToFinancialAccount__c> includeConsultantRecs = [Select Id, Name, Organization__c, Relationship__c, Status__c From ocm_OrganizationsToFinancialAccount__c Where Organization__c IN: accIds AND Status__c =: OCM_Constants.OCM_STATUS_ACTIVE AND Relationship__c =: OCM_Constants.RT_CONSULTANT_FIN_ADV];
+            if(includeConsultantRecs != null && includeConsultantRecs.size() > 0){
+                set<Id> includeConsultantAccounts = new set<Id>();
+                for(ocm_OrganizationsToFinancialAccount__c org2fa: includeConsultantRecs){
+                    includeConsultantAccounts.add(org2fa.Organization__c);
+                }
+                return includeConsultantAccounts;
+            }
+        }else{
+            return accIds;
+        }
+        return null;
+    }
+    //**End***
+    
+    global Class BlueSkyContactModel implements Comparable{
+        public String srNo {get; set;}
+        public Boolean addFlag {get; set;}
+        public Boolean addToCustomListFlag {get; set;}
+        public list<ocm_Blue_Sky_Record__c > bsrList {get; set;}
+        public Boolean isBlueSkyExist {get; set;}
+        public Contact con {get; set;}
+        
+        global Integer compareTo(Object compareTo) {
+            BlueSkyContactModel compareToBSCM = (BlueSkyContactModel)compareTo;
+            
+            if(TargetListController.sortBy == 'FirstName') {
+                if(con.FirstName == null && compareToBSCM.con.FirstName == null)
+                    return 0;
+                if(con.FirstName == null)
+                    return 1;
+                if(compareToBSCM.con.FirstName == null)
+                    return -1;
+                return con.FirstName.compareTo(compareToBSCM.con.FirstName);
+            }else if(TargetListController.sortBy == 'LastName'){
+                if(con.LastName == null && compareToBSCM.con.LastName == null)
+                    return 0;
+                if(con.LastName == null)
+                    return 1;
+                if(compareToBSCM.con.LastName == null)
+                    return -1;
+                return con.LastName.compareTo(compareToBSCM.con.LastName);
+            }else if(TargetListController.sortBy == 'Title'){
+                if(con.Title == null && compareToBSCM.con.Title == null)
+                    return 0;
+                if(con.Title == null)
+                    return 1;
+                if(compareToBSCM.con.Title == null)
+                    return -1;
+                return con.Title.compareTo(compareToBSCM.con.Title);
+            }else if(TargetListController.sortBy == 'email'){
+                if(con.Email == null && compareToBSCM.con.Email == null)
+                    return 0;
+                if(con.Email == null)
+                    return 1;
+                if(compareToBSCM.con.Email == null)
+                    return -1;
+                return con.Email.compareTo(compareToBSCM.con.Email);
+            }else if(TargetListController.sortBy == 'primCountry'){
+                if(con.MailingCountry == null && compareToBSCM.con.MailingCountry == null)
+                    return 0;
+                if(con.MailingCountry == null)
+                    return 1;
+                if(compareToBSCM.con.MailingCountry == null)
+                    return -1;
+                return con.Email.compareTo(compareToBSCM.con.MailingCountry);
+            }else if(TargetListController.sortBy == 'AccountId'){
+                if(con.AccountId == null && compareToBSCM.con.Account.Name == null)
+                    return 0;
+                if(con.Account.Name == null)
+                    return 1;
+                if(compareToBSCM.con.Account.Name == null)
+                    return -1;
+                return con.Account.Name.compareTo(compareToBSCM.con.Account.Name);
+            }
+            return 0;
+        }
+        
+        public BlueSkyContactModel(String srNo, Boolean addFlag, Boolean addToCustomListFlag, list<ocm_Blue_Sky_Record__c > bsrList, Boolean isBlueSkyExist, Contact con){
+            this.srNo = srNo;
+            this.addFlag = addFlag;
+            this.addToCustomListFlag = addToCustomListFlag;
+            this.bsrList = bsrList;
+            this.isBlueSkyExist = isBlueSkyExist;
+            this.con = con;
+        }
+    }
+    
+}

@@ -1,0 +1,14 @@
+.THIS.scrollerWrapper
+{
+    position: absolute;
+    left: 0;
+    top: 0px;
+    bottom: 1px;
+    width: 100%;
+    z-index: 11;
+    overflow-y: scroll; 
+    background-color: white;
+}
+.THIS .scrollDiv { 
+min-height: 700px; 
+}

@@ -1,0 +1,1312 @@
+public with sharing class LegalEntityTriggerHandler {
+    
+    public static boolean isFirstCall = false;
+    public static boolean isFirstCallAfterUpdate = false;
+    
+    public static boolean hasAlreadyRanAfterInsert = false;
+    public static boolean hasAlreadyRanAfterUpdate = false;
+    public static boolean hasAlreadyRanAfterDelete = false;
+    
+    public static set<Id> ownedbyForeignCIESet;
+    public static set<Id> ownedbyForeignMailingFFSet; 
+    public static set<Id> ownedbyForeignCACIESet;
+    
+    public static void handleBeforeInsert(List<ocm_LegalEntity__c> newLE) {
+        if(!isFirstCall)
+            isFirstCall = true;
+            
+        try{
+            //String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+            
+            // For Entity Type Updates
+            List<ocm_LegalEntity__c> updateLEList = new List<ocm_LegalEntity__c>();
+            map<Id, set<String>> privacyOrgs = new map<Id, set<String>>();
+            set<Id> parentLeIds = new set<Id>();
+            if(newLE != null && newLE.size() > 0)
+            {
+                for(ocm_LegalEntity__c le : newLE)
+                {                    
+                    if(string.isNotEmpty(le.Client__c))
+                    	le.ClientID__c = le.Client__c;
+                    if(String.isNotBlank(le.Foreign_TIN__c))
+                    {
+                    	if(String.isNotBlank(le.FTINCountry__c))
+                    		le.FTIN_complex__c = le.Foreign_TIN__c +' '+le.FTINCountry__c;
+                    	else
+                    		le.FTIN_complex__c = le.Foreign_TIN__c +' OC';	 
+                    }
+                    
+                    if(le.Withholding_Form_Type__c != null) 
+                    {
+                        le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_OTHER;
+                        if(le.Withholding_Form_Type__c.startswith(OCM_Constants.OCM_WH_FORM_TYPE_W8) && le.Withholding_Form_Type__c.endswith(OCM_Constants.OCM_WH_FORM_TYPE_YEAR_2014))
+                        {
+                            if(le.Beneficial_Owner_Recipient_Code__c != null)
+                            {
+                                if(le.Beneficial_Owner_Recipient_Code__c == '12' || le.Beneficial_Owner_Recipient_Code__c == '31')
+                                    le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_PFFI;
+                                else if(le.Beneficial_Owner_Recipient_Code__c == '19')
+                                    le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_HVI;
+                            }           
+                        }
+                        else if(le.Withholding_Form_Type__c.startswith(OCM_Constants.OCM_WH_FORM_TYPE_W9))
+                            le.EIDD_Status__c = OCM_Constants.OCM_NOT_APPLICABLE;
+                    }
+                    else
+                        le.EIDD_Status__c = null;
+                    if((le.Permanent_Address_Mailing_Address__c != null && le.Permanent_Address_Mailing_Address__c == true) && le.Client_Requested_Mailing_Address__c == null)
+                    {
+                        le.Tax_K_1_Address_City__c = le.Tax_Permanent_Address_Line_1__c;
+                        le.Tax_Mailing_Address_Line_2__c = le.Tax_Permanent_Address_Line_2__c;
+                        le.Tax_Mailing_Address_Line_3__c = le.Tax_Permanent_Address_Line_3__c;
+                        le.Tax_K_1_Address_City__c = le.Tax_Permanent_Address_City__c;
+                        le.Tax_K_1_Address_State_Province__c = le.Tax_Permanent_Address_State_Province__c;
+                        le.Tax_K_1_Address_Zip_Postal_Code__c = le.Tax_Permanent_Address_Zip_Postal_Code__c;
+                        //le.Tax_K_1_Address_Country__c = le.Tax_Permanent_Address_Country__c;
+                        le.Tax_Mailing_Address_Country_Lookup__c = le.Tax_Permanent_Address_Country_Lookup__c;
+                    }
+                    if(le.Tax_Entity_Classification__c != null && le.Tax_Entity_Classification__c == OCM_Constants.OCM_LE_TAX_ENTITY_IRA_KEOGH_PLAN)
+                    {
+                        le.ERISA__c = OCM_Constants.OCM_VALUE_YES;
+                        le.Plan_Assets_Subject_to_ERISA__c = 100;
+                    }
+                    if(le.Investment_Entity_Type__c != null){
+                        ocm_LegalEntity__c resultLE = updateEntityType(le);
+                    }
+                    if(le.Parent_Investment_Entity__c != null){
+                        parentLeIds.add(le.Parent_Investment_Entity__c);
+                    }
+                }
+                if(parentLeIds.size() > 0){
+                    List<ocm_LegalEntity__c> parentLEList = [select Is_Intermediary__c from ocm_LegalEntity__c where id in : parentLeIds];
+                    for(ocm_LegalEntity__c ple : parentLEList){
+                        ple.Is_Intermediary__c = OCM_Constants.OCM_VALUE_YES;
+                    }
+                    update parentLEList;
+                }
+            }
+            
+        }catch(Exception e){
+            for(ocm_LegalEntity__c le : newLE){
+                le.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void handleBeforeDelete(List<ocm_LegalEntity__c> newLE) 
+    {
+        if(!isFirstCall)
+            isFirstCall = true;
+        set<id> taxUSnonUSidsSet = new set<id>();    
+        try
+        {
+            for(ocm_LegalEntity__c le : newLE)
+            {
+                if(le.Tax_US_Non_US__c == OCM_Constants.OCM_NON_US && le.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                    taxUSnonUSidsSet.add(le.Id);              
+            }            
+            if(taxUSnonUSidsSet != null)
+            {
+                mailingListCalling(taxUSnonUSidsSet);    
+                contactTOClientAccountCalling(taxUSnonUSidsSet);
+            }
+        }   
+        catch(Exception e){
+            for(ocm_LegalEntity__c le : newLE){
+                le.addError(e.getMessage());
+            }
+        }
+    }
+    
+    
+    public static void handleBeforeUpdate(map<Id, ocm_LegalEntity__c> newLE, map<Id, ocm_LegalEntity__c> oldLE) 
+    {
+        if(!isFirstCall)
+            isFirstCall = true;
+                    
+        try 
+        {
+            List<ocm_LegalEntity__c> updateLEList = new List<ocm_LegalEntity__c>();
+            map<Id, set<String>> privacyOrgs = new map<Id, set<String>>();
+            
+            if(newLE != null && newLE.size() > 0)
+            {
+                map<String, ocm_LegalEntity__c> updateLEMap = new map<String, ocm_LegalEntity__c>();
+                //set<Id> leIds = new set<Id>();
+                for(ocm_LegalEntity__c le : newLE.values())
+                {   
+                    if(String.isNotBlank(le.Foreign_TIN__c))
+                    {
+                    	if(String.isNotBlank(le.FTINCountry__c))
+                    		le.FTIN_complex__c = le.Foreign_TIN__c +' '+le.FTINCountry__c;
+                    	else
+                    		le.FTIN_complex__c = le.Foreign_TIN__c +' OC';	 
+                    }
+                    
+                    if((oldLE.get(le.id).Withholding_Form_Type__c != le.Withholding_Form_Type__c) || (oldLE.get(le.id).Beneficial_Owner_Recipient_Code__c != le.Beneficial_Owner_Recipient_Code__c))
+                    {                       
+                        if(le.Withholding_Form_Type__c != null) 
+                        {
+                            le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_OTHER;
+                            if(le.Withholding_Form_Type__c.startswith(OCM_Constants.OCM_WH_FORM_TYPE_W8) && le.Withholding_Form_Type__c.endswith(OCM_Constants.OCM_WH_FORM_TYPE_YEAR_2014))
+                            {
+                                if(le.Beneficial_Owner_Recipient_Code__c != null)
+                                {
+                                    if(le.Beneficial_Owner_Recipient_Code__c == '12' || le.Beneficial_Owner_Recipient_Code__c == '31')
+                                        le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_PFFI;
+                                    else if(le.Beneficial_Owner_Recipient_Code__c == '19')
+                                        le.EIDD_Status__c = OCM_Constants.OCM_LE_EIDD_STATUS_HVI;
+                                }           
+                            }
+                            else if(le.Withholding_Form_Type__c.startswith(OCM_Constants.OCM_WH_FORM_TYPE_W9))
+                                le.EIDD_Status__c = OCM_Constants.OCM_NOT_APPLICABLE;
+                        }
+                        else
+                            le.EIDD_Status__c = null;
+                    }
+                    if((oldLE.get(le.id).Permanent_Address_Mailing_Address__c != le.Permanent_Address_Mailing_Address__c) || 
+                    (oldLE.get(le.id).Client_Requested_Mailing_Address__c != le.Client_Requested_Mailing_Address__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_Line_1__c != le.Tax_Permanent_Address_Line_1__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_Line_2__c != le.Tax_Permanent_Address_Line_2__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_Line_3__c != le.Tax_Permanent_Address_Line_3__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_City__c != le.Tax_Permanent_Address_City__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_State_Province__c != le.Tax_Permanent_Address_State_Province__c) || 
+                    (oldLE.get(le.id).Tax_Permanent_Address_Zip_Postal_Code__c != le.Tax_Permanent_Address_Zip_Postal_Code__c) ||
+                    (oldLE.get(le.id).Tax_Permanent_Address_Country_Lookup__c != le.Tax_Permanent_Address_Country_Lookup__c))
+                    {
+                        if(le.Permanent_Address_Mailing_Address__c != null && le.Permanent_Address_Mailing_Address__c == true && le.Client_Requested_Mailing_Address__c == null)
+                        {
+                            le.Tax_K_1_Address_Street__c = le.Tax_Permanent_Address_Line_1__c;
+                            le.Tax_Mailing_Address_Line_2__c = le.Tax_Permanent_Address_Line_2__c;
+                            le.Tax_Mailing_Address_Line_3__c = le.Tax_Permanent_Address_Line_3__c;
+                            le.Tax_K_1_Address_City__c = le.Tax_Permanent_Address_City__c;
+                            le.Tax_K_1_Address_State_Province__c = le.Tax_Permanent_Address_State_Province__c;
+                            le.Tax_K_1_Address_Zip_Postal_Code__c = le.Tax_Permanent_Address_Zip_Postal_Code__c;
+                            le.Tax_K_1_Address_Country__c = le.Tax_Permanent_Address_Country__c;
+                            le.Tax_Mailing_Address_Country_Lookup__c = le.Tax_Permanent_Address_Country_Lookup__c;  
+                        }
+                    }
+                    if(oldLE.get(le.id).Investment_Entity_Type__c != le.Investment_Entity_Type__c)
+                    {
+                        ocm_LegalEntity__c resultLE = updateEntityType(le);
+                        if(resultLE != null)
+                        {
+                            updateLEMap.put(resultLE.id, resultLE);
+                        }
+                    }
+                }
+                updateLEList.addAll(updateLEMap.values());
+            }
+        }
+        catch(Exception e)
+        {
+            for(ocm_LegalEntity__c le : newLE.values())
+            {
+                le.addError(e.getMessage());
+            }
+        }
+        GovernorLimitsHelper.debugLimits();
+    }
+    
+    public static void handleAfterUpdate(map<Id, ocm_LegalEntity__c> newLE, map<Id, ocm_LegalEntity__c> oldLE) {
+        
+        if(!isFirstCallAfterUpdate)
+            isFirstCallAfterUpdate = true;
+        
+        if (newLE.Size() != oldLE.Size())
+        {
+            throw new OCMException(OCM_Constants.OCM_EXCEPTION_OLD_NEW_MAP_SIZE_DIFFER);
+        }
+         system.debug('================================================================================> handleAfterUpdate called' );
+        try 
+        {               
+            if(!ChangeManagementTicketTriggerHandler.hasAlreadyRanAfterUpdateTrigger()) {
+                system.debug('================================================================================> after hasAlreadyRanAfterUpdateTrigger ' );
+                //Query DCM Rule object for related Config Objects where DCM Rule matches ocm_LegalEntity__c API name
+                list<ocm_DA_Rule__c> rules = [Select d.Status__c, d.Object_Name__c, d.Id, (Select Id, Field_API_Name__c, Field_Owner__c From Data_Approval_Configs__r) From ocm_DA_Rule__c d Where Object_Name__c = 'ocm_LegalEntity__c' limit 1];
+                system.debug('### Rule : '+rules);
+                system.debug('### Rule Size : '+rules.size());
+                if(rules != null && rules.size() > 0){
+                    system.debug(' ### Status : '+rules[0].Status__c);
+                    if(rules[0].Status__c == OCM_Constants.OCM_STATUS_ACTIVE) {
+                        DataChangeManagementHelper.processDataApprovals(oldLE, newLE, rules[0]);
+                    }
+                }
+            }             
+            
+            set<Id> mailingListIds = new set<Id>(); 
+            set<Id> parentLeIds = new set<Id>();
+            set<Id> clientIds = new set<Id>();
+            set<Id> fundProductIds = new set<Id>();
+            set<Id> leIds = new set<Id>();
+            set<Id> caseIdSet = new set<Id> ();
+            set<Id> cieIdSet = new set<Id> ();
+            
+            Id CIERecordTypeId = Schema.SObjectType.ocm_LegalEntity__c.getRecordTypeInfosByName().get(OCM_Constants.OCM_CLIENT_INV_ENTITY).getRecordTypeId();
+            set<Id> parentCIEs = new set<Id>();
+            
+            for(ocm_LegalEntity__c le : newLE.values())
+            {
+                if(le.RecordTypeId == CIERecordTypeId && le.Status__c == OCM_Constants.OCM_STATUS_INACTIVE && oldLE.get(le.Id).Status__c != le.Status__c && le.Is_Intermediary__c == OCM_Constants.OCM_VALUE_YES)
+            	{
+            		parentCIEs.add(le.Id);
+            	}
+            	
+                if(le.Parent_Investment_Entity__c != oldLE.get(le.Id).Parent_Investment_Entity__c)
+                {
+                    parentLeIds.add(le.Parent_Investment_Entity__c);
+                    if(oldLE.get(le.Id).Parent_Investment_Entity__c != null)
+                        parentLeIds.add(oldLE.get(le.Id).Parent_Investment_Entity__c);
+                }
+                
+                if(le.Client__c != oldLE.get(le.Id).Client__c)
+                {
+                    if(le.Client__c != null)
+                        clientIds.add(le.Client__c);
+                    if(oldLE.get(le.Id).Client__c != null)  
+                        clientIds.add(oldLE.get(le.Id).Client__c);
+                }
+                if(le.Fund_Family__c != oldLE.get(le.Id).Fund_Family__c)
+                {
+                    if(le.Fund_Family__c != null)
+                        fundProductIds.add(le.Fund_Family__c);
+                    if(oldLE.get(le.Id).Fund_Family__c != null)
+                        fundProductIds.add(oldLE.get(le.Id).Fund_Family__c);
+                }
+                
+                if((le.status__c == OCM_Constants.OCM_STATUS_ACTIVE) && (le.Tax_US_Non_US__c == OCM_Constants.OCM_NON_US) && (le.Name != oldLE.get(le.Id).Name))
+                {
+                    mailingListIds.add(le.Id);
+                }
+                
+                if(oldLE.get(le.id).Tax_Entity_Classification__c != le.Tax_Entity_Classification__c)
+                {
+                    if(le.Tax_Entity_Classification__c == OCM_Constants.OCM_LE_TAX_ENTITY_IRA_KEOGH_PLAN || oldLE.get(le.id).Tax_Entity_Classification__c == OCM_Constants.OCM_LE_TAX_ENTITY_IRA_KEOGH_PLAN)
+                        leIds.add(le.id);
+                }
+                
+                if(oldLE.get(le.id).Fund_Legal_Entity_Currency__c != le.Fund_Legal_Entity_Currency__c)
+                    caseIdSet.add(le.id);
+                if(oldLE.get(le.id).eW8_Status__c != le.eW8_Status__c)
+                    cieIdSet.add(le.id);    
+            }
+            
+            if(leIds != null && leIds.size() > 0)
+            {
+                list<ocm_LegalEntity__c> cieERISAList = [Select o.Id, o.Tax_Entity_Classification__c, o.ERISA__c, (Select Name From ERISA__r) From ocm_LegalEntity__c o where id IN :leIds];
+                for(ocm_LegalEntity__c le : cieERISAList)
+                {
+                    if(le.Tax_Entity_Classification__c == OCM_Constants.OCM_LE_TAX_ENTITY_IRA_KEOGH_PLAN)
+                    {
+                        le.ERISA__c = OCM_Constants.OCM_VALUE_YES;
+                        le.Plan_Assets_Subject_to_ERISA__c = 100;
+                    }   
+                    else
+                    {
+                        if(le.ERISA__r.size() > 0)
+                            le.ERISA__c = OCM_Constants.OCM_VALUE_YES;
+                        else
+                        {
+                            le.ERISA__c = OCM_Constants.OCM_VALUE_NO;
+                            le.Plan_Assets_Subject_to_ERISA__c = null;
+                        }    
+                    }
+                }
+                update cieERISAList;
+            }
+            
+            if(parentLeIds.size() > 0)
+            {
+                list<ocm_LegalEntity__c> parentLEList = [select id, Is_Intermediary__c, (Select Id, Name From Legal_Entities__r) from ocm_LegalEntity__c where id in : parentLeIds];
+                for(ocm_LegalEntity__c ple : parentLEList)
+                {
+                    if(ple.Legal_Entities__r.size() > 0)
+                        ple.Is_Intermediary__c = OCM_Constants.OCM_VALUE_YES;
+                    else
+                        ple.Is_Intermediary__c = OCM_Constants.OCM_VALUE_NO;
+                }
+                update parentLEList;
+            }
+            
+            if(parentCIEs != null && parentCIEs.size() > 0){
+            	inactivateUnderlyingPartners(parentCIEs);
+            }
+            
+            if(mailingListIds != null)
+            {
+                mailingListCalling(mailingListIds);
+                contactTOClientAccountCalling(mailingListIds);
+            }
+            if(clientIds != null && clientIds.size() > 0)
+            {
+                RelatedFAToLETriggerHandler.setOrgClientType(clientIds);
+                FinancialBalanceTriggerHandler.updateAUMOrg(clientIds);
+                FinancialAccountTriggerHandler.rollupDateBecomeClient(clientIds);
+                map<String, Account> orgMap = new Map<String,Account>([select id, Status__c, Number_of_Client_Accounts__c from Account where id in : clientIds]);
+                FinancialAccountTriggerHandler.rollupActiveClientAccounts(orgMap);
+            }
+                                
+            if(fundProductIds != null && fundProductIds.size() > 0)
+                updateOrgClientTypeFromFF(fundProductIds);
+            
+            if(caseIdSet != null && caseIdSet.size()>0)
+            {
+                list<Case> caseList = [select id, Client_Account__c, Commitment_Amount__c, CurrencyFormula__c from Case where Fund_Legal_Entity__c IN :caseIdSet];
+                if(caseList != null && caseList.size()>0)
+                    CaseTriggerHandler.clientAccWinLoss(caseList);
+                
+            }
+            if(cieIdSet != null && cieIdSet.size() > 0)
+                fundMailingMailingListUpdation(cieIdSet);          
+        }
+        catch(Exception e){
+            for(ocm_LegalEntity__c le : newLE.values()){
+                le.addError(e.getMessage());
+            }
+        }
+        GovernorLimitsHelper.debugLimits();
+    }
+    
+    public static void inactivateUnderlyingPartners(set<Id> parentCIEs)
+    {
+    	set<Id> up2Ids = new set<Id>();
+    	map<id, ocm_LegalEntity__c> updateUnderlyingPartnersMap = new map<Id, ocm_LegalEntity__c>();
+	    try
+	    {
+	    	if(parentCIEs != null && parentCIEs.size() > 0)
+	    	{
+	    		list<ocm_LegalEntity__c> parentCIEList = [select id, Name, Status__c, (Select Id, Name, Status__c From Legal_Entities__r) from ocm_LegalEntity__c where Parent_Investment_Entity__c IN: parentCIEs];
+                for(ocm_LegalEntity__c pcie : parentCIEList)
+                {
+                	updateUnderlyingPartnersMap.put(pcie.Id, pcie);
+                	if(pcie.Legal_Entities__r != null && pcie.Legal_Entities__r.size() > 0)
+                	{
+	                    for(ocm_LegalEntity__c childUnderlyingPartner : pcie.Legal_Entities__r)
+	                    {
+	                    	updateUnderlyingPartnersMap.put(childUnderlyingPartner.Id, childUnderlyingPartner);
+	                    	up2Ids.add(childUnderlyingPartner.Id);
+	                    }
+                	}
+                }
+                
+                if(up2Ids != null && up2Ids.size() > 0){
+	                list<ocm_LegalEntity__c> underlyingPartnersList = [select id, Name, Status__c, (Select Id, Name, Status__c From Legal_Entities__r) from ocm_LegalEntity__c where Parent_Investment_Entity__c IN: up2Ids];
+	                for(ocm_LegalEntity__c pcie : underlyingPartnersList)
+	                {
+	                	updateUnderlyingPartnersMap.put(pcie.Id, pcie);
+	                	if(pcie.Legal_Entities__r != null && pcie.Legal_Entities__r.size() > 0)
+	                	{
+		                    for(ocm_LegalEntity__c childUnderlyingPartner : pcie.Legal_Entities__r)
+		                    {
+		                    	updateUnderlyingPartnersMap.put(childUnderlyingPartner.Id, childUnderlyingPartner);
+		                    }
+	                	}
+	                }
+                }
+                
+                if(updateUnderlyingPartnersMap != null && updateUnderlyingPartnersMap.size() > 0)
+                {
+                	for(ocm_LegalEntity__c underlyingPartners: updateUnderlyingPartnersMap.values())
+                	{
+                		underlyingPartners.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+                	}
+                	update updateUnderlyingPartnersMap.values();
+                }
+            }
+    	}catch(Exception e){
+            for(ocm_LegalEntity__c le: updateUnderlyingPartnersMap.values()){
+                le.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static ocm_LegalEntity__c updateEntityType(ocm_LegalEntity__c le){
+        ocm_LegalEntity__c legalentity = le;
+        // used in LegalEntityTriggerHelper class
+        if(le != null && le.Investment_Entity_Type__c != null){         
+            if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORP_PENSION){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS;
+                legalentity.Institutional_Status__c = OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_TAFT_HARTLEY){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_UNIONS;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INSURANCE_COMPANIES){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_INS_COMP;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_MUT_FUNDS){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_IND_RET_ASSETS){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }
+            /*
+            else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_GPEMP_FEEDER_FUND){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_OTHER;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }*/
+            else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_GP){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }
+            else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_FEEDER_FUND){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }
+            else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_RELIGIOUS_INST){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OTHER_FUNDS){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_HIGH_NET){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ADVISOR_MFF_PF){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PRIVATE_HNW_FO;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_FOF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_DI){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_CA){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_IRA_ASSETS){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_OTHER_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_EI){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_FOUNDATION_EI){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_INST_FOF_EI){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_FOF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_NON_PROFIT_EI){
+                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_ENDOWMENT_FOUNDATION;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSION_EI){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_CORPORATE_PENSIONS;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_CORPORATION_EI){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_CORPORATE;
+                legalentity.Institutional_Status__c = OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_GOVERNMENT){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+                legalentity.Institutional_Status__c = OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;
+                
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_DEF_BENEFIT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_FUNDS;
+                legalentity.Institutional_Status__c= OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;              
+            }else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_LEVERAGE_ASSET){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                //legalentity.Plan_Type__c = OCM_Constants.OCM_INV_ENTTYPE_NON_RETIREMENT;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_OTHER;
+                legalentity.Institutional_Status__c = OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;             
+            }
+            else if(legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_EMP_INVEST_FUND){
+            
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                legalentity.Profile_Page_Category__c =  OCM_Constants.OCM_INV_ENTTYPE_OAKTREE_AFFILIATES;
+                legalentity.Institutional_Status__c = OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;             
+            }            
+            else if((legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_ADVISOR_MFF_PF) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_HIGH_NET) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_OAKTREE_EMP_INVEST_FUND) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_OAKTREE_EMP_DI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_RETAIL) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLICLY_TRADED_BDC))
+            {                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_NON_INSTITUTIONAL;                
+            }
+            else if((legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORPORATION) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_INST_FOF) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_INSURANCE_COMPANIES) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_OAKTREE_GP) || 
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORPORATION_EI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_INST_FOF_EI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_INSTITUTIONS))
+            {                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAXABLE;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;                
+            } 
+            else if((legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORP_PENSION) || 
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_ENDOWMENT) || 
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_FOUNDATION) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_GOVERNMENT) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_NON_PROFIT) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_PUBLIC_PENSION) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_RELIGIOUS_INST) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_SOVE_WEALTH_FUNDS) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_TAFT_HARTLEY) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_CORPORATE_PENSION_EI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_ENDOWMENT_EI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_FOUNDATION_EI) ||
+                    (legalentity.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SICA_NON_PROFIT_EI))
+            {                
+                legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.OCM_INV_ENTTYPE_TAX_EXEMPT;
+                legalentity.Profile_Page_Category__c = OCM_Constants.OCM_INV_ENTTYPE_SUB_ADVISORY_MF;
+                legalentity.Institutional_Status__c=OCM_Constants.OCM_INV_ENT_TYPE_INSTITUTIONAL;                
+            }
+                       
+            return legalentity;
+        }
+        else 
+        {           
+            legalentity.AUM_Taxable_Tax_Exempt__c = OCM_Constants.empty;
+            //legalentity.Plan_Type__c = OCM_Constants.empty;
+            legalentity.Profile_Page_Category__c =  OCM_Constants.empty;
+            legalentity.Institutional_Status__c=OCM_Constants.empty;            
+        }
+        return legalentity;
+    }
+    
+    public static void handleGovernmentEntitiesAfterInsert(map<Id, ocm_LegalEntity__c> newLE) {
+        if(!hasAlreadyRanAfterInsert)
+            hasAlreadyRanAfterInsert = true;
+            
+        try{
+            Set<String> accIds = new Set<String>();
+            Set<Id> orgIdsForPrivacyPolicy = new Set<Id>();
+            Set<Id> taxUSnonUSidsSet = new Set<Id>();
+            List<Account> updateAccList = new List<Account>();
+            String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+            String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+            String ConsultantClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.ConsultantCLIENT_RECORD_TYPE_NAME Limit 1].id;
+            
+            if(newLE != null && newLE.size() > 0)
+            {               
+                for(ocm_LegalEntity__c le : newLE.values())
+                {
+                    if(le.Tax_US_Non_US__c == OCM_Constants.OCM_NON_US && le.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                        taxUSnonUSidsSet.add(le.Client__c);
+                    
+                    if(le.RecordTypeId == CIERecordTypeId)
+                    {
+                        orgIdsForPrivacyPolicy.add(le.Client__c);
+                        if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)
+                        {
+                            if(le.Client__c != null)
+                            {
+                                accIds.add(le.Client__c);
+                            }
+                        }
+                    }
+                }
+                
+                if(accIds != null && accIds.size() > 0)
+                {
+                    MAP<String, Account> accountMAP = new MAP<String, Account>([Select id, Name, RecordTypeId, Government_Entity__c From Account Where Id In: accIds]);
+                    if(accountMAP != null && accountMAP.size() > 0)
+                    {
+                        for(ocm_LegalEntity__c le : newLE.values())
+                        {
+                            if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)
+                            {
+                                if(le.Client__c != null)
+                                {
+                                    Account acc = accountMAP.get(le.Client__c);
+                                    if(acc.RecordTypeId == ClientRecordTypeId || acc.RecordTypeId == ConsultantClientRecordTypeId)
+                                    {
+                                        acc.Government_Entity__c = OCM_Constants.OCM_VALUE_YES;
+                                        updateAccList.add(acc);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if(updateAccList != null && updateAccList.size() > 0)
+                        {
+                            update updateAccList;
+                        }
+                    }
+                }
+            }
+            //Calling method to rollup Org Privacy Notice
+            //rollupOrgPrivacyNotice(orgIdsForPrivacyPolicy);
+            //Calling method to rollup Privacy Notice on contactToCA
+            //rollupPrivacyNoticeOnCA2Contact(newLE.keyset());
+            //Calling method to rollup ClientInvestmentType on Org and Foreign CIEs Owned           
+            rollupCIETypeOnOrg(orgIdsForPrivacyPolicy);
+            rollupForeignCIEsOwned(taxUSnonUSidsSet);
+        }catch(Exception e){
+            for(ocm_LegalEntity__c le: newLE.values()){
+                le.addError(e.getMessage());
+            }
+        }
+        GovernorLimitsHelper.debugLimits();
+    }
+    
+    public static void handleGovernmentEntitiesAfterUpdate(map<Id, ocm_LegalEntity__c> newLE, map<Id, ocm_LegalEntity__c> oldLE) {
+        if(!hasAlreadyRanAfterUpdate)
+            hasAlreadyRanAfterUpdate = true;
+        
+        try{
+            Set<String> accIds = new Set<String>();
+            Set<Id> taxUSnonUSidsSet = new Set<Id>();
+            Set<Id> withHoldIdsSet = new Set<Id>();
+            Set<Id> orgIdsForPrivacyPolicy = new Set<Id>();
+            Set<Id> leIds = new Set<Id>();
+            Set<Id> currencyLEIds = new Set<Id>();
+            List<Account> updateAccList = new List<Account>();
+            String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+            String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+            String ConsultantClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.ConsultantCLIENT_RECORD_TYPE_NAME Limit 1].id;
+            
+            if(newLE != null && newLE.size() > 0)
+            {               
+                for(ocm_LegalEntity__c le : newLE.values())
+                {
+                    if((oldLE.get(le.id).Name != le.Name) || (oldLE.get(le.id).Tax_US_Non_US__c != le.Tax_US_Non_US__c) || ((oldLE.get(le.id).Status__c != le.Status__c)) || ((oldLE.get(le.id).Client__c != le.Client__c)))
+                    {
+                        if(oldLE.get(le.id).Tax_US_Non_US__c == OCM_Constants.OCM_NON_US)
+                        {
+                            if((oldLE.get(le.id).Name != le.Name) || (oldLE.get(le.id).Tax_US_Non_US__c != le.Tax_US_Non_US__c) || ((oldLE.get(le.id).Status__c != le.Status__c)) || ((oldLE.get(le.id).Client__c != le.Client__c)))
+                            {
+                                taxUSnonUSidsSet.add(oldLE.get(le.id).Client__c);
+                            }   
+                        }
+                        if(le.Tax_US_Non_US__c == OCM_Constants.OCM_NON_US)
+                        {   
+                            if((oldLE.get(le.id).Name != le.Name) || (oldLE.get(le.id).Tax_US_Non_US__c != le.Tax_US_Non_US__c) || ((oldLE.get(le.id).Status__c != le.Status__c)) || ((oldLE.get(le.id).Client__c != le.Client__c)))
+                            {
+                                if(le.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                                    taxUSnonUSidsSet.add(le.Client__c);
+                            }   
+                        }
+                    }
+                    if(oldLE.get(le.id).Tax_US_Non_US__c != le.Tax_US_Non_US__c)
+                        withHoldIdsSet.add(le.id);
+                       
+                    if(le.RecordTypeId == CIERecordTypeId && oldLE.get(le.id).Investment_Entity_Type__c != le.Investment_Entity_Type__c)
+                    {
+                        if(le.Client__c != null)
+                        {
+                            accIds.add(le.Client__c);
+                        }
+                    }
+                    if(le.RecordTypeId == CIERecordTypeId)
+                    {
+                        orgIdsForPrivacyPolicy.add(le.Client__c);
+                    }
+                    if(le.Privacy_Notice__c != oldLE.get(le.Id).Privacy_Notice__c)
+                    {
+                        leIds.add(le.Id);
+                    }
+                    if(le.Fund_Legal_Entity_Currency__c != oldLE.get(le.Id).Fund_Legal_Entity_Currency__c)
+                        currencyLEIds.add(le.Id);                   
+                }
+                
+                if(accIds != null && accIds.size() > 0)
+                {
+                    MAP<String, Account> accountMAP = new MAP<String, Account>([Select id, Name, RecordTypeId, Government_Entity__c From Account Where Id In: accIds]);
+                    MAP<String, List<ocm_LegalEntity__c>> accountLegalEntitiesMAP = new MAP<String, List<ocm_LegalEntity__c>>();
+                    List<ocm_LegalEntity__c> resultLeList = [Select id, Name, Client__c, Investment_Entity_Type__c From ocm_LegalEntity__c Where Client__c IN: accIds AND (Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)];
+                    if(resultLeList != null && resultLeList.size() > 0){
+                        for(ocm_LegalEntity__c le : resultLeList){
+                            List<ocm_LegalEntity__c> leList = accountLegalEntitiesMAP.get(le.Client__c);
+                            if(leList != null && leList.size() > 0){
+                                leList.add(le);
+                                accountLegalEntitiesMAP.put(le.Client__c, leList);
+                            }else{
+                                leList = new List<ocm_LegalEntity__c>();
+                                leList.add(le);
+                                accountLegalEntitiesMAP.put(le.Client__c, leList);
+                            }
+                        }
+                    }
+                    
+                    if(accountMAP != null && accountMAP.size() > 0)
+                    {
+                        for(ocm_LegalEntity__c le : newLE.values())
+                        {
+                            if((oldLE.get(le.id).Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION && oldLE.get(le.id).Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS && oldLE.get(le.id).Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI && oldLE.get(le.id).Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE) && (le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)){
+                                if(le.Client__c != null){
+                                    Account acc = accountMAP.get(le.Client__c);
+                                    if(acc.RecordTypeId == ClientRecordTypeId || acc.RecordTypeId == ConsultantClientRecordTypeId){
+                                        acc.Government_Entity__c = OCM_Constants.OCM_VALUE_YES;
+                                        updateAccList.add(acc);
+                                    }
+                                }
+                            }
+                            
+                            if(le.Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION && le.Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS && le.Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI && le.Investment_Entity_Type__c != OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE){
+                                if(le.Client__c != null){
+                                    Account acc = accountMAP.get(le.Client__c);
+                                    if(acc.RecordTypeId == ClientRecordTypeId || acc.RecordTypeId == ConsultantClientRecordTypeId){
+                                        List<ocm_LegalEntity__c> leList = accountLegalEntitiesMAP.get(le.Client__c);
+                                        if(leList != null && leList.size() > 0){
+                                            // Do Nothing
+                                        }else{
+                                            acc.Government_Entity__c = OCM_Constants.OCM_VALUE_NO;
+                                            updateAccList.add(acc);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if(updateAccList != null && updateAccList.size() > 0)
+                        {
+                            update updateAccList;
+                        }
+                    }
+                }
+            }
+            //Calling method to rollup Org Privacy Notice
+            //rollupOrgPrivacyNotice(orgIdsForPrivacyPolicy);
+            //Calling method to rollup Privacy Notice on contactToCA
+            //rollupPrivacyNoticeOnCA2Contact(leIds);
+            //Calling method to rollup ClientInvestmentType on Org and Foreign CIEs Owned
+            rollupCIETypeOnOrg(orgIdsForPrivacyPolicy);
+            rollupForeignCIEsOwned(taxUSnonUSidsSet);
+            if((withHoldIdsSet != null) && (withHoldIdsSet.size() > 0))
+                withHoldingTypeChange(withHoldIdsSet);
+            if((ownedbyForeignCIESet != null) && (ownedbyForeignCIESet.size() > 0))
+                MailingListTriggerHandler.rollupOwnedByForeignCIESet(ownedbyForeignCIESet);
+            if((ownedbyForeignMailingFFSet != null) && (ownedbyForeignMailingFFSet.size() > 0))
+                MailingListTriggerHandler.rollupOwnedByForeignMailingFFSet(ownedbyForeignMailingFFSet); 
+            if((ownedbyForeignCACIESet != null) && (ownedbyForeignCACIESet.size() > 0))
+                ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(ownedbyForeignCACIESet);    
+            
+        }catch(Exception e){
+            for(ocm_LegalEntity__c le : newLE.values()){
+                le.addError(e.getMessage());
+            }
+        }
+        GovernorLimitsHelper.debugLimits();
+    }
+    
+    public static void handleGovernmentEntitiesAfterDelete(map<Id, ocm_LegalEntity__c> oldLE) {
+        if(!hasAlreadyRanAfterDelete)
+            hasAlreadyRanAfterDelete = true;
+        
+        try{
+            set<Id> leIds = new set<Id>();
+            set<Id> taxUSnonUSidsSet = new set<Id>();
+            Set<String> accIds = new Set<String>();         
+            Set<Id> orgIdsForPrivacyPolicy = new Set<Id>();
+            List<Account> updateAccList = new List<Account>();
+            String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+            String ClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME Limit 1].id;
+            String ConsultantClientRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.ConsultantCLIENT_RECORD_TYPE_NAME Limit 1].id;
+            set<ocm_Deleted_Records__c> delRecSet = new set<ocm_Deleted_Records__c>();
+            
+            if(oldLE != null && oldLE.size() > 0)
+            {
+                for(ocm_LegalEntity__c le : oldLE.values())
+                {
+                    if(le.Tax_US_Non_US__c == OCM_Constants.OCM_NON_US && le.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                        taxUSnonUSidsSet.add(le.Client__c);
+                                            
+                    if(le.Parent_Investment_Entity__c != null)                  
+                        leIds.add(le.Parent_Investment_Entity__c);
+                    
+                    if(le.RecordTypeId == CIERecordTypeId)
+                    {
+                        orgIdsForPrivacyPolicy.add(le.Client__c);
+                        if(le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI || le.Investment_Entity_Type__c == OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)
+                        {
+                            if(le.Client__c != null)
+                            {
+                                accIds.add(le.Client__c);
+                            }
+                        }
+                    }
+                    
+                    ocm_Deleted_Records__c delRec = new ocm_Deleted_Records__c();
+	                delRec.Deleted_Record_ID__c = le.Id;
+	                delRec.Object_Name__c = le.Id.getSObjectType().getDescribe().getName();
+	                delRecSet.add(delRec);
+                }
+                
+                if(accIds != null && accIds.size() > 0){
+                    MAP<String, Account> accountMAP = new MAP<String, Account>([Select id, Name, RecordTypeId, Government_Entity__c From Account Where Id In: accIds]);
+                    MAP<String, List<ocm_LegalEntity__c>> accountLegalEntitiesMAP = new MAP<String, List<ocm_LegalEntity__c>>();
+                    List<ocm_LegalEntity__c> resultLeList = [Select id, Name, Client__c, Investment_Entity_Type__c From ocm_LegalEntity__c Where Client__c IN: accIds AND (Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_SOVE_WEALTH_FUNDS OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_EI OR Investment_Entity_Type__c =: OCM_Constants.OCM_INV_ENTTYPE_PUBLIC_PENSION_STATE)];
+                    if(resultLeList != null && resultLeList.size() > 0){
+                        for(ocm_LegalEntity__c le : resultLeList){
+                            List<ocm_LegalEntity__c> leList = accountLegalEntitiesMAP.get(le.Client__c);
+                            if(leList != null && leList.size() > 0){
+                                leList.add(le);
+                                accountLegalEntitiesMAP.put(le.Client__c, leList);
+                            }else{
+                                leList = new List<ocm_LegalEntity__c>();
+                                leList.add(le);
+                                accountLegalEntitiesMAP.put(le.Client__c, leList);
+                            }
+                        }
+                    }
+                    
+                    if(accountMAP != null && accountMAP.size() > 0){
+                        for(ocm_LegalEntity__c le : oldLE.values()){
+                            if(le.Client__c != null){
+                                Account acc = accountMAP.get(le.Client__c);
+                                if(acc.RecordTypeId == ClientRecordTypeId || acc.RecordTypeId == ConsultantClientRecordTypeId){
+                                    List<ocm_LegalEntity__c> leList = accountLegalEntitiesMAP.get(le.Client__c);
+                                    if(leList != null && leList.size() > 0){
+                                        // Do Nothing
+                                    }else{
+                                        acc.Government_Entity__c = OCM_Constants.OCM_VALUE_NO;
+                                        updateAccList.add(acc);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if(updateAccList != null && updateAccList.size() > 0){
+                            update updateAccList;
+                        }
+                    }
+                }
+            }
+            //Calling method to rollup Org Policy Notice
+            //rollupOrgPrivacyNotice(orgIdsForPrivacyPolicy);
+            //Calling method to rollup ClientInvestmentType on Org and Foreign CIEs Owned
+            rollupCIETypeOnOrg(orgIdsForPrivacyPolicy);         
+            if(taxUSnonUSidsSet != null)
+                rollupForeignCIEsOwned(taxUSnonUSidsSet);           
+
+            if(leIds.size() > 0)
+            {
+                list<ocm_LegalEntity__c> leList = [Select o.id, o.Is_Intermediary__c, (Select Id, Name From Legal_Entities__r) From ocm_LegalEntity__c o where id in : leIds];
+                for(ocm_LegalEntity__c le : leList)
+                {
+                    if(le.Legal_Entities__r.size() > 0)
+                        le.Is_Intermediary__c = OCM_Constants.OCM_VALUE_YES;
+                    else
+                        le.Is_Intermediary__c = OCM_Constants.OCM_VALUE_NO;
+                }
+                update leList;
+            }
+            if((ownedbyForeignCIESet != null) && (ownedbyForeignCIESet.size() > 0))
+                MailingListTriggerHandler.rollupOwnedByForeignCIESet(ownedbyForeignCIESet);
+            if((ownedbyForeignMailingFFSet != null) && (ownedbyForeignMailingFFSet.size() > 0))
+                MailingListTriggerHandler.rollupOwnedByForeignMailingFFSet(ownedbyForeignMailingFFSet);
+            if((ownedbyForeignCACIESet != null) && (ownedbyForeignCACIESet.size() > 0))
+                ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(ownedbyForeignCACIESet);    
+        	
+        	if(delRecSet != null && delRecSet.size()>0)
+            {
+            	list<ocm_Deleted_Records__c> delRecList = new list<ocm_Deleted_Records__c>();
+                delRecList.addAll(delRecSet);
+                insert delRecList;
+            }        
+        }
+        catch(Exception e){
+            for(ocm_LegalEntity__c le : oldLE.values()){
+                le.addError(e.getMessage());
+            }
+        }
+        GovernorLimitsHelper.debugLimits();
+    }
+    
+    private static void mailingListCalling(set<Id> mailingIds)
+    {
+         map<string, Id> recordIdMap = new map<string, Id>();
+         set<Id> faSet = new set<Id>();
+         ownedbyForeignCIESet = new set<Id>();             
+         ownedbyForeignMailingFFSet = new set<Id>();
+         list<RecordType> rtList = [Select r.Id, r.DeveloperName From RecordType r where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST];       
+         for(RecordType rt: rtList)
+         {
+            if(rt.Id != null)
+                recordIdMap.put(rt.DeveloperName, rt.Id);                     
+         }
+         
+         list<ocm_LegalEntity__c> leList = [Select id, (Select Id, RecordTypeId, Name, Status__c, Contact__c, Client_Investment_Entity__c From Mailing_Lists__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES and Contact__c != null), (Select id, Name From Financial_Accounts_CIE__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE) From ocm_LegalEntity__c o where id in :mailingIds];
+         for(ocm_LegalEntity__c le: leList)
+         {
+            for(ocm_Mailing_List__c ml : le.Mailing_Lists__r)
+            {
+                if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                {
+                    if(ml.Contact__c != null)
+                        ownedbyForeignMailingFFSet.add(ml.Contact__c);
+                }
+            }
+            
+            for(ocm_FinancialAccount__c fa : le.Financial_Accounts_CIE__r)
+            {
+                faSet.add(fa.Id);
+            }
+         }
+         map<id,ocm_FinancialAccount__c> finMap = new Map<id,ocm_FinancialAccount__c>([Select o.Id, (Select Id, RecordTypeId, Contact__c, Status__c, Owned_by_Foreign_CIE__c From Mailing_Lists__r  where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES and Contact__c != null) From ocm_FinancialAccount__c o where id in:faSet]);
+         for(ocm_FinancialAccount__c faList: finMap.values())
+         {
+             for(ocm_Mailing_List__c ml : faList.Mailing_Lists__r)
+             {
+                if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                {
+                    if(ml.Contact__c != null)
+                        ownedbyForeignCIESet.add(ml.Contact__c);
+                }
+             }
+         }        
+    }
+    
+    private static void contactTOClientAccountCalling(set<Id> mailingIds)
+    {
+         set<Id> faSet = new set<Id>();
+         ownedbyForeignCACIESet = new set<Id>();         
+         list<ocm_LegalEntity__c> leList = [Select id, (Select id, Name From Financial_Accounts_CIE__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES) From ocm_LegalEntity__c o where id in :mailingIds];
+         for(ocm_LegalEntity__c le: leList)
+         {
+            for(ocm_FinancialAccount__c fa : le.Financial_Accounts_CIE__r)
+            {
+                faSet.add(fa.Id);
+            }
+         }
+         map<id,ocm_FinancialAccount__c> finMap = new Map<id,ocm_FinancialAccount__c>([Select o.Id, (Select Id, Contact__c, Status__c, Owned_by_Foreign_CIE__c From Contact_to_Financial_Accounts__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES and Contact__c != null) From ocm_FinancialAccount__c o where id in:faSet]);
+         for(ocm_FinancialAccount__c faList: finMap.values())
+         {
+            if(faList.Contact_to_Financial_Accounts__r.size() > 0)
+            {
+                 for(ocm_ContacttoFinancialAccount__c ca : faList.Contact_to_Financial_Accounts__r)
+                 {
+                    if(ca.Contact__c != null)
+                        ownedbyForeignCACIESet.add(ca.Contact__c);
+                 }
+             }
+         }
+    }
+    
+    private static void withHoldingTypeChange(set<Id> leIds)
+    {
+         map<string, Id> recordIdMap = new map<string, Id>();
+         set<Id> faSet = new set<Id>();
+         set<Id> locOwnedbyForeignCIESet = new set<Id>();             
+         set<Id> locOwnedbyForeignMailingFFSet = new set<Id>();
+         set<Id> locOwnedbyForeignCACIESet = new set<Id>();
+         list<RecordType> rtList = [Select r.Id, r.DeveloperName From RecordType r where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST];       
+         for(RecordType rt: rtList)
+         {
+            if(rt.Id != null)
+                recordIdMap.put(rt.DeveloperName, rt.Id);                     
+         }
+         
+         list<ocm_LegalEntity__c> leList = [Select id, (Select Id, RecordTypeId, Name, Status__c, Contact__c, Client_Investment_Entity__c From Mailing_Lists__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Contact__c != null), (Select id, Name From Financial_Accounts_CIE__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE) From ocm_LegalEntity__c o where id in :leIds];
+         for(ocm_LegalEntity__c le: leList)
+         {
+            for(ocm_Mailing_List__c ml : le.Mailing_Lists__r)
+            {
+                if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                {
+                    if(ml.Contact__c != null)
+                        locOwnedbyForeignMailingFFSet.add(ml.Contact__c);
+                }
+            }
+            
+            for(ocm_FinancialAccount__c fa : le.Financial_Accounts_CIE__r)
+            {
+                faSet.add(fa.Id);
+            }
+         }
+         map<id,ocm_FinancialAccount__c> finMap = new Map<id,ocm_FinancialAccount__c>([Select o.Id, (Select Id, RecordTypeId, Contact__c, Status__c, Owned_by_Foreign_CIE__c From Mailing_Lists__r  where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Contact__c != null), (Select Id, Contact__c, Status__c, Owned_by_Foreign_CIE__c From Contact_to_Financial_Accounts__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Contact__c != null) From ocm_FinancialAccount__c o where id in:faSet]);
+         for(ocm_FinancialAccount__c faList: finMap.values())
+         {
+            if(faList.Mailing_Lists__r.size() > 0)
+            {
+                for(ocm_Mailing_List__c ml : faList.Mailing_Lists__r)
+                {
+                    if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                    {
+                        if(ml.Contact__c != null)
+                            locOwnedbyForeignCIESet.add(ml.Contact__c);
+                    }
+                }
+            } 
+            if(faList.Contact_to_Financial_Accounts__r.size() > 0)
+            {
+                 for(ocm_ContacttoFinancialAccount__c ca : faList.Contact_to_Financial_Accounts__r)
+                 {
+                    if(ca.Contact__c != null)
+                        locOwnedbyForeignCACIESet.add(ca.Contact__c);
+                 }
+             }
+         }
+         
+        if((locOwnedbyForeignCIESet != null) && (locOwnedbyForeignCIESet.size() > 0))
+            MailingListTriggerHandler.rollupOwnedByForeignCIESet(locOwnedbyForeignCIESet);
+        if((locOwnedbyForeignMailingFFSet != null) && (locOwnedbyForeignMailingFFSet.size() > 0))
+            MailingListTriggerHandler.rollupOwnedByForeignMailingFFSet(locOwnedbyForeignMailingFFSet);
+        if((locOwnedbyForeignCACIESet != null) && (locOwnedbyForeignCACIESet.size() > 0))
+            ContactToFinancialAccountTriggerHandler.updateContactRelatedForeignCIEs(locOwnedbyForeignCACIESet); 
+    }
+    
+    private static void updateCA2LEwithLatestCurrency(set<Id> leIds)
+    {
+        set<ocm_FinancialAccounttoLegalEntity__c> ca2leIdsSet = new set<ocm_FinancialAccounttoLegalEntity__c>();
+        set<Id> caIdsSet = new set<Id>();
+        list<ocm_FinancialAccounttoLegalEntity__c> leRecs = [Select o.Id, o.Financial_Account__c, o.Currency__c From ocm_FinancialAccounttoLegalEntity__c o where o.Legal_Entity__c IN :leIds];
+        for(ocm_FinancialAccounttoLegalEntity__c ca2le:leRecs)
+        {
+            ca2leIdsSet.add(ca2le);
+            if(ca2le.Financial_Account__c != null)
+                caIdsSet.add(ca2le.Financial_Account__c);
+        }
+        if(ca2leIdsSet.size()>0)
+        {
+            list<ocm_FinancialAccounttoLegalEntity__c> ca2leIdsList = new list<ocm_FinancialAccounttoLegalEntity__c>();
+            ca2leIdsList.addAll(ca2leIdsSet);
+            update ca2leIdsList;
+        }
+        if(caIdsSet.size()>0)
+        {
+            list<ocm_FinancialAccount__c> caList = [Select o.Legal_Entity_Full_Name__c, o.Id, o.Currency__c, o.Client_Investment_Entity__c From ocm_FinancialAccount__c o where o.Id IN : caIdsSet];
+            if(caList.size()>0)
+                update caList;
+        }
+    }
+    
+    public static void rollupCIETypeOnOrg(set<Id> orgIds){
+        String CIERecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY Limit 1].id;
+        List<Account> clientList = [Select a.Id, a.Client_Investment_Entity_Types__c, (Select Profile_Page_Category__c From Legal_Entities__r where RecordTypeId =: CIERecordTypeId and Status__c =: OCM_Constants.OCM_STATUS_ACTIVE) From Account a where id in : orgIds];
+        for(Account client : clientList){
+            set<String> cieType = new Set<String>();
+            for(ocm_LegalEntity__c le : client.Legal_Entities__r){
+                if(le.Profile_Page_Category__c != null){
+                    cieType.add(le.Profile_Page_Category__c);
+                }
+            }
+            client.Client_Investment_Entity_Types__c = '';
+            if(cieType.size() > 0){
+                
+                for(String str : cieType){
+                    client.Client_Investment_Entity_Types__c += str+'\n';
+                }
+            }
+        }
+        update clientList;
+    }
+    
+    public static void rollupForeignCIEsOwned(set<Id> foreignIds)
+    {
+        set<Account> foreignCIEOwnedSet = new set<Account>();
+        if(foreignIds != null)
+        {
+            list<Account> foreignCIEOwnedList = [Select a.Name, a.Id, a.Foreign_CIEs_Owned__c, (Select id, Name From Legal_Entities__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Tax_US_Non_US__c = :OCM_Constants.OCM_NON_US) From Account a where id in : foreignIds];
+            for(Account client : foreignCIEOwnedList)
+            {
+                client.Foreign_CIEs_Owned__c = '';
+                if(client.Legal_Entities__r.size() > 0)
+                {                   
+                    string newForCIEOwn = '';
+                    string oldForCIEOwn = '';
+                    for(ocm_LegalEntity__c le : client.Legal_Entities__r)
+                    {                       
+                        if(le.Name != null)
+                        {
+                            string leVal = le.Name;
+                            if(!(newForCIEOwn.contains(leVal)))
+                            {
+                                newForCIEOwn += leVal+'; ';
+                                if(newForCIEOwn.length() >= 250)
+                                {
+                                    if(!(newForCIEOwn.endsWith('(+)')))
+                                        newForCIEOwn = oldForCIEOwn+'(+)';
+                                }                           
+                                else
+                                {
+                                    oldForCIEOwn = newForCIEOwn;
+                                }
+                            }                           
+                        }   
+                    }
+                    if(newForCIEOwn.endsWith('(+)'))
+                        client.Foreign_CIEs_Owned__c = newForCIEOwn;
+                    else
+                        client.Foreign_CIEs_Owned__c = newForCIEOwn.substring(0,newForCIEOwn.length()-2);
+                }
+                foreignCIEOwnedSet.add(client);
+            }
+        }               
+        if(foreignCIEOwnedSet != null)
+        {
+            list<Account> finalList = new list<Account>();
+            finalList.addAll(foreignCIEOwnedSet);
+            update finalList;
+        }
+    }
+    
+    private static void updateOrgClientTypeFromFF(set<Id> fundIds)
+    {
+        Set<Id> accountIds = new Set<Id>();
+        list<ocm_FinancialAccounttoLegalEntity__c> neList =  new list<ocm_FinancialAccounttoLegalEntity__c> ([Select Id, Financial_Account__c, Financial_Account__r.Client_Investment_Entity__r.Client__c, Legal_Entity__r.Fund_Family__c From ocm_FinancialAccounttoLegalEntity__c where Legal_Entity__r.Fund_Family__c IN :fundIds and Status__c = :OCM_Constants.OCM_STATUS_ACTIVE]);
+        for(ocm_FinancialAccounttoLegalEntity__c fale :neList)
+        {
+            if(fale.Financial_Account__r.Client_Investment_Entity__r.Client__c != null)
+                accountIds.add(fale.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+        }
+        
+        if((accountIds != null) && (accountIds.size() > 0))
+            RelatedFAToLETriggerHandler.setOrgClientType(accountIds);
+    }
+    
+    private static void fundMailingMailingListUpdation(set<Id> cieIds)
+    {
+        list<ocm_Mailing_List__c> updatedMLlist =  new list<ocm_Mailing_List__c> ([Select Id, eW8_Status__c, Client_Account_Legal_Entity_Relationship__r.Financial_Account__r.Client_Investment_Entity__r.eW8_Status__c From ocm_Mailing_List__c where Client_Account_Legal_Entity_Relationship__r.Financial_Account__r.Client_Investment_Entity__c IN :cieIds]);
+        for(ocm_Mailing_List__c ml :updatedMLlist)
+            ml.eW8_Status__c = ml.Client_Account_Legal_Entity_Relationship__r.Financial_Account__r.Client_Investment_Entity__r.eW8_Status__c;
+        
+        if((updatedMLlist != null) && (updatedMLlist.size() > 0))
+        {
+            MailingListTriggerHandler.isBeforeCallFired = true;
+            MailingListTriggerHandler.hasAlreadyRanAfterUpdate = true;
+            update updatedMLlist;
+            MailingListTriggerHandler.isBeforeCallFired = false;
+            MailingListTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        }    
+    }
+}

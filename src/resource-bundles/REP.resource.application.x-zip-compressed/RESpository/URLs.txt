@@ -1,0 +1,28 @@
+https://developer.salesforce.com/forums/?id=9060G000000MQkTQAW
+http://mrjavascript.blogspot.in/
+https://stackoverflow.com/questions/18191893/generate-pdf-from-html-in-div-using-javascript
+
+http://www.topalovich.com/2009/08/force-com-tip-new-button-override-to-assign-visualforce-page-to-specific-record-type-using-native-apex-code/
+
+https://success.salesforce.com/answers?id=9063A000000iXWBQA2
+https://github.com/uday210/PdfinLightningSalesforce/tree/master/src __PDF
+http://www.sfdciot.com/category/salesforce-lightning/ ===PDF
+https://help.nintex.com/en-us/docgen/docservices/ProductHelpLanding/Administer.htm?tocpath=Administer%7C_____0 --Explore
+
+http://peterknolle.com/hierarchies-with-remote-objects-and-jstree/ -- Tree structure
+
+http://wwwendt.de/tech/dynatree/doc/samples.html --- dyantree with checkbox
+
+https://www.linkedin.com/pulse/lightning-hits-salesforce-knowledge-here-what-you-need-jesper-mol -- lightning +knowledge
+https://help.salesforce.com/articleView?id=knowledge_lightning_limitations.htm&type=5 -- limitations+knowledge
+https://salesforce.stackexchange.com/questions/172199/how-to-search-knowledge-articles-bypassing-guest-user-permissions-in-napili-comm --- example for knowledge base.
+https://blogs.perficient.com/salesforce/2017/07/12/a-salesforce-classic-to-lightning-knowledge-readiness-deep-dive/
+    --- readness check...
+
+
+ <div style="page-break-after:always;">
+               
+            </div> 
+
+
+

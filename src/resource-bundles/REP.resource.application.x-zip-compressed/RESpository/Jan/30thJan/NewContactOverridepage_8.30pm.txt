@@ -1,0 +1,8 @@
+
+<apex:page standardController="Contact" showHeader="true" extensions="PageRedirectPageController"
+action="{!IF(recordType.Name=='Flow',
+        URLFOR(hostname+'/003/e?retURL=%2F003%2Fo&RecordType='+RecordType.Id,$ObjectType.contact,null,true),
+ 		if(recordType.Name=='GFI',URLFOR(hostname+'/apex/ContactDetailPage?retURL=%2F003%2Fo&RecordType='+RecordType.Id,$ObjectType.contact,null,true),
+		null)) }">
+    <apex:enhancedList type="Contact" rowsPerPage="25" height="500" width="1000"/> 
+</apex:page>

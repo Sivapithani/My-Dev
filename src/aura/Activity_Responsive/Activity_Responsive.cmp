@@ -1,0 +1,179 @@
+<aura:component implements="force:appHostable,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickActionwithoutHeader" access="global" >
+    <ltng:require styles="{! $Resource.headerstyle}"/>
+    <aura:attribute name="today" type ="Date" default=" "/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="selectedLookUpRecord" type="String" default="" />
+    <aura:attribute name="isview" type="Boolean" default="True" />
+     <aura:attribute name="isback" type="Boolean" default="false" />
+     <aura:attribute name="contactid" type="String" default="" />
+    <aura:attribute name="contact" type="Contact" default="{'sobjectType': 'Contact',
+                                                           'FirstName': '',
+                                                           'LastName': '',
+                                                           'Email': '', 
+                                                           'Birthdate': '',
+                                                            AccountId:''
+                                                           }"/>
+   <!-- <ui:scrollerWrapper class="scrollerWrapper">
+        <div class="div" >  -->
+            <aura:if isTrue="{!v.isview}">
+           <!-- <lightning:button class="right"  label=" Back"  onclick="{! c.handleclose}" variant="bare"/>   -->
+            <div class="slds-grid slds-wrap">
+                <div class="slds-container-large slds-align_absolute-center">
+                  <!--  <div class="slds-box" style="padding-right: 0px;padding-left: 0px;">  -->
+                        <div>
+                            <div class="slds-page-header  slds-page-header_record-home " style =" background-color:#edeaea;">
+                                <div class="slds-page-header__row">
+                                    <div class="slds-page-header__col-title">
+                                        <div class="slds-media">
+                                            <div class="slds-media__figure">
+                                                <span class="slds-icon_container slds-icon-standard-Activity" title="Activity">
+                                                    <lightning:avatar alternativeText="Activity" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="square"/> 
+                                                </span>
+                                            </div>
+                                            <div class="slds-media__body">
+                                                <div class="slds-page-header__name">
+                                                    <div class="slds-page-header__name-title">
+                                                        <h1>
+                                                            <span class="slds-page-header__title slds-truncate" title="Activity">Activity</span>
+                                                        </h1>
+                                                        
+                                                    </div>
+                                                </div>
+                                                <p class="slds-page-header__name-meta">Mark Jaeckal • Unlimited Customer </p>
+                                            </div>
+                                        </div>
+                                    </div> 
+                                </div>
+                            </div>
+                            <br/>
+                            <div class="slds-grid slds-wrap ">  
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-5">
+                                    <div class="slds-media__figure ">
+                                       <!-- <lightning:buttonGroup>
+                                            <lightning:button  class="slds-theme_neutral styleclass" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"/>
+                                            <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit" onclick="{!c.editcontact}"/>
+                                            
+                                            <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="New" iconName="utility:add" onclick="{!c.navigateto}"/>
+                                            <lightning:buttonMenu aura:id="menu" onselect="{! c.handleSelect }" alternativeText="Show menu" menuAlignment="bottom-right.">
+                                                
+                                                <lightning:menuItem value="Edit" label="Edit"  />
+                                                <lightning:menuItem value="Delete" label="Delete" />
+                                                
+                                            </lightning:buttonMenu>
+                                        </lightning:buttonGroup>  -->
+                                    </div>
+                                </div>
+                            </div>
+                            <table>
+                                <tr>
+                                    <td class="slds-cell-shrink" data-label="Actions">	
+                                        <div class="slds-dropdown-trigger slds-dropdown-trigger_click ">
+                                            <button class="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small" title="Show More">
+                                                <lightning:icon iconName="utility:down" size="x-small" alternativeText="Show More" />
+                                                <span class="slds-assistive-text">Show More</span>
+                                            </button>
+                                            <div class="slds-dropdown slds-dropdown_right">
+                                                <ul class="slds-dropdown__list" role="menu" aria-label="Show More">
+                                                    <li class="slds-dropdown__item" role="presentation">
+                                                        <a href="javascript:void(0);" role="menuitem" tabindex="0">
+                                                            <span class="slds-truncate" title="Menu Item One">Edit</span>
+                                                        </a>
+                                                    </li>
+                                                    <li class="slds-dropdown__item" role="presentation">
+                                                        <a href="javascript:void(0);" role="menuitem" tabindex="-1">
+                                                            <span class="slds-truncate" title="Menu Item Two">Delete</span>
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <br/>
+                            <div class="slds-grid slds-wrap  nobordertop ">
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                                    <lightning:input label="Type" placeholder="Activity" readonly="true" type="text" variant="standard"></lightning:input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                                    <!-- <lightning:input label="Date" value ="{!v.today}" type="date" ></lightning:input>   -->
+                                    
+                                    <ui:inputDate aura:id="expdate" label="Today's Date" class="field" value="{!v.today}" displayDatePicker="true"  /> 
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered">
+                                    <lightning:input label="Subject" value="Meeting with Bill" readonly="true" type="text" variant="standard"></lightning:input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-table_bordered"> 
+                                    <lightning:input label="Owner"  type="text" variant="standard"></lightning:input>
+                                </div>
+                            </div>
+                            <div class="nobordertop slds-table_bordered">
+                                <lightning:textarea  label="Comments" disabled="true" placeholder="Abraham Met with John, Steve and Tom. To Review the sale of the business." variant="standard"></lightning:textarea>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" class="slds-align_absolute-center" checked="true" label="Include on Client Briefing Memo"/>
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1"> 
+                                    <lightning:input type="checkbox" class="slds-align_absolute-center" label="Consultant"/>
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" label="Plan Sponsor" checked="true"/>  
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" label="Plan Sponsor" checked="true"/>
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" label="Plan Sponsor" checked="true"/> 
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" class="slds-align_absolute-center" label="Record Keeper" />  
+                                </div>
+                            </div>
+                             <div class="slds-grid slds-wrap slds-grid_fixed-layout">
+                                <div class="slds-col slds-size_1-of-1"> 
+                                     <c:ResualbeLookUp objectAPIName="account" IconName="standard:Contact" selectedRecord="{!v.selectedLookUpRecord}" label="Account ID"/>
+                                </div>
+                            </div>
+                            
+                       <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1"> 
+                                    <lightning:input type="checkbox" class="slds-align_absolute-center" label="Target Date" checked="true"/>
+                                </div>
+                            </div>
+                            <div class="slds-grid slds-wrap ">
+                                <div class="slds-col slds-size_1-of-1 "> 
+                                    <lightning:input type="checkbox" class="slds-align_absolute-center" label="Third Party Administrator" checked="false"/>
+                                </div>
+                            </div>
+                           
+                        </div>
+                 <!--   </div>  -->  
+                </div>
+               <!-- <div class="slds-docked-form-footer">
+                    <button type="button" class="slds-button slds-button_neutral">Cancel</button>
+                    <button type="button" class="slds-button slds-button_neutral">Save</button>
+                </div> -->
+            </div>
+                 </aura:if>
+          <aura:if isTrue="{!v.isback}">
+          
+              <c:MarketingEntity isview="{!v.isback}" recordId="{!v.contactid}"/>
+            </aura:if>
+
+       <!--    </div>
+        
+ </ui:scrollerWrapper>  --> 
+</aura:component>

@@ -1,0 +1,79 @@
+<apex:page >
+<html>
+<head>
+<script type="text/javascript">
+(function() { 
+  function handlePageLoad() {
+    var endpointMatcher = new RegExp("[\\?\\&]endpoint=([^&#]*)");
+    document.getElementById('prechatForm').setAttribute('action',
+    decodeURIComponent(endpointMatcher.exec(document.location.search)[1]));
+  } 
+  if (window.addEventListener) {
+    window.addEventListener('load', handlePageLoad, false);
+  } else { 
+    window.attachEvent('onload', handlePageLoad, false);
+  }
+})();
+ function setName(){
+     var firstName = document.getElementById("FirstName").value;
+        if(firstName .length >1) {
+            document.getElementById("setname").value = firstName;
+        }
+     return true;
+ } 
+</script>
+</head>
+<body>
+<form method="post" id="prechatForm">
+ <H1> Pre chat form for Retail</H1><br/>
+<!-- Detail inputs -->
+First Name: <input type="text" name="liveagent.prechat:contact FirstName" id="fname"/><br />
+Last Name: <input type="text" name="liveagent.prechat:contact LastName" id="lname"/><br />
+Email id: <input type='text' name="liveagent.prechat:Email" id="emailId"/><br />
+
+
+<!-- Try to find the Contact by email (exact match)  -->
+
+<input type="hidden" name="liveagent.prechat:CaseStatus" value="New" /><br />
+<input type="hidden" name="liveagent.prechat:CaseOrigin" value="Webcare" /><br />
+        <input type="hidden" name="liveagent.prechat.findorcreate.map:Contact" value="Email,emailId;FirstName,fname;LastName,lname;"/>
+        <input type="hidden" name="liveagent.prechat.findorcreate.map.doFind:Contact" value="Email ,emailId;FirstName,fname;LastName,lname;"/>
+        <input type="hidden" name="liveagent.prechat.findorcreate.map.isExactMatch:Contact" value="Email,true;FirstName,true;LastName,true;"/> 
+        
+    <!--    <input type="hidden" name="liveagent.prechat.findorcreate.map:Account" value="Retail_Retailer_ID__c,retailerId;"/>
+        <input type="hidden" name="liveagent.prechat.findorcreate.map.doFind:Account" value="Retail_Retailer_ID__c,true;"/>
+        <input type="hidden" name="liveagent.prechat.findorcreate.map.isExactMatch:Account" value="Retail_Retailer_ID__c,true;"/>-->
+ <!-- This example will set the Case Record Type to a specific value for the record type configured on the org. Lookup the case record type's id on your org and set it here -->
+<!--<input type="hidden" name="liveagent.prechat:CaseRecordType" value="01258000000cjrb" />-->
+<!--http://peterknolle.com/live-agent-pre-chat-api/ -->
+
+<input type="hidden" name="liveagent.prechat.findorcreate.linkToEntity:Account" value="Case,AccountId" />
+<!-- doCreate example for a Case: create a case to attach to the chat, set the Case Subject to the value provided by the customer and set the case's Status and Origin fields -->
+<!--<input type="hidden" name="liveagent.prechat.findorcreate.map:Case" value="Subject,CaseSubject;Status,CaseStatus;Origin,CaseOrigin;RecordTypeId,CaseRecordType" />
+<input type="hidden" name="liveagent.prechat.findorcreate.map.doCreate:Case" value="Subject,true;Status,true;Origin,true;" />
+<!-- showOnCreate: Open the Contact and Case records as sub-tabs to the chat for the agent in the Console -->
+<!--<input type="hidden" name="liveagent.prechat.findorcreate.showOnCreate:Case" value="true" /> -->
+
+<!-- linkToEntity: Set the record Contact record, found/created above, as the Contact on the Case that's created 
+<input type="hidden" name="liveagent.prechat.findorcreate.linkToEntity:Contact" value="Case,ContactId" /> --> 
+
+<!-- linkToEntity: Set the record Contact record, found/created above, as the Account on the Case that's created --> 
+
+
+<!-- saveToTranscript: Associates the records found / created, i.e. Contact and Case, to the Live Chat Transcript record. --> 
+<!-- <input type="hidden" name="liveagent.prechat.findorcreate.saveToTranscript:Account" value="AccountId" /> -->
+<input type="hidden" name="liveagent.prechat.findorcreate.saveToTranscript:Case" value="CaseId" />
+
+<!-- displayToAgent: Hides the case record type from the agent -->
+<input type="hidden" name="liveagent.prechat.findorcreate.displayToAgent:CaseRecordType" value="false" />
+
+
+<input type="hidden" id="setname" name="liveagent.prechat.name" value="" />
+<input type="submit" value="Request Chat" id="prechat_submit" onclick="setName()" />
+
+
+ 
+</form> 
+</body>
+</html>
+</apex:page>

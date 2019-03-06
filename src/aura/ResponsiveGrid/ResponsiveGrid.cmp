@@ -1,0 +1,49 @@
+<aura:component controller="AccountListCtrl" implements="flexipage:availableForAllPageTypes,force:appHostable">
+  <aura:handler name="init" action="{!c.doInit}" value="{!this}" />
+  <aura:attribute name="accounts" type="Account[]"/>
+  <aura:attribute name="accountsLength" type="String"/>
+  <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+ 
+  <ltng:require styles="/resource/slds_resource/assets/styles/salesforce-lightning-design-system.css?v=1" />
+ 
+  <div class="slds">
+    <table class="slds-table slds-table--bordered slds-table--cell-buffer slds-max-medium-table--stacked-horizontal">
+      <thead>
+        <tr class="slds-text-heading--label">
+          <th scope="col" class="nobordertop" title="Account Name">
+            <div>Account Name</div>
+          </th>
+          <th scope="col" class="nobordertop" title="Account Number">
+            <div>Account Number</div>
+          </th>
+         
+          <th scope="col" class="nobordertop" title="Annual Revenue">
+            <div>Annual Revenue</div>
+          </th>
+          <th scope="col" class="nobordertop" title="Number Of Employees">
+            <div>Number Of Employees</div>
+          </th>                
+        </tr>
+      </thead>
+      <tbody>
+        <aura:iteration items="{!v.accounts}" var="account">     
+          <tr>
+            <td data-label="Name" title="Name">
+                <div><a data-record="{!account.Id}" onclick="{!c.redirectToSobject}">{!account.Name}</a></div>
+            </td>
+            <td data-label="Account Number" title="Account Number">
+              <div>{!account.AccountNumber}</div>
+            </td>
+            
+            <td data-label="Annual Revenue" title="Annual Revenue">
+              <div>{!account.AnnualRevenue}</div>
+            </td>
+            <td data-label="Number Of Employees" title="Number Of Employees">
+              <div>{!account.NumberOfEmployees}</div>
+            </td>       
+          </tr>
+        </aura:iteration>
+      </tbody>
+    </table> 
+  </div>
+</aura:component>

@@ -1,0 +1,234 @@
+public with sharing class BlueSkyTriggerHandler 
+{
+    public static boolean isBeforeCallFire = false;
+    public static boolean isAfterInsertCallFire = false;
+    public static boolean isAfterUpdateCallFire = false;
+    //public static boolean isAfterDeleteCallFire = false;
+    
+    public static void handleBeforeInsert(List<ocm_Blue_Sky_Record__c> newBsr)
+    {
+     try{
+         system.debug('before insert');
+         if(!isBeforeCallFire)
+            isBeforeCallFire = true;
+         if(newBsr !=null && newBsr.size()>0)   
+            validationonblueSkyrecords(newBsr);
+     }catch(Exception ex){
+          System.debug('The following exception has occurred: ' + ex.getMessage());
+     }   
+     
+    }
+    
+    public static void handleBeforeUpdate(map<id,ocm_Blue_Sky_Record__c> newBsrMap, map<id,ocm_Blue_Sky_Record__c> oldBsrMap)
+    {
+     try
+     {
+         if(!isBeforeCallFire)
+            isBeforeCallFire = true;
+            list<ocm_Blue_Sky_Record__c> blueskyList =new list<ocm_Blue_Sky_Record__c>();
+        for(ocm_Blue_Sky_Record__c bsr : newBsrMap.values())
+        {
+            if(string.isNotEmpty(bsr.Legal_Approval__c) && string.isNotEmpty(bsr.Compliance_Approval__c))
+            {
+            	if(bsr.Legal_Approval__c == 'Denied' && bsr.Compliance_Approval__c == 'Denied')
+            		bsr.Blue_Sky_Status__c = 'Denied for PPM';
+            	if(bsr.Legal_Approval__c == 'Needs Review' && bsr.Compliance_Approval__c == 'Needs Review')
+            		bsr.Blue_Sky_Status__c = 'Needs Review';	
+            }
+            if(bsr.Fund_Product__c ==oldBsrMap.get(bsr.id).Fund_Product__c || bsr.Marketing_Entity__c ==oldBsrMap.get(bsr.id).Marketing_Entity__c ||bsr.Contact_s_Email__c ==oldBsrMap.get(bsr.id).Contact_s_Email__c ){
+               blueskyList.add(bsr); 
+            }
+        }  
+         system.debug('after update');
+         if(blueskyList !=null && blueskyList.size()>0)   
+             validationonblueSkyrecords(blueskyList);
+     }
+     catch(Exception ex){
+          System.debug('The following exception has occurred: ' + ex.getMessage());
+     }
+        
+    }
+    
+    public static void handleAfterInsert(map<id,ocm_Blue_Sky_Record__c> newBsrMap)
+    {
+        if(!isAfterInsertCallFire)
+            isAfterInsertCallFire = true;
+        bsrOpps(newBsrMap.values());     
+    }
+    
+    public static void handleAfterUpdate(map<id,ocm_Blue_Sky_Record__c> newBsrMap, map<id,ocm_Blue_Sky_Record__c> oldBsrMap)
+    {
+        if(!isAfterUpdateCallFire)
+            isAfterUpdateCallFire = true;
+        set<id> accIds = new set<id>(); 
+        for(ocm_Blue_Sky_Record__c bsr : newBsrMap.values())
+        {
+            if(oldBsrMap.get(bsr.id).Blue_Sky_Status__c != bsr.Blue_Sky_Status__c)
+            {
+                if((bsr.Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_APPROVED_PPM) || (bsr.Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_DENIED_PPM) || (bsr.Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_PPM_SENT))
+                    accIds.add(bsr.Organization__c);
+                if((oldBsrMap.get(bsr.id).Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_APPROVED_PPM) || (oldBsrMap.get(bsr.id).Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_DENIED_PPM) || (oldBsrMap.get(bsr.id).Blue_Sky_Status__c == OCM_Constants.OCM_BLUESKY_STATUS_PPM_SENT))
+                    accIds.add(oldBsrMap.get(bsr.id).Organization__c);
+            }
+        }
+        if(accIds != null && accIds.size()>0)
+            updateOrgs(accIds);
+    }
+    /*
+    public static void handleAfterDelete(list<ocm_Blue_Sky_Record__c> oldBsr)
+    {
+        if(!isAfterDeleteCallFire)
+            isAfterDeleteCallFire = true;     
+    }
+    */
+    public static void updateOrgs(set<id> accIdSet)
+    {
+        set<Account> updateAccs = new set<Account>();
+        list<Account> updatedAccList = [Select a.Blue_Sky_Status__c, a.Blue_Sky_Link__c, a.Blue_Sky_Fund__c, a.Blue_Sky_Date__c, (Select Blue_Sky_Status__c, Fund_Product__r.Name, Evidence_Link__c, Evidence_Date__c From Blue_Sky_Records__r where (Blue_Sky_Status__c = :OCM_Constants.OCM_BLUESKY_STATUS_APPROVED_PPM OR Blue_Sky_Status__c = :OCM_Constants.OCM_BLUESKY_STATUS_DENIED_PPM OR Blue_Sky_Status__c = :OCM_Constants.OCM_BLUESKY_STATUS_PPM_SENT) order by LastModifiedDate desc limit 1) From Account a where Id IN :accIdSet];
+        for(Account ac: updatedAccList)
+        {
+            Account a = new Account(id = ac.id);
+            if(ac.Blue_Sky_Records__r != null && ac.Blue_Sky_Records__r.size() > 0)
+            {
+                a.Blue_Sky_Status__c = ac.Blue_Sky_Records__r[0].Blue_Sky_Status__c;
+                a.Blue_Sky_Fund__c = ac.Blue_Sky_Records__r[0].Fund_Product__r.Name;
+                a.Blue_Sky_Date__c = ac.Blue_Sky_Records__r[0].Evidence_Date__c;
+                a.Blue_Sky_Link__c = ac.Blue_Sky_Records__r[0].Evidence_Link__c;
+                updateAccs.add(a);
+            }
+        }
+        if(updateAccs != null && updateAccs.size()>0)
+        {
+            list<Account> updateAccList = new list<Account>();
+            updateAccList.addAll(updateAccs);
+            AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+            AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+            AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+            update updateAccList;
+            AccountTriggerHandler.hasAlreadyRanBeforeUpdate = false;
+            AccountTriggerHandler.hasAlreadyRanAfterInsert = false;
+            AccountTriggerHandler.hasAlreadyRanAfterUpdate = false;
+        }       
+    }
+    private static void bsrOpps(list<ocm_Blue_Sky_Record__c> bsrIdSet)
+    {        
+        set<id> accIds = new set<id>();
+        set<id> fpIds = new set<id>();
+        set<id> meIds = new set<id>();		
+        for(ocm_Blue_Sky_Record__c obsr: bsrIdSet)
+        {
+            if(obsr.Organization__c != null)
+                accIds.add(obsr.Organization__c);
+            if(obsr.Fund_Product__c != null)
+                fpIds.add(obsr.Fund_Product__c);
+        }       
+        
+        map<id, ocm_FundFamily__c> fundProdMap = new map<id, ocm_FundFamily__c>([Select o.Name, o.Id, o.Fund_Product_Marketing_Name__c From ocm_FundFamily__c o where id IN :fpIds]);
+		map<id, Account> accMap = new map<id, Account>([Select o.Name, o.Id, o.RecordType.DeveloperName From Account o where id IN :accIds]);
+        map<string, Opportunity> oppKeyMap = new map<string, Opportunity>();
+        map<string, ocm_Blue_Sky_Record__c> bsKeyMap = new map<string, ocm_Blue_Sky_Record__c>();
+
+        list<Opportunity> existedOppsList = [Select o.Id, o.Fund_Product__c, o.Fund_Close__c, o.AccountId From Opportunity o where (RecordType.DeveloperName =: OCM_Constants.OCM_RT_OPPORTUNITY_CLOSED_END_COMMITMENTS AND AccountId IN :accIds AND Fund_Product__c IN :fpIds)];
+        for(Opportunity oppr: existedOppsList)
+        {
+            string key = oppr.AccountId + '|' +oppr.Fund_Product__c;
+            oppKeyMap.put(key, oppr);
+        }
+
+        String closeEndOppRecId = [Select Id From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_OPPORTUNITY AND DeveloperName =: OCM_Constants.OCM_RT_OPPORTUNITY_CLOSED_END_COMMITMENTS limit 1].id;
+        set<Opportunity> newOppsSet = new set<Opportunity>();
+        map<Id, String> bsrOppsMap = new map<Id, String>();
+        set<ocm_Blue_Sky_Record__c> existedBSRSet = new set<ocm_Blue_Sky_Record__c>();
+        for(ocm_Blue_Sky_Record__c obsr: bsrIdSet)
+        {
+            string key = obsr.Organization__c + '|' +obsr.Fund_Product__c;
+            bsKeyMap.put(key,obsr);
+            if(!(oppKeyMap.containsKey(key)))
+            {
+                String dateVal = '1999-1-1';
+                Opportunity op = new Opportunity();
+                op.RecordTypeId = closeEndOppRecId;
+                op.Amount__c = null;
+                op.StageName = 'Selected by Rep';//OCM_Constants.OCM_BLUESKY_STATUS_PPM_SENT;
+                op.AccountId = obsr.Organization__c;
+                if(accMap != null && accMap.size() > 0 && accMap.get(obsr.Organization__c) != null && (accMap.get(obsr.Organization__c).RecordType.DeveloperName == OCM_Constants.CONSULTANT_CLIENT_DEV_NAME || accMap.get(obsr.Organization__c).RecordType.DeveloperName == OCM_Constants.OCM_RT_ACCOUNT_THIRD_PARTY_ORG))
+                	op.Fund_Close_Picklist__c = OCM_Constants.OCM_CONSULTANT_ADVISORY;
+                else
+                	op.Fund_Close_Picklist__c = 'TBD';
+                if(obsr.Fund_Close__c != null)
+                	op.Fund_Close__c = obsr.Fund_Close__c;
+                op.Fund_Product__c = obsr.Fund_Product__c;
+                op.OwnerId = obsr.Marketing_Rep__c;              
+                op.CloseDate = Date.valueOf(dateVal);
+                op.Name = fundProdMap.get(obsr.Fund_Product__c).Fund_Product_Marketing_Name__c + ' | ' +accMap.get(obsr.Organization__c).Name + ' | '+op.Fund_Close_Picklist__c;
+                newOppsSet.add(op);
+                bsrOppsMap.put(obsr.id, key);
+            }
+            else
+            {
+                ocm_Blue_Sky_Record__c bsr = new ocm_Blue_Sky_Record__c(id = obsr.Id);
+                bsr.Opportunity__c = oppKeyMap.get(key).id;
+                existedBSRSet.add(bsr);
+            }    
+        }
+        if(newOppsSet != null && newOppsSet.size() > 0)
+        {
+            list<Opportunity> updateAccList = new list<Opportunity>();
+            updateAccList.addAll(newOppsSet);
+            insert updateAccList;
+            
+            map<String, Id> newOppsMap = new map<String, Id>();
+            for(Opportunity op : updateAccList)
+            {
+            	string key = op.AccountId + '|' +op.Fund_Product__c;
+            	newOppsMap.put(key, op.Id);            	
+            }
+            
+            for(Id bsrId: bsrOppsMap.keySet())
+            {
+            	ocm_Blue_Sky_Record__c bsr = new ocm_Blue_Sky_Record__c(id = bsrId);
+            	bsr.Opportunity__c = newOppsMap.get(bsrOppsMap.get(bsrId));
+            	existedBSRSet.add(bsr);
+            }   
+        }
+        if(existedBSRSet != null && existedBSRSet.size() > 0)       
+    	{
+    		list<ocm_Blue_Sky_Record__c> updateBSRList = new list<ocm_Blue_Sky_Record__c>();
+            updateBSRList.addAll(existedBSRSet);
+            isAfterUpdateCallFire = true;
+            update updateBSRList;
+    	}            
+    }
+    public static void validationonblueSkyrecords(List<ocm_Blue_Sky_Record__c> newBsr ){
+   
+        set<string>funProductId = new  set<string>();
+        set<string>marketingEntityId = new  set<string>();
+        set<string>contectemail = new  set<string>();
+        
+        for(ocm_Blue_Sky_Record__c  bsr: newBsr)
+        {
+        
+        if(bsr.Fund_Product__c != null)
+           funProductId.add(bsr.Fund_Product__c) ;
+        if(bsr.Marketing_Entity__c != null)
+             marketingEntityId.add(bsr.Marketing_Entity__c) ;
+        if(bsr.Contact_s_Email__c != null && bsr.Contact_s_Email__c !='')
+            contectemail.add(bsr.Contact_s_Email__c);
+        }
+        
+        if(funProductId !=null && marketingEntityId !=null && contectemail !=null )
+        {
+            list<ocm_Blue_Sky_Record__c> blueskyobj = [select id,name,Fund_Product__r.Name,Marketing_Entity__r.Name,Contact_s_Email__c,Contact__r.Name from ocm_Blue_Sky_Record__c where Fund_Product__c IN:funProductId AND Marketing_Entity__c IN:marketingEntityId AND Contact_s_Email__c IN:contectemail];
+            
+            if(blueskyobj.size()>0)
+            {
+                for(ocm_Blue_Sky_Record__c bsr :blueskyobj)
+                {
+                    bsr.addError(bsr.Contact__r.Name+' has already a blue sky record with the combination of '+ bsr.Fund_Product__r.Name+' and '+bsr.Marketing_Entity__r.Name+', please choose a different combination!');
+                }
+            }
+            
+        } 
+
+    }
+}

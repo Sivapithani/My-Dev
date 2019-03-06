@@ -1,0 +1,765 @@
+@isTest
+public with sharing class MailingListOverrideControllerTest{
+    
+    static testMethod void testController(){
+        String rcId = [SELECT id, Name FROM RecordType WHERE SObjectType = :OCM_Constants.SOBJECT_NAME_CONTACT AND Name =:OCM_Constants.RT_GEN_CON LIMIT 1].id;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        test.startTest();
+            MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.stopTest();
+    }
+    
+    static testMethod void testController1(){
+        String rcId = [SELECT id, Name FROM RecordType WHERE SObjectType = :OCM_Constants.SOBJECT_NAME_CONTACT AND Name = :OCM_Constants.RT_GEN_CON LIMIT 1].id;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST  AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE Limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        test.startTest();
+            MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.stopTest();
+    }
+    
+    static testMethod void testController2(){
+        String rcId = [SELECT id, Name FROM RecordType WHERE SObjectType = :OCM_Constants.SOBJECT_NAME_CONTACT AND Name = :OCM_Constants.RT_GEN_CON LIMIT 1].id;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_GEN_CORRESPONDENCE Limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        test.startTest();
+            MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.stopTest();
+    }
+    
+    static testMethod void testController3(){
+        String rcId = [SELECT id, Name FROM RecordType WHERE SObjectType = :OCM_Constants.SOBJECT_NAME_CONTACT AND Name = :OCM_Constants.RT_GEN_CON LIMIT 1].id;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST Limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        test.startTest();
+            MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.stopTest();
+    }
+    
+    static testmethod void testSave1(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        con.Email = 'test@test.com';
+        insert con;
+        
+        ocm_Strategy__c Strategy= UnitTestFactory.buildTestStrategy();
+        insert Strategy;
+        
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Fund_Product_Long_Name__c ='TestFP';
+        ff.Strategy__c = Strategy.id;
+        insert ff;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        le.Fund_Family__c =ff.id;
+        insert le;
+        
+       
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+       
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,fa2le.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        c2a.Remove_OCP_Document_Access__c = true;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.selectedMethodOrType = OCM_Constants.OCM_TASK_TYPE_EMAIL;
+            oro.assignEmailType = OCM_Constants.OCM_TASK_TYPE_EMAIL;
+            oro.fundMailingDefaultPreferences();
+            oro.fmDefaultPref = true;
+            oro.fundMailingDefaultPreferences();
+            oro.removeOCPDocAccess();
+            oro.validateMailingPreferences();
+            
+            oro.getFields();
+            oro.save();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSave2(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        insert con;
+        
+        ocm_Strategy__c Strategy= UnitTestFactory.buildTestStrategy();
+        insert Strategy;
+        
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Fund_Product_Long_Name__c ='TestFP';
+        ff.Strategy__c = Strategy.id;
+        insert ff;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        le.Fund_Family__c =ff.id;
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE Limit 1].id;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,fa2le.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Investment_Entity__c = le.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.getFields();
+            oro.save();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSave3(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        con.Email = OCM_Constants.OCM_REPLY_TO;
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_GEN_CORRESPONDENCE limit 1].id;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,con.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.getFields();
+            oro.save();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, RecordTypeId, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(mailingListRcId, mlList[0].RecordTypeId);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+   
+    static testmethod void testSave4(){
+    	list<Account> accList = new list<Account>();
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+        insert acc;
+           
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        insert con;
+        
+        ocm_Strategy__c Strategy= UnitTestFactory.buildTestStrategy();
+        insert Strategy;
+        
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Fund_Product_Long_Name__c ='TestFP';
+        ff.Strategy__c = Strategy.id;
+        insert ff;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le2 = UnitTestFactory.buildTestLegalEntity();
+        le2.RecordTypeId = combentityrecordtypeid;
+        le2.Client__c = acc.Id;
+        le2.CIE_ID_EXT__c = 'CIEEX2';
+        le2.Fund_Family__c =ff.id;
+        LegalEntityTriggerHandler.isFirstCall = true;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = true;            
+        LegalEntityTriggerHandler.hasAlreadyRanAfterInsert = true;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterDelete = true;          
+        insert le2;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le2.Id;
+        FinancialAccountTriggerHandler.isFirstCall = true;
+	    FinancialAccountTriggerHandler.isFirstCallUpdate = true;
+	    FinancialAccountTriggerHandler.isFirstCallCommitedCapital = true;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le2.Id;
+        RelatedFAToLETriggerHandler.isFirstCall = true;
+	    RelatedFAToLETriggerHandler.isFirstUpdate = true;
+	    RelatedFAToLETriggerHandler.isFirstCallClientInvestment = true;
+	    RelatedFAToLETriggerHandler.isFirstCallFinAcctStatus = true;
+        insert fa2le;
+        
+        ocm_OrganizationsToFinancialAccount__c orgToFA = UnitTestFactory.buildOrganizationsToFinancialAccount();
+        orgToFA.Organization__c = acc.Id;
+        orgToFA.Financial_Account__c = fa.Id;
+        orgToFA.Relationship__c = OCM_Constants.OCM_CLIENT;
+        orgToFa.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        OrgToFinAcctTriggerHandler.hasUpdateAdvisementRan = true;
+	    OrgToFinAcctTriggerHandler.isFirstCall = true;
+	    OrgToFinAcctTriggerHandler.hasAlreadyRanBeforeInsert = true;
+	    OrgToFinAcctTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+	    OrgToFinAcctTriggerHandler.hasAlreadyRanAfterInsert = true;
+	    OrgToFinAcctTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        insert orgToFA;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,con.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.getFields();
+            oro.save();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c,RecordTypeId From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(mailingListRcId, mlList[0].RecordTypeId);
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSave5(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le2 = UnitTestFactory.buildTestLegalEntity();
+        le2.RecordTypeId = combentityrecordtypeid;
+        le2.Client__c = acc.Id;
+        le2.CIE_ID_EXT__c = 'CIEEX2';
+        insert le2;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE limit 1].id;
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,con.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Investment_Entity__c = le2.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.getFields();
+            oro.save();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSave7()
+    {
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        con.Email ='adc@gmail.com';
+        con.OCP_Primary_Email__c='Email 1';
+        insert con;
+        
+         ocm_Strategy__c Strategy= UnitTestFactory.buildTestStrategy();
+        insert Strategy;
+        
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Fund_Product_Long_Name__c ='TestFP';
+        ff.Strategy__c = Strategy.id;
+        insert ff;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        le.Fund_Family__c =ff.id;
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,fa2le.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        c2a.Drawdown_Notices__c='Portal without Notification';
+        c2a.Legal_Mailings__c='Portal with Notification';
+        c2a.Remove_OCP_Document_Access__c = true;
+        insert c2a;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+
+  /*      List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+        
+          */     
+        String mailingListRcId2 = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE Limit 1].id;
+        ocm_Mailing_List__c c2a2 = UnitTestFactory.buildMailingList();
+        c2a2.RecordTypeId = mailingListRcId2;
+        c2a2.Contact__c = con.id;
+        c2a2.Client_Investment_Entity__c = le.Id;
+        c2a2.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        
+        ApexPages.StandardController sc2 = new ApexPages.StandardController(c2a2);        
+        MailingListOverrideController oro2 = new MailingListOverrideController(sc2);
+        
+        test.startTest();
+            oro.getFields();
+            oro.save();
+            oro2.getFields();
+            oro2.save();
+        test.stopTest(); 
+         List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Id =: c2a.Id Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(1,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSaveNnew(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        con.Email = 'test@test.com';
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        //insert c2a;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.saveNnew();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }   
+    
+    static testmethod void testSaveNnew2(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        con.Email = OCM_Constants.OCM_REPLY_TO;
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_GEN_CORRESPONDENCE limit 1].id;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,con.Id);
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Contact__c = con.id;
+        c2a.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        //insert c2a;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);        
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        
+        test.startTest();
+            oro.saveNnew();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Limit 1];
+        system.assertEquals(1, mlList.size());
+        system.assertEquals(con.id, mlList[0].Contact__c);
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testCancel(){
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType =:OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.Contact__c = con.id;
+        c2a.RecordTypeId = mailingListRcId;
+        
+        ApexPages.currentPage().getParameters().put(OCM_Constants.RET_URL,con.Id);
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+        oro.cancel();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Contact__c =: con.Id Limit 1];
+        system.assertEquals(0, mlList.size());
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testCancelWithoutContact(){
+        Contact con = UnitTestFactory.buildTestContact();
+        insert con;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.RecordTypeId = mailingListRcId;
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+            oro.cancel();
+        test.stopTest();
+        
+        List<ocm_Mailing_List__c> mlList = [Select id, Name, Contact__c From ocm_Mailing_List__c Where Contact__c =: con.Id Limit 1];
+        system.assertEquals(0, mlList.size());
+        system.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testSaveFail(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY Limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        //c2a.Contact__c = con.id;
+        c2a.RecordTypeId = mailingListRcId;
+        //c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        //insert c2a;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+            oro.save();
+        test.stopTest();
+        
+        system.assertEquals(1,ApexPages.getMessages().size());
+    }
+    
+   
+    static testmethod void testSaveNnewFail(){
+        list<Account> accList = new list<Account>();
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.AccountId = acc.id;
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        //le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        //String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.Contact__c = con.id;
+        //c2a.RecordTypeId = mailingListRcId;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        //insert c2a;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+            oro.saveNnew();
+        test.stopTest();
+        
+        system.assertEquals(2,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testvalidateMailingPreferences(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.FirstName = 'test';
+        con.LastName = 'test';
+        con.AccountId = acc.id;
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.Contact__c = con.id;
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        //insert c2a;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_DeliveryMethod_Fax;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email1;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email2;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email3;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_WriteInEmail;
+            oro.validateMailingPreferences();
+        test.stopTest();
+    }
+    
+    static testmethod void testUpdateMailingPreferences(){
+        Account acc = UnitTestFactory.buildTestAccount();
+        acc.Name = 'Test Account';
+        AccountTriggerHandler.hasAlreadyRanAfterInsert = true;
+        AccountTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        AccountTriggerHandler.hasAlreadyRanBeforeUpdate = true;
+        insert acc;
+        
+        Contact con = UnitTestFactory.buildTestContact();
+        con.FirstName = 'test';
+        con.LastName = 'test';
+        con.AccountId = acc.id;
+        ContactTriggerHandler.hasAlreadyRanBeforeInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterInsert = true;
+        ContactTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        insert con;
+        
+        String combentityrecordtypeid = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.RT_COMBINATION_LEGAL_ENTITY limit 1].Id;
+        ocm_LegalEntity__c le = UnitTestFactory.buildTestLegalEntity();
+        le.RecordTypeId = combentityrecordtypeid;
+        le.Client__c = acc.Id;
+        le.CIE_ID_EXT__c = 'CIEEXT';
+        LegalEntityTriggerHandler.isFirstCall = true;
+        LegalEntityTriggerHandler.isFirstCallAfterUpdate = true;            
+        LegalEntityTriggerHandler.hasAlreadyRanAfterInsert = true;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterUpdate = true;
+        LegalEntityTriggerHandler.hasAlreadyRanAfterDelete = true;
+        insert le;
+        
+        ocm_FinancialAccount__c fa = UnitTestFactory.buildTestFinancialAccount();
+        fa.Client_Investment_Entity__c = le.Id;
+        FinancialAccountTriggerHandler.isFirstCall = true;
+	    FinancialAccountTriggerHandler.isFirstCallUpdate = true;
+	    FinancialAccountTriggerHandler.isFirstCallCommitedCapital = true;
+        insert fa;
+        
+        ocm_FinancialAccounttoLegalEntity__c fa2le = UnitTestFactory.buildTestFinancialAccounttoLegalEntity();
+        fa2le.Financial_Account__c = fa.id;
+        fa2le.Legal_Entity__c = le.Id;
+        RelatedFAToLETriggerHandler.isFirstCall = true;
+	    RelatedFAToLETriggerHandler.isFirstUpdate = true;
+	    RelatedFAToLETriggerHandler.isFirstCallClientInvestment = true;
+	    RelatedFAToLETriggerHandler.isFirstCallFinAcctStatus = true;
+        insert fa2le;
+        
+        String mailingListRcId = [Select Id, Name From RecordType Where SObjectType = :OCM_Constants.SOBJECT_NAME_MAILING_LIST AND DeveloperName = :OCM_Constants.OCM_RT_MAILING_FUND_MAILING limit 1].id;
+        ocm_Mailing_List__c c2a = UnitTestFactory.buildMailingList();
+        c2a.Contact__c = con.id;
+        c2a.RecordTypeId = mailingListRcId;
+        c2a.Client_Account_Legal_Entity_Relationship__c = fa2le.Id;
+        insert c2a;
+        
+        ApexPages.StandardController sc1 = new ApexPages.StandardController(c2a);
+        MailingListOverrideController oro = new MailingListOverrideController(sc1);
+        test.startTest();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_DeliveryMethod_Fax;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email1;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email2;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_Email3;
+            oro.validateMailingPreferences();
+            oro.selectedMethodOrType = OCM_Constants.MailingList_EmailType_WriteInEmail;
+            oro.validateMailingPreferences();
+        test.stopTest();
+    }
+}

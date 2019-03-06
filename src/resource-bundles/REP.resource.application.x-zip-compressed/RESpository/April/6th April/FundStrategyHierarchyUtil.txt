@@ -1,0 +1,222 @@
+public with sharing class FundStrategyHierarchyUtil 
+{
+    private static map <Id, ocm_Strategy__c> strategyMap;
+    private static JSONGenerator gen {get; set;}
+    public static String getTreeJSON(String expandAll, String selAll, String orgFPs, String orgStrategies) 
+    {
+        gen = JSON.createGenerator(true);   
+        list<RoleNodeWrapper> node = createNode(expandAll, selAll, orgFPs, orgStrategies);        
+        gen.writeStartArray();
+        convertNodeToJSON(node);        
+        gen.writeEndArray();        
+        return gen.getAsString();
+    }
+    
+    /* // createNode starts */
+    private static list<RoleNodeWrapper> createNode(String expAll, String selAll, String clonedOrgFPs, String clonedOrgStrategies) 
+    {
+        list<RoleNodeWrapper> nList = new list<RoleNodeWrapper>();
+        list<String> fundNameList = new list<String>();
+        list<String> strategyNameList = new list<String>();
+        set<String> fundNameSet = new set<String>();
+        set<String> strategyNameSet = new set<String>();
+        
+        if(clonedOrgFPs != null && clonedOrgFPs.length() > 0)
+        {
+	        fundNameList = clonedOrgFPs.split(', ');
+	        if(fundNameList != null && fundNameList.size() > 0)
+	        	fundNameSet.addAll(fundNameList);
+        }
+
+        if(clonedOrgStrategies != null && clonedOrgStrategies.length() > 0)
+        {
+	        strategyNameList = clonedOrgStrategies.split(', ');
+	        if(strategyNameList != null && strategyNameList.size() > 0)
+	        	strategyNameSet.addAll(strategyNameList);
+        }
+        /*
+        Account acc = new Account();
+        list<String> strategiesList = new list<String>();        
+        if(acId != null)
+        {
+            acc = [Select Strategies_Client_is_Invested_in__c, Fund_Products_Invested__c From Account where id =:acId];
+
+            if((acc != null) && (acc.Strategies_Client_is_Invested_in__c != null) && (acc.Strategies_Client_is_Invested_in__c != ''))
+                strategiesList = acc.Strategies_Client_is_Invested_in__c.split(',');
+        }
+            
+        if(strategiesList != null && strategiesList.size()>0)
+            strategyMap = new map<Id, ocm_Strategy__c>([Select o.Name, o.Id, (Select Id, Name From Funds_Products__r) From ocm_Strategy__c o where Name IN :strategiesList order by Name]);
+        else*/
+            strategyMap = new map<Id, ocm_Strategy__c>([Select o.Name, o.Id, (Select Id, Name, Fund_Family_Abbreviation__c From Funds_Products__r order by AUM_Start_Date__c asc nulls last, Name asc) From ocm_Strategy__c o order by Name]);    
+        
+        for(ocm_Strategy__c a: strategyMap.values())
+        {
+            RoleNodeWrapper n = new RoleNodeWrapper();
+            if(a.Funds_Products__r.size() > 0)
+            {
+                if(expAll != OCM_Constants.OCM_VALUE_NO)
+                {
+                	if(expAll == OCM_Constants.OCM_VALUE_YES)// || (clonedOrgStrategies.contains(a.Name)))
+                		n.isExpanded = true;
+	            	else
+	            	{
+		                if(strategyNameSet.contains(a.Name))
+		                {
+			                for(String st: strategyNameSet)
+		                	{
+		                		if(st.equals(a.Name))
+		                		{
+			                		n.isExpanded = true;
+			                		break;
+		                		}
+			                	else
+			                		n.isExpanded = false;	
+		                	}
+		                }
+		                else
+			                n.isExpanded = false;
+	            	}    
+                }
+                else
+                	n.isExpanded = false;
+                if(selAll != OCM_Constants.OCM_VALUE_NO)
+                {
+	    	        if(selAll == OCM_Constants.OCM_VALUE_YES)
+		                n.orgSelectedFP = true;
+	                else
+	                    n.orgSelectedFP = false;
+                }
+				else		
+                    n.orgSelectedFP = false;   
+                n.fundProductList = a.Funds_Products__r;
+                n.hasUsers = true;
+                n.keyId = a.Id;
+                n.strategyName = a.Name;
+                n.isLeafNode = false;
+                n.hasChildren = true;
+                list<RoleNodeWrapper> lst = new list<RoleNodeWrapper>();
+                for (ocm_FundFamily__c r : a.Funds_Products__r) 
+                {
+                    RoleNodeWrapper n2 = new RoleNodeWrapper();
+                    n2.hasUsers = false;
+                    if(expAll == OCM_Constants.OCM_VALUE_YES)
+                    	n2.isExpanded = true;
+                    else
+                    	n2.isExpanded = false;
+                    n2.keyId = r.Id;
+                    n2.strategyName = r.Name;
+                    n2.isLeafNode = true;
+                    n2.hasChildren = false;
+                    if(selAll != OCM_Constants.OCM_VALUE_NO)
+                    {
+	                    if(selAll == OCM_Constants.OCM_VALUE_YES)
+	                		n2.orgSelectedFP = true;
+	                	else
+	                	{
+	                		if(clonedOrgFPs.contains(r.Fund_Family_Abbreviation__c))
+	                		{	                			
+	                			for(String str: fundNameSet)
+	                			{	
+	                				if(str.equals(r.Fund_Family_Abbreviation__c))
+	                				{	
+		                				n2.orgSelectedFP = true;
+		                				break;		                				
+	                				}	
+		                			else
+		                				n2.orgSelectedFP = false;	
+	                			}
+	                		}	
+	                		else	
+	                			n2.orgSelectedFP = false;
+	                	}
+                    }                    
+                    else
+                		n2.orgSelectedFP = false;	
+                    lst.add(n2);
+                }           
+                n.myChildNodes = lst;
+             }
+            else
+            {
+                n.hasUsers = true;
+                n.keyId = a.Id;
+                n.strategyName = a.Name;
+                n.fundProductId = a.Id;
+                n.isLeafNode = true;
+                n.hasChildren = false;
+                if(expAll == OCM_Constants.OCM_VALUE_YES)
+	                n.isExpanded = true;
+	            else
+		            n.isExpanded = false;
+		            
+		        if(selAll != OCM_Constants.OCM_VALUE_NO)
+		        {
+			        if((selAll == OCM_Constants.OCM_VALUE_YES) || (clonedOrgStrategies.contains(a.Name)))        
+	                	n.orgSelectedFP = true;
+	                else
+	                	n.orgSelectedFP = false;
+		        }
+		        else
+                	n.orgSelectedFP = false;		
+            }  
+            nList.add(n);        	
+        }        
+        return nList;
+    }
+    
+    private static void convertNodeToJSON(list<RoleNodeWrapper> objRNW)
+    {
+        for(RoleNodeWrapper rn: objRNW)
+        {
+            prepareNode(rn);
+            if (rn.hasUsers || rn.hasChildren)
+            {
+                gen.writeFieldName('children');
+                gen.writeStartArray();
+                if (rn.hasChildren)
+                {
+                    for (RoleNodeWrapper r : rn.myChildNodes)
+                    {
+                        prepareNode(r);
+                        gen.writeEndObject();
+                    }
+                }
+                gen.writeEndArray();
+            }
+            gen.writeEndObject();
+         }   
+    }
+    
+    private static void prepareNode(RoleNodeWrapper rnw)
+    {
+        gen.writeStartObject();
+        gen.writeStringField('title', rnw.strategyName);
+        gen.writeStringField('key', rnw.keyId);
+        gen.writeBooleanField('unselectable', false);    
+        gen.writeBooleanField('expand', rnw.isExpanded);
+        gen.writeBooleanField('isFolder', false);
+        gen.writeBooleanField('select', rnw.orgSelectedFP);
+    }
+    
+    
+    public class RoleNodeWrapper 
+    {    
+        public String strategyName {get; set;}        
+        public Id keyId {get; set;}        
+        public Boolean isExpanded {get; set;}
+        public Boolean orgSelectedFP {get; set;}
+        public String fundProductId {get; set;}
+        public Boolean hasChildren {get; set;}
+        public Boolean isLeafNode {get; set;}
+        public Boolean hasUsers {get; set;}
+        public list<ocm_FundFamily__c> fundProductList {get; set;}
+        public list<RoleNodeWrapper> myChildNodes {get; set;}
+        
+        public RoleNodeWrapper()
+        {
+            hasUsers = false;
+            hasChildren = false;
+        }
+    }   
+}

@@ -1,0 +1,328 @@
+<aura:component controller="aok_cs_CustomLookupGenericController" implements="forceCommunity:availableForAllPageTypes,force:appHostable" access="GLOBAL" >
+    <aura:attribute name="accountData" type="Account" default="{ 'sobjectType': 'Account','Name': ''}"/>
+    <aura:attribute name="contactData" type="Contact" default="{ 'sobjectType': 'Contact','LastName': '',firstName:'',Phone:''}"/>
+    <aura:attribute name="opportunityData" type="Opportunity" default="{ 'sobjectType': 'Opportunity','StageName' : 'prospecting'}"/>
+    <aura:attribute name="IntakeData" type="Intake__c" default="{ 'sobjectType': 'Intake__c',
+                                                                    'Household__c' : null,
+                                                                    'Organization__c' :null,
+                                                                    Intake_Date__c :''
+                                                                    }"/>
+    <aura:attribute name="clientData" type="aok_Client__c" default="{ 'sobjectType': 'aok_Client__c',
+                                                                    'Current_Household__c' : null,
+                                                                     'Name':null
+                                                                    }"/>
+     
+    <aura:attribute name="ServicesData" type="Services__c"/>
+    <aura:attribute name="showAccount" type="boolean" default="true"/> '
+    <aura:attribute name="showContact" type="boolean" default="false"/> 
+    <aura:attribute name="showOpportunity" type="boolean" default="false"/>
+    <aura:attribute name="setMessage" type="String"/> 
+    <aura:attribute name="showError" type="boolean" default="false"/>
+    <aura:attribute name="showData" type="boolean" default="false"/>
+    <aura:attribute name="message" type="String" default="NoError"/> 
+    
+    <aura:attribute name="firstScreen" type="Boolean" default="true"/>
+    <aura:attribute name="secondScreen" type="Boolean" default="false"/> 
+    <aura:attribute name="thirdScreen" type="Boolean" default="false"/> 
+    <aura:attribute name="fourthScreen" type="Boolean" default="false"/>
+    
+    <aura:attribute name="selectedLookUpRecord" type="sObject" default="{}"/>
+    <aura:attribute name="selectedLookUpRecord1" type="sObject" default="{}" description="This contains Record Id of Organization"/>
+    <aura:attribute name="selectedLookUpRecord2" type="sObject" default="{}" description="This contains Record Id of Household"/>
+    <aura:attribute name="selectedLookUpRecord3" type="sObject" default="{}"/>
+    <aura:attribute name="selectedLookUpRecord4" type="sObject" default="{}"/> 
+    <aura:attribute name="selectedLookUpRecordid" type="string" default="{}"/> 
+    <aura:attribute name="ServiecList" type="List" default="[]" description="Genre Picklist Values"/>
+    <aura:attribute name="selectedGenreList" type="List" default="[]" description="Selected Genre Picklist Values"/>
+     <aura:attribute name="selectdclient" type="List" />
+ 
+ <aura:handler name="init" action="{!c.doInit}" value="{!this}" description="Call doInit function on component load to get picklist values"/>
+    
+    
+    <div class="slds-grid slds-grid--vertical forceListViewManager adapetr-config-main">
+        <!--********* HEADER ********* -->
+        <div class="slds-page-header adapetr-header">
+            <div class="slds-media">
+                <div class="slds-media__body"> 
+                    <aura:renderIf isTrue="{!v.firstScreen}">
+                        <h1 class="slds-page-header__title slds-m-right--small slds-align-middle slds-truncate">Intake Wizard 1 of 4</h1>
+                        <p class="slds-text-title--caps slds-line-height--reset"></p>
+                    </aura:renderIf>
+                    
+                    <aura:renderIf isTrue="{!v.secondScreen}">
+                        <h1 class="slds-page-header__title slds-m-right--small slds-align-middle slds-truncate">Intake Wizard 2 of 4</h1>
+                        <p class="slds-text-title--caps slds-line-height--reset">Service Information</p>
+                    </aura:renderIf>
+                    <aura:renderIf isTrue="{!v.thirdScreen}">
+                        <h1 class="slds-page-header__title slds-m-right--small slds-align-middle slds-truncate">Intake wizard 3 of 4</h1>
+                        <p class="slds-text-title--caps slds-line-height--reset">Opportunity Creation</p>
+                    </aura:renderIf>
+                    <aura:renderIf isTrue="{!v.showData}">
+                        <h1 class="slds-page-header__title slds-m-right--small slds-align-middle slds-truncate">Intake Wizard 4 of 4</h1>
+                        <p class="slds-text-title--caps slds-line-height--reset">Record Insertion</p>
+                    </aura:renderIf>
+                    <div id="showErrorrTractConfig" class="cmn_error_msg " style="display:none; text-align:center;font-weight:700">
+                        <ui:outputText value="{!v.message}"/>
+                    </div>
+                    <div id="showMessageTractConfig" class="cmn_message " style="display:none;text-align:center;font-weight:700">
+                        <ui:outputText value="{!v.message}"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="adapetr-config-sec">
+            <aura:if isTrue="{!v.firstScreen}">
+                <div class="slds-box slds-align--absolute-center config-table-details">
+                    <table class="slds-table ">
+                        <h3 class="slds-text-heading--small">Intake Information</h3>
+                        <aura:renderIf isTrue="{!v.showError}">
+                            
+                            <ui:message title="Warning" severity="warning" closable="true">
+                                Please Fill required field first </ui:message>
+                        </aura:renderIf>
+                        
+                        <aura:renderIf isTrue="{!v.showAccount}">
+                            <tr>
+                                <td>
+                                    
+                                    <div class="width">   
+                                        <c:aok_cmp_CustomLookupGeneric 
+                                                                       objectAPIName="Account"
+                                                                       IconName="standard:account" 
+                                                                       label="Organization" 
+                                                                       selectedRecord="{!v.selectedLookUpRecord1}" 
+                                                                       lookupparam="OrganizationLookup" />
+                                        
+                                    </div>
+                                </td>
+                                
+                                <td >
+                                    
+                                    <c:aok_cmp_CustomLookupGeneric objectAPIName="aok_Household__c" 
+                                                                   siteLocationId="{!v.selectedLookUpRecord1.Id}" 
+                                                                   IconName="standard:household" 
+                                                                   label="Household name" 
+                                                                   selectedRecord="{!v.selectedLookUpRecord2}" 
+                                                                   lookupparam="HouseholdLookup" /> 
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Intake Date</label>
+                                        
+                                    </div>
+                                    
+                                    <div class="width">
+                                        
+                                        <ui:inputDate class="slds-input" aura:id="intakeDate" value="{!v.IntakeData.Intake_Date__c}" displayDatePicker="true"></ui:inputDate>
+                                        
+                                    </div>
+                                </td>    
+                            </tr>
+                            <tr>
+                                <h3 class="slds-text-heading--small">Intake Questions </h3>
+                                
+                            </tr>
+                            <tr>
+                                
+                                
+                            </tr>
+                            <tr>
+                                <td>
+                                    
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Are you receiving WIC Assistance?</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Assistance with Early Childhood Services</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Would you like help with WIC Assistance?</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Help In Addition to Request</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Are you receiving SNAP Assistance?</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                                
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Would you like help with SNAP Assistance</label>
+                                    </div>
+                                    <div class="width">
+                                        <ui:inputSelect class="slds-input" aura:id="StageName" change="{!c.onSelectChange}">
+                                            <ui:inputSelectOption text="No" label="No" value="No"/>
+                                            <ui:inputSelectOption text="Yes" label="Yes" value="Yes"/>
+                                        </ui:inputSelect>
+                                    </div> 
+                                </td> 
+                            </tr>
+                        </aura:renderIf>                      
+                        
+                        <aura:renderIf isTrue="{!v.showData}">
+                            <p class="slds-text-title--caps slds-line-height--reset">Account Information</p>
+                            <tr>
+                                <td>
+                                    <div class="topSpacing">
+                                        <label class="slds-form-element__label">Name<span class="cmn_mandatory_indicator">*</span></label>
+                                    </div>
+                                    <div class="width">  
+                                        <ui:outputText class="slds-output" value="{!v.accountData.Name}"></ui:outputText>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td >
+                                    <div class="topSpacing">
+                                        <label class="slds-form-element__label ">Account Number</label>
+                                    </div>                                        
+                                    <div class="width">
+                                        <ui:outputText class="slds-output" value="{!v.accountData.AccountNumber}"></ui:outputText>  
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="topSpacing"> 
+                                        <label class="slds-form-element__label">Description</label>
+                                    </div>
+                                    
+                                    <div class="width">
+                                        <ui:outputText class="slds-output" value="{!v.accountData.Description}"></ui:outputText>  
+                                    </div>
+                                </td>    
+                            </tr>
+                            
+                        </aura:renderIf>
+                    </table>
+                </div>   
+            </aura:if>
+            
+            <aura:if isTrue="{!v.secondScreen}">
+              
+                <!-- picklist of Client bsed on selected household on screen 1 -->
+                <!--  all services with checkbox-->
+                <div class="slds-box slds-align--absolute-center config-table-details">
+                    <table class="slds-table ">
+                         <h3 class="slds-text-heading--small">Client Information</h3>
+                    <tr>
+                         <!-- <td >
+                                    
+                                   <c:aok_cmp_CustomLookupGeneric objectAPIName="aok_Client__c" 
+                                                                    siteLocationId="{!v.selectedLookUpRecord2.Id}"
+                                                                   IconName="standard:householdMember" 
+                                                                   label="Client name" 
+                                                                   selectedRecord="{!v.selectedLookUpRecord3}" 
+                                                                   lookupparam="Cilentlookup" />  
+                             
+                                </td>  -->
+                        <td>
+                            <ui:inputSelect   aura:id="InputSelectMultiple" 
+                                              labelClass="slds-form-element__label"    change="{!c.onMultiSelectChange}">
+                                <ui:inputSelectOption label="Select the Client"  />
+                                <aura:iteration items="{!v.clientData}" var="data">
+                                    <ui:inputSelectOption label="{!data.Name}" text="{!data.Id}" />
+                                </aura:iteration>
+                            </ui:inputSelect>                           
+                        </td>
+                        <td>
+                                <div class="slds-m-around_xx-large">
+           					<lightning:dualListbox aura:id="SelectServices"
+                                   name="Services"
+                                   label="All Services"
+                                   sourceLabel="Available Services"
+                                   selectedLabel="Selected Services"
+                                   options="{!v.ServiecList}"
+                                   value="{!v.selectedGenreList}"
+                                   onchange="{!c.handleGenreChange}"/>
+       
+    </div>
+                        </td>
+                       
+                    </tr>
+                </table>
+                </div>
+                
+            </aura:if>
+            <aura:if isTrue="{!v.thirdScreen}">
+                Third screen 
+            </aura:if> 
+            <aura:if isTrue="{!v.fourthScreen}">
+                fourth screen
+            </aura:if>
+            <div class="slds-grid  slds-grid--align-center">
+                <aura:renderIf isTrue="{!v.firstScreen}">
+                    <button class="slds-button slds-button--brand" onclick="{!c.nextTab}">Next</button>
+                </aura:renderIf>
+                
+                <aura:renderIf isTrue="{!v.secondScreen}">
+                    <button class="slds-button slds-button--brand" onclick="{!c.prevTab}" >Back</button>
+                    <button class="slds-button slds-button--brand" onclick="{!c.nextThirdTab}" >Next</button>
+                </aura:renderIf>
+                
+                <aura:renderIf isTrue="{!v.thirdScreen}">        
+                    <button class="slds-button slds-button--brand" onclick="{!c.prevSecondTab}" >Back</button> 
+                    <button class="slds-button slds-button--brand" onclick="{!c.nextFourthTab}" >Next</button>
+                </aura:renderIf>
+                <aura:renderIf isTrue="{!v.fourthScreen}">        
+                    <button class="slds-button slds-button--brand" onclick="{!c.prevThirdTab}" >Back</button> 
+                    <button class="slds-button slds-button--brand" onclick="{!c.saveRecord}" >Save</button>
+                </aura:renderIf>
+                
+            </div>
+        </div>
+    </div>
+    
+    
+    
+    
+</aura:component>

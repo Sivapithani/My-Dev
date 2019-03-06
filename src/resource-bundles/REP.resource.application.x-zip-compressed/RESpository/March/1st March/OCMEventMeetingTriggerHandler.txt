@@ -1,0 +1,344 @@
+public with sharing class OCMEventMeetingTriggerHandler {
+     
+    public static boolean isFirstCall = false;
+    public static boolean hasAlreadyRanAfterInsert = false;
+    public static boolean hasAlreadyRanAfterUpdate = false;
+    public static boolean hasAlreadyRanAfterDelete = false;
+    public static boolean hasAlreadyRanBeforeInsert = false;
+    public static boolean hasAlreadyRanBeforeUpdate = false;
+    public static boolean hasAlreadyRanBeforeDelete = false;
+ 
+    public static void handleBeforeInsert(list<ocm_Event__c> newEvents)
+    {
+        try
+        {         
+            if(!hasAlreadyRanBeforeInsert)            
+                hasAlreadyRanBeforeInsert = true;
+            
+            processBefore(newEvents);
+        }
+        catch(Exception e)
+        {
+            for(ocm_Event__c ev : newEvents)
+            {
+                ev.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void handleBeforeUpdate(map<id,ocm_Event__c> newEvents, map<id,ocm_Event__c> oldEvents)
+    {
+    	List<User> outlookSyncUser = [select id from User where UserName =: OCM_Constants.OCM_USER_OUTLOOK_SYNC_STG OR UserName =: OCM_Constants.OCM_USER_OUTLOOK_SYNC_PROD limit 1];
+    	//system.debug('#### outlookSyncUser : '+outlookSyncUser[0].Id);
+    	try
+        {      
+            if(!hasAlreadyRanBeforeUpdate){
+                hasAlreadyRanBeforeUpdate = true;
+            }
+            
+            for(ocm_Event__c ev : newEvents.values())
+            {            	
+            	//system.debug('#### UserInfo.getUserId() : '+UserInfo.getUserId());
+            	//system.debug('#### New Assigned__c : '+ev.Assigned_To__c);
+            	//system.debug('#### new StartDate__c : '+newEvents.get(ev.Id).StartDate__c+'| Old start date : '+oldEvents.get(ev.Id).StartDate__c);
+            	//system.debug('#### new EndDate__c : '+newEvents.get(ev.Id).EndDate__c+' | Old End date : '+oldEvents.get(ev.Id).EndDate__c);
+            	//system.debug('#### new Start__c : '+newEvents.get(ev.Id).Start__c+'| Old start__c : '+oldEvents.get(ev.Id).Start__c);
+            	//system.debug('#### new End__c : '+newEvents.get(ev.Id).End__c+'| Old end__c : '+oldEvents.get(ev.Id).End__c);
+            	//system.debug('#### new Description__c : '+newEvents.get(ev.Id).Description__c+'| Old Description__c : '+oldEvents.get(ev.Id).Description__c);
+            	//system.debug('#### new Subject__c : '+newEvents.get(ev.Id).Subject__c+'| Old Subject__c : '+oldEvents.get(ev.Id).Subject__c);
+            	//system.debug('#### new Location__c : '+newEvents.get(ev.Id).Location__c+'| Old Location__c: '+oldEvents.get(ev.Id).Location__c);
+            	
+            	// To check if the meeting updated through Outlook
+            	if(outlookSyncUser.size() > 0 && UserInfo.getUserId() != outlookSyncUser[0].Id)
+            	{
+	            	if(oldEvents.get(ev.Id).Assigned_To__c != UserInfo.getUserId())
+	            	{
+	                    string newMeetingSub = '';
+	                    string oldMeetingSub = '';
+	                    string newMeetingDesc = '';	                    
+	                    string oldMeetingDesc = '';
+	                    string newMeetingloc = '';	                    
+	                    string oldMeetingloc = '';
+	                    if((ev.Subject__c != null) && (ev.Subject__c != ''))
+	                    	newMeetingSub = ev.Subject__c.stripHtmlTags();
+	                    if((oldEvents.get(ev.Id).Subject__c != null) && (oldEvents.get(ev.Id).Subject__c != ''))
+	                    	oldMeetingSub = oldEvents.get(ev.Id).Subject__c.stripHtmlTags();
+	                    if((ev.Description__c != null) && (ev.Description__c != ''))
+	                    	newMeetingDesc = ev.Description__c.stripHtmlTags();
+	                    if((oldEvents.get(ev.Id).Description__c != null) && (oldEvents.get(ev.Id).Description__c != ''))
+	                    	oldMeetingDesc = oldEvents.get(ev.Id).Description__c.stripHtmlTags();
+	                    if((ev.Location__c != null) && (ev.Location__c != ''))
+	                    	newMeetingloc = ev.Location__c.stripHtmlTags();
+	                    if((oldEvents.get(ev.Id).Location__c != null) && (oldEvents.get(ev.Id).Location__c != ''))
+	                    	oldMeetingloc = oldEvents.get(ev.Id).Location__c.stripHtmlTags();		
+	                    //if(ev.Subject__c.stripHtmlTags() != oldEvents.get(ev.Id).Subject__c.stripHtmlTags() || ev.Description__c.stripHtmlTags() != oldEvents.get(ev.Id).Description__c.stripHtmlTags() || ev.Location__c != oldEvents.get(ev.Id).Location__c || ev.Start__c != oldEvents.get(ev.Id).Start__c || ev.End__c != oldEvents.get(ev.Id).End__c)
+	                    if(ev.Assigned_To__c != oldEvents.get(ev.Id).Assigned_To__c || newMeetingSub != oldMeetingSub || newMeetingDesc != oldMeetingDesc || newMeetingloc != oldMeetingloc || ev.Start__c != oldEvents.get(ev.Id).Start__c || ev.End__c != oldEvents.get(ev.Id).End__c || ev.StartDate__c != oldEvents.get(ev.Id).StartDate__c || ev.EndDate__c != oldEvents.get(ev.Id).EndDate__c)
+	                    {
+	                        ev.addError(OCM_Constants.OCM_MEETING_VALIDATION_MSG);
+	                        return;
+	                    }
+	                }
+            	}
+            }
+            
+            processBefore(newEvents.values());
+        }
+        catch(Exception e)
+        {
+            for(ocm_Event__c ev : oldEvents.values())
+            {
+                ev.addError(e.getMessage());           
+            }            
+        }
+    }    
+    
+    private static void processBefore(list<ocm_Event__c> newRecs)
+    {
+            set<Id> ownerIds = new set<Id>();
+            for(ocm_Event__c ev : newRecs) {
+                if(ev.Assigned_To__c != null) {
+                    ownerIds.add(ev.Assigned_To__c);
+                }
+            }
+            
+            map<Id,User> userMap = new map<Id,User>([select TimeZoneSidKey from User where id in : ownerIds]);
+            
+            for(ocm_Event__c ev : newRecs) {
+                if(userMap.get(ev.OwnerId) != null) {
+                    ev.Owner_s_Time_Zone__c = userMap.get(ev.OwnerId).TimeZoneSidKey;
+                }
+            }
+    }
+    
+    public static void handleAfterInsert(Map<id, ocm_Event__c> newEvent) {
+        try{
+            if(!hasAlreadyRanAfterInsert)
+            {
+                hasAlreadyRanAfterInsert = true;
+                EventTriggerHandler.hasAlreadyRanAfterInsert = true;
+            }   
+            List<Event> eventList = new List<Event>();
+            for(ocm_Event__c ev : newEvent.values()){
+                if(ev.Standard_SFDC_Event_ID__c == null || ev.Standard_SFDC_Event_ID__c == '')
+                {
+                    System.debug('Standard SFDC is Empty or null');
+                    System.debug('Set OCM Evnet ID == ' + ev.Id);
+                    Event ocmevent = new Event(IsAllDayEvent = ev.All_Day_Event__c, Description = ev.Description__c,   
+                    EndDateTime = ev.End__c, Type = ev.Event_Type__c, Location =  ev.Location__c, ShowAs = ev.Show_Time_As__c, 
+                    StartDateTime = ev.Start__c, OwnerId = ev.Assigned_To__c, Subject = ev.Subject__c, OCM_Event_ID__c = ev.Id);
+                    eventList.add(ocmEvent);
+                }
+            }
+            
+            if(eventList != null && eventList.size() > 0){
+               system.debug('UPSERT AFTER INSERT IN OCM EVENT MEETING TRIGGER HANLDER');
+                upsert eventList;
+                List<ocm_Event__c> updateEvents = new List<ocm_Event__c>();
+                for(Event insertedEvent : eventList)
+                {
+                    ocm_Event__c thisEvent = newEvent.get(insertedEvent.OCM_Event_ID__c);
+                    ocm_Event__c updateThisEvent = new ocm_Event__c(id=thisEvent.Id,Standard_SFDC_Event_ID__c = insertedEvent.Id);
+                    updateEvents.add(updateThisEvent);
+                }
+                update updateEvents;
+            }
+        }catch(Exception e) {
+            for(ocm_Event__c ev : newEvent.values()) {
+                ev.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void handleAfterUpdate(Map<id, ocm_Event__c> newEvent,Map<id, ocm_Event__c> oldEvents) {
+        try{
+            system.debug('Handle After Update for OCM EVENT MEETING TRIGGER');
+            if(!hasAlreadyRanAfterUpdate)
+            {
+                hasAlreadyRanAfterUpdate = true;
+                EventTriggerHandler.hasAlreadyRanAfterUpdate = false;
+            }     
+            
+            List<Event> eventList = new List<Event>();
+            Map<id,ocm_EventRelation__c> orgIds = new Map<id,ocm_EventRelation__c>();
+            Map<id,ocm_EventRelation__c> eventRelations = new Map<id,ocm_EventRelation__c>([select id, Organization__c from ocm_EventRelation__c where Event__c in : newEvent.keyset()]);
+            for(ocm_EventRelation__c er : eventRelations.values())
+            {
+                if(er.Organization__c != null)  
+                    orgIds.put(er.Organization__c,er);
+            }
+            if(orgIds.size()>0)
+                updateOrgLastActivityDate(orgIds, null);
+
+
+            Map<Id,Event> existingEvents = new Map<Id,Event>([Select Id from Event where OCM_Event_ID__c in: newEvent.keySet()]);
+            for(ocm_Event__c ev : newEvent.values())
+            {
+                if(compareEvents(ev,oldEvents.get(ev.Id)))
+                {
+                    if(ev.Standard_SFDC_Event_ID__c != null)
+                    {
+                        Event oldEvent = existingEvents.get(ev.Standard_SFDC_Event_ID__c);
+                        if(oldEvent != null)
+                        {
+                            System.debug('Old Event Id == ' + oldEvent.Id);
+                            Event ocmevent = new Event(Id=oldEvent.Id, IsAllDayEvent = ev.All_Day_Event__c, Description = ev.Description__c,   
+                            EndDateTime = ev.End__c, Type = ev.Event_Type__c, Location =  ev.Location__c, ShowAs = ev.Show_Time_As__c, 
+                            StartDateTime = ev.Start__c, OwnerId = ev.Assigned_To__c, OCM_Event_ID__c = ev.id,Subject = ev.Subject__c);
+                            eventList.add(ocmEvent);
+                        }
+                    }
+                }
+            }
+            
+            if(eventList != null && eventList.size() > 0){
+                system.debug('#### Checkpoint 2');
+                update eventList;
+                system.debug('#### Checkpoint 3');
+            }
+        }catch(Exception e) {
+            system.debug('#### Checkpoint 4');
+            for(ocm_Event__c ev : newEvent.values()) {
+                ev.addError(e.getMessage());
+            }
+        }
+    }
+    
+    public static void handleAfterDelete(Map<id, ocm_Event__c> oldEvent) {
+        try{
+            if(!hasAlreadyRanAfterDelete)
+            {
+                hasAlreadyRanAfterDelete = true;
+                EventTriggerHandler.hasAlreadyRanAfterDelete = true;
+            }    
+            List<Event> eventList = [Select Id from Event where OCM_Event_ID__c in: oldEvent.keySet()];
+            
+            if(eventList != null && eventList.size() > 0){
+                delete eventList;
+            }
+        }catch(Exception e) {
+            for(ocm_Event__c ev : oldEvent.values()) {
+                ev.addError(e.getMessage());
+            }
+        }
+    }    
+    
+    public static void handleBeforeDelete(Map<id, ocm_Event__c> oldEvent){
+        try{
+            if(!hasAlreadyRanBeforeDelete){
+                hasAlreadyRanBeforeDelete = true;
+            }
+            //Getting all the detail event relations to be deleted
+            Map<id,ocm_EventRelation__c> eventRelations = new Map<id,ocm_EventRelation__c>([select id, Organization__c from ocm_EventRelation__c where Event__c in : oldEvent.keyset()]);
+            Map<id,ocm_EventRelation__c> orgIds = new Map<id,ocm_EventRelation__c>();
+            for(ocm_EventRelation__c er : eventRelations.values()){
+                if(er.Organization__c != null)  
+                    orgIds.put(er.Organization__c,er);
+            }
+            if(orgIds.size()>0)
+                updateOrgLastActivityDate(orgIds, eventRelations);
+        }catch(Exception e){
+            for(ocm_Event__c ev : oldEvent.values()) {
+                ev.addError(e.getMessage());
+            }
+        }
+    }
+    private static void updateOrgLastActivityDate(map<id, ocm_EventRelation__c> orgIds, map<id,ocm_EventRelation__c> eventRelations)
+    {
+        map<id,date> orgMapDate = new map<id,date>();
+        AggregateResult[] groupedResults;
+        //Getting latest task relations for the orgs
+        if(eventRelations != null)
+        {
+            groupedResults = [SELECT Organization__c, MAX(Event__r.StartDate__c) latest 
+                              FROM ocm_EventRelation__c where Organization__c in : orgIds.keySet() 
+                              and id Not in : eventRelations.keyset() 
+                              GROUP BY Organization__c];
+        }
+        else
+        {
+            groupedResults = [SELECT Organization__c, MAX(Event__r.StartDate__c) latest 
+                              FROM ocm_EventRelation__c where Organization__c in : orgIds.keySet() 
+                              GROUP BY Organization__c];
+        }
+        for (AggregateResult ar : groupedResults)  {
+            orgMapDate.put((Id)ar.get(OCM_Constants.EVENT_RELATED_ORG),(date)ar.get('latest'));
+        }
+        
+        //Getting latest task relations for the orgs
+        groupedResults = [SELECT Related_Organization__c, MAX(Task__r.Due_Date__c) latest 
+                          FROM ocm_Task_Relation__c where Related_Organization__c in : orgIds.keySet() 
+                          and (Task__r.Type__c = :OCM_Constants.OCM_TASK_TYPE_EMAIL or Task__r.Type__c = :OCM_Constants.OCM_TASK_TYPE_PHONE) 
+                          GROUP BY Related_Organization__c];
+        
+        for (AggregateResult ar : groupedResults) {
+            if(orgMapDate.containsKey((Id)ar.get(OCM_Constants.TASK_RELATED_ORG))){ 
+                date d = compareDates(orgMapDate.get((Id)ar.get(OCM_Constants.TASK_RELATED_ORG)), (date)ar.get('latest'));
+                orgMapDate.put((Id)ar.get(OCM_Constants.TASK_RELATED_ORG), d);
+            }else{
+                orgMapDate.put((Id)ar.get(OCM_Constants.TASK_RELATED_ORG),(date)ar.get('latest'));
+            }
+        }
+        
+        set<Account> finalAccSet = new set<Account>();
+        list<Account> updateAccts = new list<Account>([Select a.Last_Activity_Date__c, a.Id From Account a where Id In : orgIds.keySet()]);
+        for(Account acc : updateAccts)
+        {
+            if(orgMapDate.containsKey(acc.Id)){
+                acc.Last_Activity_Date__c = orgMapDate.get(acc.Id);
+            }else{
+                acc.Last_Activity_Date__c = null;
+            }
+            finalAccSet.add(acc);
+            system.debug('#### Last_Activity_Date__c : '+acc.Last_Activity_Date__c);
+        }
+        
+        if(finalAccSet != null)
+        {
+            list<Account> finalAccList = new list<Account>();
+            finalAccList.addAll(finalAccSet);
+            update finalAccList;
+        }
+    }
+    private static date compareDates(date d1, date d2)
+    {
+        date result;
+        if(d1 >= d2)
+            result = d1;
+        else
+            result = d2;
+        return result;
+    }
+    
+    private static boolean compareEvents(ocm_Event__c newEvent, ocm_Event__c oldEvent)
+    {
+    	string newEventSub;
+    	string oldEventSub;
+    	string newEventDes;
+    	string oldEventDes;
+    	string newEventLoc;
+    	string oldEventLoc;
+    	if(newEvent.Subject__c != null && newEvent.Subject__c != ''){
+    		newEventSub = newEvent.Subject__c.stripHtmlTags();
+    	}
+    	if(oldEvent.Subject__c != null && oldEvent.Subject__c != ''){
+    		oldEventSub = oldEvent.Subject__c.stripHtmlTags();
+    	}
+    	if(newEvent.Description__c != null && newEvent.Description__c != ''){
+    		newEventDes = newEvent.Description__c.stripHtmlTags();
+    	}
+    	if(oldEvent.Description__c != null && oldEvent.Description__c != ''){
+    		oldEventDes = oldEvent.Description__c.stripHtmlTags();
+    	}
+    	if(newEvent.Location__c != null && newEvent.Location__c != ''){
+    		newEventLoc = newEvent.Location__c.stripHtmlTags();
+    	}
+    	if(oldEvent.Location__c != null && oldEvent.Location__c != ''){
+    		oldEventLoc = oldEvent.Location__c.stripHtmlTags();
+    	}   	
+    	if(newEventSub != oldEventSub || newEventDes != oldEventDes || newEventLoc != oldEventLoc || newEvent.Start__c != oldEvent.Start__c || newEvent.End__c != oldEvent.End__c)
+    	{
+    	   	return true;
+    	}
+    	return false;
+    }
+}

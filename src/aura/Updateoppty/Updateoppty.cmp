@@ -1,0 +1,17 @@
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" controller="OpportunityAmountComponentController">
+    
+    <aura:attribute name="oppAmount" type="String" default="0"/>
+   <aura:attribute name="Isclick" type="Boolean" default="true"/>
+    <aura:if isTrue="{!v.Isclick}">
+     <div class="slds-grid">
+    <ui:inputText label="Amount" value="{!v.oppAmount}" />
+     <lightning:button variant="brand" label="Save" onclick="{!c.doInit}" />
+     </div>
+   </aura:if>
+    <aura:if isTrue="{! !v.Isclick}">
+         <div class="slds-grid">
+        <ui:outputText value="{!v.oppAmount}" />
+         <lightning:button variant="brand" label="Edit" onclick="{!c.editrecord}" />
+               </div>
+    </aura:if>
+</aura:component>

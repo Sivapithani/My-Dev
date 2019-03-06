@@ -1,0 +1,87 @@
+Public Static void handleAfterinsertorupdateforOcmAffiliate(List<ocm_FinancialAccount__c > FinAccounts){
+        
+     /*   Set<id>Cieids =new Set<id>();
+        List<ocm_LegalEntity__c > LegalEntityupdateList= new List<ocm_LegalEntity__c >();
+        
+        for(ocm_FinancialAccount__c fa:FinAccounts){
+            Cieids.add(fa.Client_Investment_Entity__c);
+        }
+        List<ocm_LegalEntity__c > Legalentitylist =[select id, name ,(select id, name,OCM_Affiliate__c from Financial_Accounts_CIE__r ) from ocm_LegalEntity__c where id IN:Cieids];
+        for(ocm_LegalEntity__c LE:Legalentitylist  ){
+            boolean isAffiliate =false;
+            boolean isNonAffiliate =false; 
+            if(LE.Financial_Accounts_CIE__r.size()>0){
+                for( ocm_FinancialAccount__c Fa:LE.Financial_Accounts_CIE__r ){
+                    if(Fa.OCM_Affiliate__c == 'Affiliate'){
+                        isAffiliate =true;
+                    }else if(Fa.OCM_Affiliate__c =='Non-Affiliate'){
+                        isNonAffiliate = true;
+                    }
+                    if(isAffiliate){
+                        LE.OCM_Affiliate__c ='Affiliate';
+                    }
+                    if(isNonAffiliate == true && isAffiliate ==false){
+                        LE.OCM_Affiliate__c ='Non-Affiliate';
+                    }
+                    if(isNonAffiliate == false && isAffiliate ==false)
+                         LE.OCM_Affiliate__c ='';
+                 }
+                LegalEntityupdateList.add(LE);
+            }else{
+                 LE.OCM_Affiliate__c =''; 
+                LegalEntityupdateList.add(LE);
+            }
+        }
+        if(LegalEntityupdateList.size()>0)
+        update LegalEntityupdateList; */
+        Set<id>Cieids =new Set<id>();
+        List<ocm_LegalEntity__c > LEupdateList;
+         system.debug('ListAt @@'+LEupdateList);  
+        Map<Id,List<ocm_FinancialAccount__c >> mapLEIDAndFAaccount= new Map<Id,List<ocm_FinancialAccount__c >>();
+        boolean isAffiliate ;
+        boolean isNonAffiliate; 
+        for(ocm_FinancialAccount__c fa:FinAccounts){
+            Cieids.add(fa.Client_Investment_Entity__c);
+        }
+        
+        for(ocm_FinancialAccount__c FAobj :[select id, name,OCM_Affiliate__c,Client_Investment_Entity__c from ocm_FinancialAccount__c where Client_Investment_Entity__c IN:Cieids ]){
+            if(mapLEIDAndFAaccount.containsKey(FAobj.Client_Investment_Entity__c)) {
+                mapLEIDAndFAaccount.get(FAobj.Client_Investment_Entity__c).add(FAobj);
+            } else {
+                mapLEIDAndFAaccount.put(FAobj.Client_Investment_Entity__c,new List<ocm_FinancialAccount__c>{FAobj});
+            }
+            LEupdateList= new List<ocm_LegalEntity__c >();
+            for(id objId:mapLEIDAndFAaccount.keySet()){
+                system.debug('id@@'+objId);
+                isAffiliate =false;
+                isNonAffiliate=false;
+                ocm_LegalEntity__c LEobj =new   ocm_LegalEntity__c() ;
+                for (ocm_FinancialAccount__c childobj:mapLEIDAndFAaccount.get(objId) ) {
+                    system.debug('childobj@@'+childobj);
+                    if(childobj.OCM_Affiliate__c =='Affiliate')
+                        isAffiliate =true;
+                    if(childobj.OCM_Affiliate__c =='Non-Affiliate')
+                        isNonAffiliate =true;
+                }
+               //system.debug('isNonAffiliate@@'+isNonAffiliate+'isAffiliate@@'+isAffiliate);
+                //system.debug('ListBefore if@@'+LEupdateList); 
+                if(isAffiliate){
+                    system.debug('id@@'+objId);  
+                    LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c ='Affiliate'));
+                }else
+                    if(isNonAffiliate ==true && isAffiliate==false){
+                        LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c ='Non-Affiliate'));
+                    }else
+                        if(isNonAffiliate ==false && isAffiliate==false){
+                            LEupdateList.add(new ocm_LegalEntity__c(id=objId,OCM_Affiliate__c =''));
+                            
+                        }
+                //system.debug('List@@'+LEupdateList); 
+            }
+            if(!LEupdateList.isEmpty()) {
+               /// system.debug('List@@'+LEupdateList); 
+                update LEupdateList;
+            }
+        }
+    }
+    

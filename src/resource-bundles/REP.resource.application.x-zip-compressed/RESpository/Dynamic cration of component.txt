@@ -1,0 +1,23 @@
+ <aura:attribute name="HomeBody" type="Aura.Component[]" access="global"/>
+
+handleStartfromtemplete: function(component,event,helper) { 
+
+      component.set("v.HomeBody", []);  
+        $A.createComponent(
+            "c:TableOppty",
+            {  
+               "MainCompetitor":component.get("v.MainCompetitor")              
+            },
+            function(newCmp){
+                if (component.isValid()) {
+                    var body = component.get("v.HomeBody");
+                    body.push(newCmp);
+                    component.set("v.HomeBody", body);                               
+                }
+                else{
+                    component.find("newCmp").set("v.HomeBody",[]);
+                }});
+      
+         
+        
+    },

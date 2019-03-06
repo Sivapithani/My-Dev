@@ -1,0 +1,24 @@
+<apex:page standardController="Contact" extensions="PageRedirectPageController">
+    
+    
+    <apex:includeScript value="/soap/ajax/35.0/connection.js"/>
+    <apex:includeScript value="/soap/ajax/35.0/apex.js"/>
+  
+   <script  type="text/javascript">
+      var IsFlow = '{!IsFlowRecordType}'; 
+    var redirectStandardConurl = '/003/e?nooverride=1&RecordType='+'{!selectedRecordType}'+'&retURL=%2F003%2Fo';
+    var redirectvfpageurl = '/apex/DetailPage?retURL=%2F003%2Fo&RecordType='+'{!selectedRecordType}'+'&nooverride=1';
+    window.onload=  function() {
+        window.focus();
+        
+        if(IsFlow != 'false'){
+             window.location.href = redirectStandardConurl;
+            //window.close();
+            //window.open(redirectStandardConurl);
+        }else{
+            window.location.href = redirectvfpageurl ;
+        }   
+    } 
+    </script>  
+    
+</apex:page>

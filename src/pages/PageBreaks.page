@@ -1,0 +1,27 @@
+<apex:page standardController="Account" recordSetVar="accnts" sidebar="false" renderAs="pdf">
+    
+    <apex:pageBlock title="My Content" > 
+        <table broder="1">
+            <tr>
+                <td> Name</td>
+                 <td> Phone</td>
+                  <td> Email</td>
+            </tr>
+        </table>
+            <apex:repeat value="{!accnts}" var="c" >
+                
+                   <div style="page-break-after:always;">
+                      <table broder="1">
+            <tr>
+                <td> <apex:outputText style="font-size:30px;" value="{!c.Name}" />  </td>
+                 <td><apex:outputText style="font-size:30px;" value="{!c.Phone}" /> </td>
+                  <td> <apex:outputText style="font-size:30px;" value="{!c.Rating}" /> </td>
+            </tr>
+        </table> 
+       
+                    </div>    
+  
+            </apex:repeat>
+       
+    </apex:pageBlock>
+</apex:page>

@@ -1,0 +1,67 @@
+<aura:component controller="AccountListCtrl" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}" />
+    <aura:attribute name="accounts" type="Account[]"/>
+       <aura:attribute name="browserTypeClass" type="string" default=""/>    
+    <aura:attribute name="browserTypeClassDiv" type="string" default=""/> 
+
+   <!-- <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/> -->
+    
+  <!--  <ltng:require styles="/resource/slds_resource/assets/styles/salesforce-lightning-design-system.css?v=1" />
+  <div class="slds-scrollable" style="height: 12rem; width: 50rem;"> 
+   <div class="slds-scrollable" style="height: 12rem; width: 50rem;">
+    <div class="slds">-->
+    <ui:scrollerWrapper class="{!v.browserTypeClass}">
+        <div class="{!v.browserTypeClassDiv}">
+                      <div class="slds-scrollable slds-grow slds-grid">
+                    <table class="slds-table slds-table_cell-buffer slds-table--bordered slds-max-medium-table_stacked-horizontal ">    
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th class="slds-text-title_caps" scope="col">                                        
+                                    <div class="slds-truncate" title="Subject">Subject</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col">
+                                    <div class="slds-truncate" title="Type">Type</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col">
+                                    <div class="slds-truncate" title="Date">Date</div>
+                                </th>
+                                <th class="slds-text-title_caps" scope="col">
+                                    <div class="slds-truncate" title="Owner">Owner</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <aura:iteration items="{!v.accounts}" var="mmf" indexVar="idx">
+                              
+                                    <tr >
+                                        <th style="padding-left: 12px; padding-top: 5px; padding-bottom: 3px;" data-label="" scope="row" class="slds-cell-wrap">
+                                            <a id="{!mmf.Id}" onclick="{!c.redirectToSobject}">{!mmf.Name}</a>
+                                        </th>
+                                        <td style="padding-bottom: 3px; padding-top: 3px;" data-label="Type">
+                                            <div class="slds-truncate" title="{!mmf.AccountNumber}">{!mmf.AccountNumber}</div>
+                                        </td>
+                                        <td style="padding-bottom: 3px; padding-top: 3px;" data-label="Date">
+                                            <div class="slds-truncate" title="{!mmf.AnnualRevenue}">{!mmf.AnnualRevenue}
+                                              
+                                            </div>
+                                        </td>                                    
+                                        <td style="padding-bottom: 3px; padding-top: 3px;" data-label="Owner">
+                                            <div class="slds-truncate" title="{!mmf.NumberOfEmployees}">{!mmf.NumberOfEmployees}</div>
+                                        </td>                                                                        
+                                        <td style="padding-bottom: 3px; padding-top: 3px;" class="slds-cell-shrink" data-label="Actions">
+                                            
+                                        </td>
+                                    </tr>
+                               
+                            </aura:iteration>                            
+                        </tbody>
+                    </table>
+                </div>
+
+    
+              </div>
+    </ui:scrollerWrapper>
+ <!-- </div>
+  </div> -->
+    
+</aura:component>

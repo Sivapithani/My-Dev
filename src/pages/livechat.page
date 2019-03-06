@@ -1,0 +1,94 @@
+<apex:page id="thePage" controller="callChatAgent" showHeader="false" doctype="html-5.0">
+
+    <script>
+        function passparam(data){
+            //alert( data );
+            refreshForm();
+            //redirectForm(data);
+        }
+    </script>
+    <apex:form id="theFm">
+    
+    <apex:actionFunction name="refreshForm" reRender="">
+        
+    </apex:actionFunction>
+    
+    <apex:actionFunction name="redirectForm" action="{!redirectChatpage}">
+        <apex:param name="firstParam" value=""/>
+    </apex:actionFunction>
+    
+
+    
+    
+    
+<!--    First Name: <input type='text' id='firstName' value="{!firstname}"/> <br/><br/>
+    Last Name: <input type='text' id='lastName' value="{!lastname}" /><br/><br/>
+    Email: <input type='text' id='email' value="{!email}"/><br/> <br/> -->
+        
+        
+First Name: <input type="text" name="liveagent.prechat:contactFirstName" id="fname"/><br />
+Last Name: <input type="text" name="liveagent.prechat:contactLastName" id="lname"/><br />
+Email: <input type="text" name="liveagent.prechat:contactEmail" id="email"/><br />
+    
+    
+    <!--input type="button" value="Send" onclick="passparam( {!firstname} );"/-->
+    
+<!------------------------------Live Agent Chat Button Script - Starts-------------------------------------------->
+ 
+       
+
+
+              
+</apex:form>
+
+<!----------------------------------------Live Agent Chat Button Script - Ends----------------------------------------------->
+
+<!----------------------------------------Live Agent Deployment Script - Starts---------------------------------------------->
+
+    <div id="" style="display:block;">
+    <a id="liveagent_button_online_5730I000000PGnS" href="javascript://Chat" style="display: none;" onMouseover="getData();" onclick="liveagent.startChat('5730I000000PGnS')"> Online Chat</a>
+        <div id="liveagent_button_offline_5730I000000PGnS" style="display: none;"> Offline Chat </div>
+        <script type="text/javascript">
+
+        if (!window._laq) { window._laq = []; }
+        window._laq.push(function(){liveagent.showWhenOnline('5730I000000PGnS', document.getElementById('liveagent_button_online_5730I000000PGnS'));
+        liveagent.showWhenOffline('5730I000000PGnS', document.getElementById('liveagent_button_offline_5730I000000PGnS'));
+        });
+        </script>
+        <script type='text/javascript' src='https://c.la1-c2-hnd.salesforceliveagent.com/content/g/js/44.0/deployment.js'></script>
+        <script type='text/javascript'>
+             var docfname='';
+        var doclname='';
+         var docemail='';
+            function getData(){
+            alert('Fname'+document.getElementById('fname').value); 
+            alert('lastName'+document.getElementById('lname').value); 
+             alert('email'+document.getElementById('email').value);
+             docfname = document.getElementById('fname').value;
+             doclname = document.getElementById('lname').value;
+             docemail = document.getElementById('email').value;
+           
+            }
+        alert('*** docfname = '+docfname);
+        //    liveagent.addCustomDetail("FirstName",'dfdf');
+        //  liveagent.addCustomDetail("LastName", 'fadsff');
+        // liveagent.addCustomDetail("Email",'aas@fjdj.co');
+        
+            liveagent.addCustomDetail("FirstName",docfname);
+           liveagent.addCustomDetail("LastName", doclname);
+              liveagent.addCustomDetail("Email",docemail);
+            
+        
+        liveagent.findOrCreate("Contact").map("FirstName", "FirstName", false, false, true)
+                                    .map("LastName", "LastName", false, false, true)
+                                    .map("Email", "Email", false, false, true)
+                                    .saveToTranscript("ContactId").showOnCreate();   
+            
+        liveagent.init('https://d.la1-c2-hnd.salesforceliveagent.com/chat', '5720I000000PGnq', '00D28000000edAb');
+        </script>
+    </div>
+
+    
+    
+<!-------------------------------------------------Live Agent Deployment Script - Ends------------------------------------>
+</apex:page>

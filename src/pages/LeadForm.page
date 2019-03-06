@@ -1,0 +1,28 @@
+<apex:page Controller="LeadformController" tabStyle="Lead">
+ 
+    <apex:form >
+    <apex:pageBlock title=" Lead From">
+        1.What is your Higher education <br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Diploma" id="dip" value="{!isdiploma}" onchange="updatepage()"  />Diploma<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Graduation" id="gd" value="{!isgradut}"/>Graduation<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Post-Graduation" id="pg" value="{!ispost}"/>Post-Graduation <br/>
+         <br/> 
+        2.What is your Gender <br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="other" id="ot" value="{!isother}"/>Other<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Female" id="fe" value="{!isfemale}"/>Female<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Male" id="ma" value="{!ismale}"/>Male <br/>
+         <br/>
+        3.Are you Married <br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Divorced" id="di" value="{!isdiv}" />Divorced<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Unmaried" id="un" value="{!isunmarried}"/>Unmaried<br/>
+         &nbsp; &nbsp;<apex:inputCheckbox label="Married" id="mar" value="{!ismarried}"/>Married <br/>
+         <br/>
+        <div style="align:center;">
+            <apex:commandButton action="{!save}" value="Submit" id="theButton"/>
+        </div>
+        </apex:pageBlock>
+        <apex:pageBlock title="Result " rendered="{!iscount}" id="result">
+            {!count} Out Of 9
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

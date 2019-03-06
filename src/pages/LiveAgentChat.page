@@ -1,0 +1,59 @@
+<apex:page >
+         <head><title> Live Agent Chat</title>
+                 
+  <script type='text/javascript' src='https://c.la4-c1cs-was.salesforceliveagent.com/content/g/js/38.0/deployment.js'>
+             </script>  
+            <script type="text/javascript">
+                function setName() {
+                     document.getElementById("prechat_field").value = "Hellloooo";
+                     return true;
+                }
+                function startLiveChat(){
+                    alert('hi');
+                   liveagent.init('https://d.la1-c2-hnd.salesforceliveagent.com/chat', '5720I000000PGnq', '00D28000000edAb');
+                    if (!window._laq) { window._laq = []; }
+                    window._laq.push(function(){
+                        liveagent.enableLogging();
+                        liveagent.setChatWindowHeight('720');
+                        liveagent.showWhenOnline('5730I000000PGnS', document.getElementById('liveagent_button_online_5730I000000PGnS'));
+                        liveagent.showWhenOffline('5730I000000PGnS', document.getElementById('liveagent_button_offline_5730I000000PGnS'));
+                        alert('Fname'+document.getElementById('firstName').value); 
+                        alert('lastName'+document.getElementById('lastName').value); 
+                        alert('email'+document.getElementById('email').value); 
+                        liveagent.addCustomDetail('First Name', document.getElementById('firstName').value);
+                        liveagent.addCustomDetail('Last Name', document.getElementById('lastName').value);
+                        liveagent.addCustomDetail('Email', document.getElementById('email').value);
+    
+     <input type="hidden" name="liveagent.prechat.findorcreate.map:Contact" value="FirstName,firstName;LastName,lastName;Email,email" />
+                        <input type="hidden" name="liveagent.prechat.findorcreate.showOnCreate:Contact" value="true" />
+                        <input type="hidden" name="liveagent.prechat.findorcreate.showOnCreate:Case" value="true" />
+                        <input type="hidden" name="liveagent.prechat.findorcreate.map.doFind:Contact" value="Email,true" />
+                        <input type="hidden" name="liveagent.prechat.findorcreate.map.isExactMatch:Contact" value="Email,true" />
+                        <input type="hidden" name="liveagent.prechat.findorcreate.map.doCreate:Contact"                      value="FirstName,true;LastName,true;Email,true;Phone,true" />
+                        liveagent.addButtonEventHandler('5730I000000PGnS',function (e){
+                        if(e == liveagent.BUTTON_EVENT.BUTTON_AVAILABLE){              
+                                liveagent.startChat('5730I000000PGnS');
+                            
+                            }       
+                        });
+                    });
+    
+                }
+            </script>
+        
+        
+        </head>
+        <body>
+            <div id="chat-icon">
+                <form>
+                  <!-- Detail inputs -->
+                  <p>First Name:<input type="text" id="firstName" /></p>
+                  <p>Last Name:<input type="text"  id="lastName" /></p>
+                  <p>Email:<input type="text" id="email" /></p>
+                 
+                    <input type="button" value="Submit" onClick="startLiveChat();return false;"/>
+                </form>         
+            </div>
+                  
+        </body>
+    </apex:page>

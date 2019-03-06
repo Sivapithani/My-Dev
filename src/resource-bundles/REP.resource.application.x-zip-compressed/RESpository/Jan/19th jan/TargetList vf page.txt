@@ -1,0 +1,425 @@
+<apex:page id="pg" controller="TargetListController" tabStyle="Contact">
+    <!-- Resources for jquery for fixed header -->
+    <script src="{!URLFOR($Resource.fixhead,'/fixhead/jquery.js')}"></script>
+    <script src="{!URLFOR($Resource.fixhead,'/fixhead/jquery.dataTables.js')}"></script>
+<style type="text/css">
+    .label{
+        font-size: 16px;
+    }
+    .section{
+        width: 50%;
+    }
+    .text{
+        font-size: 18px;
+    }
+</style>
+
+<script>
+    function expandCollapse(){
+        /*if(typeof twistSection === 'function'){
+            var theTwist = document.getElementById('{!$Component.pg.frm.pb.section}');
+            if(theTwist.getElementsByTagName('img')[0].className=='hideListButton'){
+                twistSection(document.getElementById('{!$Component.pg.frm.pb.section}').getElementsByTagName('img')[0]);
+            }
+        }*/
+        console.log('#### function called...');
+        document.getElementById("pg:frm:pb:section:pbsi1:customlist").checked = false;
+        document.getElementById("pg:frm:pb:section:pbsi2:ptl").value = 'None';
+        document.getElementById("pg:frm:pb:section:pbsi3:gameplan").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'strategy'){
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy_lkwgt").style.display ='none';
+        }else if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'Fund/Product'){
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct_lkwgt").style.display ='none';
+        }
+        document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value = 'None';
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        document.getElementById("pg:frm:pb:section:pbsi6:org").value = '';
+    }
+    
+    function clearDataOnMyCustomList(){
+        document.getElementById("pg:frm:pb:section:pbsi2:ptl").value = 'None';
+        document.getElementById("pg:frm:pb:section:pbsi3:gameplan").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'strategy'){
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy_lkwgt").style.display ='none';
+        }else if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'Fund/Product'){
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct_lkwgt").style.display ='none';
+        }
+        document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value = 'None';
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        document.getElementById("pg:frm:pb:section:pbsi6:org").value = '';
+    }
+    
+    function clearDataOnPTL(){
+        document.getElementById("pg:frm:pb:section:pbsi1:customlist").checked = false;
+        document.getElementById("pg:frm:pb:section:pbsi3:gameplan").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'strategy'){
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy_lkwgt").style.display ='none';
+        }else if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'Fund/Product'){
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct_lkwgt").style.display ='none';
+        }
+        document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value = 'None';
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        document.getElementById("pg:frm:pb:section:pbsi6:org").value = '';
+    }
+    
+    function clearDataOnGamePlan(){
+        document.getElementById("pg:frm:pb:section:pbsi1:customlist").checked = false;
+        document.getElementById("pg:frm:pb:section:pbsi2:ptl").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'strategy'){
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy_lkwgt").style.display ='none';
+        }else if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'Fund/Product'){
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct_lkwgt").style.display ='none';
+        }
+        document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value = 'None';
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        document.getElementById("pg:frm:pb:section:pbsi6:org").value = '';
+    }
+    
+    function clearDataOnIINStrategy(){
+        document.getElementById("pg:frm:pb:section:pbsi1:customlist").checked = false;
+        document.getElementById("pg:frm:pb:section:pbsi2:ptl").value = 'None';
+        document.getElementById("pg:frm:pb:section:pbsi3:gameplan").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && (investedInPicklistVal == 'strategy' || investedInPicklistVal == 'Fund/Product')){
+        	document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = false;
+        }else{
+        	document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        	document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        }
+        document.getElementById("pg:frm:pb:section:pbsi6:org").value = '';
+        showIINLookup();
+    }
+    
+    function clearDataOnOrganization(){
+        document.getElementById("pg:frm:pb:section:pbsi1:customlist").checked = false;
+        document.getElementById("pg:frm:pb:section:pbsi2:ptl").value = 'None';
+        document.getElementById("pg:frm:pb:section:pbsi3:gameplan").value = 'None';
+        var investedInPicklistVal = document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value;
+        if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'strategy'){
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:strategy_lkwgt").style.display ='none';
+        }else if(investedInPicklistVal.length > 0 && investedInPicklistVal == 'Fund/Product'){
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").value = '';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct").style.display ='none';
+            document.getElementById("pg:frm:pb:section:investedIn:fundProduct_lkwgt").style.display ='none';
+        }
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").checked = false;
+        document.getElementById("pg:frm:pb:section:investedInIncludeConsultant:includeConsultant").disabled = true;
+        document.getElementById("pg:frm:pb:section:investedIn:investedInPicklist").value = 'None';
+    }
+    /*
+    function updateFilter() 
+    {
+        filter();
+    }
+    */
+    /*function processContactsToAdd(checkboxId){
+        var status = document.getElementById(checkboxId).checked;
+        if(checkboxId.indexOf("add") != -1){
+            var atclId = checkboxId.replace("add", "atcl");
+            document.getElementById(atclId).checked = status;
+        }else{
+            var addId = checkboxId.replace("atcl", "add");
+            document.getElementById(addId).checked = status;
+        }
+    }*/
+    
+    /*
+    $(document).ready(function() {
+        var vph = $(window).height();
+       $('#mytable3A').dataTable( {
+         "bPaginate": false,
+         "sScrollY":  vph-400,
+         "bInfo":     false,
+         "bFilter":   false,
+         "bSort":     false     
+       });
+    });
+     */       
+</script>
+
+<apex:form id="frm">
+    <apex:outputpanel id="confirmScript">
+        <script>
+            function confirmForSearch(){
+                var result = confirm("You have selected a new search. Any unsaved additions or removals to your target list will be lost. Would you like to continue without saving?");
+                if(result){
+                    // If User pressed Ok
+                    searchApplyFiltersContact();
+                }else{
+                    // If User pressed Cancel
+                }
+            }
+        </script>
+        <apex:outputText value="{!JSString}" escape="false" rendered="{!NOT(ISBLANK(JSString))}" />
+    </apex:outputpanel>
+    <apex:actionstatus id="GetRecordsStatus">
+       <apex:facet name="start">
+           <div class="waitingSearchDiv" id="el_loading" style="background-color: #fbfbfb; height: 100%;opacity:0.65;width:100%;"> 
+               <div class="waitingHolder" style="top: 335.2px; width: 91px;">
+                   <img class="waitingImage" src="/img/loading.gif" title="Please Wait..." />
+                <span class="waitingDescription">Please wait...</span>
+               </div>
+           </div>
+       </apex:facet>
+    </apex:actionstatus>
+    <apex:pagemessages id="msg" />
+    <apex:actionFunction name="updateFilter" rerender="closefund"/>
+    <apex:actionFunction name="confirmationForContactSearch" action="{!confirmationForContactSearch}" reRender="confirmScript, msg, resultTable" />
+    <apex:actionFunction name="searchApplyFiltersContact" action="{!searchApplyFiltersContact}" reRender="resultTable" >
+        <apex:param name="searchButton" value="clicked" assignTo="{!searchButton}" />
+    </apex:actionFunction>
+    <apex:actionFunction name="showIINLookup" reRender="msg, showLookup" />
+    <apex:pageblock id="pb" title="Target List">
+        <table width="100%">
+            <tr>
+                <th>
+                    <apex:outputLabel style="font-size: .9em; font-weight: bold;" value="Fund/Product" />
+                </th>
+                <td>
+                    <apex:selectList value="{!selectedFP}" size="1" onchange="updateFilter();" >
+                        <apex:selectOptions value="{!FundProducts}"/>
+                    </apex:selectList>
+                </td>
+                <!-- <th>
+                    Close
+                </th>
+                <td>
+                    <apex:outputpanel id="closefund">
+                        <apex:selectList value="{!selectedClosedFund}" size="1">
+                            <apex:selectOptions value="{!FundCloses}" />
+                        </apex:selectList>
+                    </apex:outputpanel>
+                </td> -->
+                <th>
+                    Entity
+                </th>
+                <td>
+                    <apex:inputField value="{!searchSectionA.Marketing_Entity__c}" />
+                </td>
+                <th>
+                    Rep
+                </th>
+                <td>
+                    <apex:inputField value="{!searchSectionA.Marketing_Rep__c}" />
+                </td>
+                <td align="right">
+                    <apex:commandbutton value="Review Target List" action="{!reviewList}" onclick="expandCollapse();" reRender="msg, resultTable" status="GetRecordsStatus">
+                        <apex:param name="reviewListButton" value="clicked" assignTo="{!reviewListButton}" />
+                    </apex:commandbutton>
+                    &nbsp;
+                    <apex:commandbutton value="Save to List" action="{!saveToList}" reRender="msg, resultTable" status="GetRecordsStatus"/>
+                </td>
+            </tr>
+        </table>
+        
+        <apex:pageblocksection title="Filters" id="section" columns="4">
+        
+            <apex:pageblocksectionitem id="pbsi1" labelStyle="width:10%" dataStyle="width:25%">
+                <apex:outputLabel >My Custom List</apex:outputLabel>
+                <apex:inputCheckbox id="customlist" value="{!myCustomListSectionB}" onclick="clearDataOnMyCustomList();" selected="{!myCustomListSectionB}" />
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="pbsi2" labelStyle="width:10%" dataStyle="width:15%">
+                <apex:outputLabel >Previous Target List</apex:outputLabel>
+                <apex:selectList id="ptl" value="{!selectedFPForPTL}" size="1" onchange="clearDataOnPTL();">
+                    <apex:selectOptions value="{!FundProductPTLOptions}"/>
+                </apex:selectList>
+                <!-- <apex:inputField id="ptl" value="{!searchSectionBPTL.Fund_Product__c}" onselect="clearDataOnPTL();" /> -->
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="pbsi3" labelStyle="width:10%" dataStyle="width:15%">
+                <apex:outputLabel >Show Game Plan</apex:outputLabel>
+                <apex:selectList id="gameplan" value="{!selectedGamePlan}" size="1" onchange="clearDataOnGamePlan();">
+                    <apex:selectOptions value="{!gamePlanOptions}" />
+                </apex:selectList>
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="pbsi4" labelStyle="width:10%" dataStyle="width:10%">
+                <apex:outputlabel ></apex:outputlabel>
+                <apex:commandbutton value="Search" onclick="confirmationForContactSearch();" reRender="msg" status="GetRecordsStatus">
+                    <apex:param name="searchButton" value="clicked" assignTo="{!searchButton}" />
+                </apex:commandbutton>
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="investedIn" labelStyle="width:10%" dataStyle="width:20%">
+                <apex:outputLabel >Invested In</apex:outputLabel>
+                <apex:outputpanel id="showLookup">
+                    <apex:selectList id="investedInPicklist" value="{!selectedInvestedInPicklist}" size="1" onchange="clearDataOnIINStrategy();">
+                        <apex:selectOptions value="{!InvestedInPicklist}" />
+                    </apex:selectList>
+                    &nbsp;
+                    <apex:inputField id="strategy" value="{!searchSectionB.Strategy__c}" style="width:100px;" rendered="{!selectedInvestedInPicklist = 'strategy'}" />
+                    <apex:inputField id="fundProduct" value="{!searchSectionB.Fund_Product__c}" style="width:100px;" rendered="{!selectedInvestedInPicklist = 'Fund/Product'}" />
+                </apex:outputpanel>
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="investedInIncludeConsultant" labelStyle="width:10%" dataStyle="width:15%">
+            	<apex:outputLabel >Include Consultant</apex:outputLabel>
+                <apex:inputCheckBox label="" title="Include Consultant" id="includeConsultant" value="{!includeConsultant}" disabled="true" />
+                <!-- rendered="{!if(NOT(OR(selectedInvestedInPicklist == NULL, selectedInvestedInPicklist == 'None')), true, false)}" -->
+            </apex:pageblocksectionitem>
+            
+            <apex:pageblocksectionitem id="pbsi6" labelStyle="width:10%" dataStyle="width:15%">
+                <apex:outputLabel >Organization</apex:outputLabel>
+                <apex:inputField id="org" value="{!searchSectionB.Organization__c}" onselect="clearDataOnOrganization();" />
+            </apex:pageblocksectionitem>
+            
+            <!-- <apex:pageblocksectionitem labelStyle="width:10%" dataStyle="width:15%">
+                <apex:outputLabel ></apex:outputLabel>
+                <apex:outputText ></apex:outputText>
+            </apex:pageblocksectionitem> -->
+            
+            <apex:pageblocksectionitem labelStyle="width:10%" dataStyle="width:10%">
+                <apex:outputLabel ></apex:outputLabel>
+                <apex:outputText ></apex:outputText>
+            </apex:pageblocksectionitem>
+            
+        </apex:pageblocksection>
+        
+        <script>
+            //twistSection(document.getElementById('{!$Component.pg.frm.pb.section}').getElementsByTagName('img')[0]);
+        </script>
+        
+        <apex:outputpanel id="resultTable" >
+            <div class="pbBody">
+                <script>
+                var vph = $(window).height();
+                $('#mytable3A').dataTable( {
+                    "bPaginate": false,
+                    "sScrollY":  vph-400,
+                    "bInfo":     false,
+                    "bFilter":   false,
+                    "bSort":     false     
+                });
+               </script>
+                <table cellpadding="0" cellspacing="0" border="0" class="mytables list" id="mytable3A">
+                    <thead>
+                        <tr class="headerRow">
+                            <th>Add</th>
+                            <th>
+                                <apex:commandLink action="{!sortActivities}" rerender="resultTable">
+                                    <apex:outputText value="First Name" escape="false" />
+                                    <apex:param name="sortBy" value="FirstName" />
+                                </apex:commandLink>
+                            </th>
+                            <th>
+                                <apex:commandLink action="{!sortActivities}" rerender="resultTable">
+                                    <apex:outputText value="Last Name" escape="false" />
+                                    <apex:param name="sortBy" value="LastName" />
+                                </apex:commandLink>
+                            </th>
+                            <th>
+                                <apex:commandLink action="{!sortActivities}" rerender="resultTable">
+                                    <apex:outputText value="Title" escape="false" />
+                                    <apex:param name="sortBy" value="Title" />
+                                </apex:commandLink>
+                            </th>
+                            <th>
+                                <apex:commandLink action="{!sortActivities}" rerender="resultTable">
+                                    <apex:outputText value="Organization Name" escape="false" />
+                                    <apex:param name="sortBy" value="AccountId" />
+                                </apex:commandLink>
+                            </th>
+                            <th>Add To Custom List</th>
+                        </tr>
+                    </thead>
+                    <tbody> 
+                        <apex:repeat value="{!finalResults1}" var="bsrm">
+                            <tr>
+                                <td>
+                                    <apex:inputCheckbox id="add" value="{!bsrm.addFlag}" selected="{!bsrm.addFlag}"  /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.FirstName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.LastName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.Title}" />
+                                </td>
+                                <td>
+                                    <apex:outputField value="{!bsrm.con.AccountId}" />
+                                </td>
+                                <td>
+                                    <apex:inputCheckbox id="atcl" value="{!bsrm.addToCustomListFlag}" selected="{!bsrm.addToCustomListFlag}" /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                        <apex:repeat value="{!finalResults2}" var="bsrm" rendered="{!finalResults2.size != 0}">
+                            <tr>
+                                <td>
+                                    <apex:inputCheckbox id="add" value="{!bsrm.addFlag}" selected="{!bsrm.addFlag}"  /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.FirstName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.LastName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.Title}" />
+                                </td>
+                                <td>
+                                    <apex:outputField value="{!bsrm.con.AccountId}" />
+                                </td>
+                                <td>
+                                    <apex:inputCheckbox id="atcl" value="{!bsrm.addToCustomListFlag}" selected="{!bsrm.addToCustomListFlag}" /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                        <apex:repeat value="{!finalResults3}" var="bsrm" rendered="{!finalResults3.size != 0}">
+                            <tr>
+                                <td>
+                                    <apex:inputCheckbox id="add" value="{!bsrm.addFlag}" selected="{!bsrm.addFlag}"  /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.FirstName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.LastName}" />
+                                </td>
+                                <td>
+                                    <apex:OutputText escape="false" value="{!bsrm.con.Title}" />
+                                </td>
+                                <td>
+                                    <apex:outputField value="{!bsrm.con.AccountId}" />
+                                </td>
+                                <td>
+                                    <apex:inputCheckbox id="atcl" value="{!bsrm.addToCustomListFlag}" selected="{!bsrm.addToCustomListFlag}" /><!-- onChange="processContactsToAdd(this.id);" -->
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                    </tbody>
+                </table>
+            </div>
+        </apex:outputpanel>
+    </apex:pageblock>
+</apex:form>
+</apex:page>

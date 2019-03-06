@@ -1,0 +1,10 @@
+trigger AssignedProvisionTrigger on ocm_Assigned_Provision__c (before insert, before update) 
+{
+	if(trigger.isBefore)
+	{		
+		if(trigger.isInsert && !AssignedProvisionTriggerHandler.isBeforeCallFire) 
+			AssignedProvisionTriggerHandler.handleBeforeInsert(trigger.new);
+		if(trigger.isUpdate && !AssignedProvisionTriggerHandler.isBeforeCallFire) 
+			AssignedProvisionTriggerHandler.handleBeforeUpdate(trigger.newMap, trigger.oldMap);
+	}
+}

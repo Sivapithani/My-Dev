@@ -1,0 +1,6 @@
+<aura:event type="APPLICATION" description="Event template" >
+<aura:attribute name="selectedsObject" type="string"/>
+<aura:attribute name="selectedParentsObjectId" type="string"/>
+<aura:attribute name="opName" type="string"/>
+<aura:attribute name="selectedsObjectName" type="string"/>
+</aura:event>

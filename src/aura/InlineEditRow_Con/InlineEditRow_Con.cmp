@@ -1,0 +1,113 @@
+<aura:component controller="inlineEditCtrl">
+    <!-- on component load, fetch picklist values dynamically from apex controller -->   
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <!--declare aura attributes-->
+       <aura:attribute name="showSaveCancelBtn" type="boolean"/>
+    <aura:attribute name="showErrorClass" type="boolean" default="false"/>
+    <aura:attribute name="sNo" type="string" />
+    <aura:attribute name="Selectedcon" type="contact" />
+    <aura:attribute name="singleRec" type="sobject" default="{'sobjectType' : 'Contact',
+                                                             'FirstName' : '',
+                                                             'LastName' : '',
+                                                             'Email' :''
+                                                             
+                                                             }"/>
+    <aura:attribute name="FristnameEditMode" type="boolean" default="false" />
+    <aura:attribute name="LastNameEditMode" type="boolean" default="false" />
+    <aura:if isTrue="{!v.showSaveCancelBtn}">
+            <!--button for save and cancel Record after Inline Edit-->
+            <lightning:buttonGroup class="slds-m-around_medium">
+                <lightning:button label="Cancel" onclick="{!c.cancel}"/>
+                <lightning:button label="Save" onclick="{!c.Save}" variant="success"/>
+            </lightning:buttonGroup>
+        </aura:if> 
+    <div class="slds-grid slds-wrap">
+        <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+            <span class="slds-grid slds-grid_align-spread">  
+                <label class="slds-form-element__label">sNo</label> {!v.sNo} <br/>
+            </span>
+        </div>   
+    </div>
+    <div class="slds-grid  ">
+        <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+             <label class="slds-form-element__label">First Name</label><br/>
+             <span class="slds-grid slds-grid_align-spread">
+                <!-- show input and output section based on boolean flag --> 
+                <aura:if isTrue="{!v.FristnameEditMode == false}">
+                   
+                    <span class="slds-truncate" title="Name">{!v.singleRec.FirstName}</span>
+                    <button onclick="{!c.inlineEditfName}" id="{!v.singleRec.Id}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit FristName">
+                      <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                    </button>
+                   
+                    <!-- Inline Edit Section in else case-->  
+                    <aura:set attribute="else">
+                        <section  tabindex="0" class="slds-popover slds-popover_edit" role="dialog" style="position: absolute; ">
+                            <div class="slds-popover__body">
+                                <div class="slds-form-element slds-grid slds-wrap">
+                                    <div class="slds-form-element__control slds-grow">
+                                        <ui:inputText class="slds-input inputFieldWidth"
+                                                      labelClass="slds-form-element__label slds-form-element__label_edit "
+                                                      aura:id="FirstNameid"
+                                                      blur="{!c.closefNameBox}"
+                                                      change="{!c.onfNameChange}"
+                                                      
+                                                      label="FristName"
+                                                      value="{!v.singleRec.FirstName}" />
+                                    </div>
+                                </div>
+                            </div>
+                            <span id="form-end" tabindex="0"></span>
+                        </section>  
+                    </aura:set>  
+                </aura:if> 
+            </span>
+        </div>
+    </div>
+    <div class="slds-grid  ">
+        <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+             <label class="slds-form-element__label">Last Name</label> <br/>
+             <span class="slds-grid slds-grid_align-spread">
+                <!-- show input and output section based on boolean flag --> 
+                <aura:if isTrue="{!v.LastNameEditMode == false}">
+                   
+                    <span class="slds-truncate" title="Name">{!v.singleRec.LastName}</span>
+                    <button onclick="{!c.inlineEditlName}" id="{!v.singleRec.Id}" class="slds-button slds-button_icon slds-cell-edit__button slds-m-left_x-small" tabindex="0" title="Edit LastName">
+                      <lightning:icon iconName="utility:edit" size="xx-small" alternativeText="edit"/>
+                    </button>
+                   
+                    <!-- Inline Edit Section in else case-->  
+                    <aura:set attribute="else">
+                        <section  tabindex="0" class="slds-popover slds-popover_edit" role="dialog" style="position: absolute; ">
+                            <div class="slds-popover__body">
+                                <div class="slds-form-element slds-grid slds-wrap">
+                                    <div class="slds-form-element__control slds-grow">
+                                         <ui:inputTExt aura:id="LastNameid"
+                                                        class="slds-select inputFieldWidth"
+                                                        blur="{!c.closelNameBox}"
+                                                        change="{!c.onLastNameChange}"
+                                                        value="{!v.singleRec.LastName}"
+                                                        label="LastName"
+                                                       required="true"
+                                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <span id="form-end" tabindex="0"></span>
+                        </section>  
+                    </aura:set>  
+                </aura:if> 
+            </span>
+        </div>
+    </div>
+     <div class="slds-grid  ">
+        <div class="slds-col slds-size_1-of-1 slds-table_bordered">
+            <label class="slds-form-element__label">Email</label> 
+               <span class="slds-grid slds-grid_align-spread">  
+                
+                <div class="slds-truncate" id="{!v.singleRec.Id}">{!v.singleRec.Email}</div>  
+            </span>
+        </div>
+    </div>
+</aura:component>

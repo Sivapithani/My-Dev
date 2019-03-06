@@ -1,0 +1,98 @@
+<aura:component controller ="OpportunityController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+    <aura:attribute name="opptylist" type="Opportunity[]"/>
+    <aura:attribute name="css" type="string" default="height:120px;"/>
+    <aura:handler Name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:attribute name="showaction" type="Boolean" default="false"/>
+    <aura:attribute name="txsize" type="Boolean" default="0%"/>
+    <aura:attribute name="layout" type="string" default=""/>
+      <aura:attribute name="val" type="Integer" default="0"/>
+    <ltng:require scripts="/resource/JqueryMinJs" afterScriptsLoaded="{!c.LaodScript}"/>
+
+    
+    <div class="slds-scrollable"  >
+        
+        <div class="slds-truncate" title="Opportunity Name"> Opportunity</div>
+        <br/>
+        <div class="listContent" data-aura-rendered-by="1130:0">
+        <ul class=" dark" aria-describedby="" data-aura-rendered-by="1125:0">
+        <li  draggable="true" class="{!'light actionable uiInfiniteListRow forceActionRow forceListRecord forceRecordLayout '+v.layout }" style="" data-aura-rendered-by="1248:0" data-aura-class="uiInfiniteListRow forceActionRow forceListRecord forceRecordLayout">
+         
+            <div class="body" id="body" data-aura-rendered-by="1249:0" style="{!'transform: translate3d('+v.txsize+', 0px, 0px);'}" onlick="{!c.showaction}">
+            <div class="sash hidden offlineSash" data-aura-rendered-by="1224:0" data-aura-class="offlineSash">
+                <lightning:icon class="sashIcon slds-button__icon slds-icon-utility-arrowup slds-icon_container forceIcon" data-data-rendering-service-uid="258" data-aura-rendered-by="1227:0" data-aura-class="forceIcon">
+                    <lightning:icon lightning-primitive-icon_primitive-icon-host="">
+                         <lightning:buttonIcon iconName="utility:settings" variant="bare"  alternativeText="Settings" />
+                     </lightning:icon>
+                </lightning:icon>
+            </div>
+            <a data-aura-rendered-by="1229:0" href="javascript:void(0);">
+                <h3 class="itemTitle" data-aura-rendered-by="1231:0">
+                    <span data-aura-rendered-by="1169:0" class="uiOutputText" data-aura-class="uiOutputText">Andy Young1</span>
+                </h3>
+                <ul class="itemRows truncate" data-aura-rendered-by="1233:0">
+                <li class="tableRowGroup" data-aura-rendered-by="1235:0">
+                    <div class="slds-list--horizontal forceListRecordItem" data-aura-rendered-by="1175:0" data-aura-class="forceListRecordItem">
+                        <div class="slds-item--label slds-truncate recordCell" title="Account Name:" data-aura-rendered-by="1176:0">Account Name:</div><div class="slds-item--detail slds-truncate recordCell" data-aura-rendered-by="1178:0">
+                        <span data-aura-rendered-by="1173:0" class="uiOutputText" data-aura-class="uiOutputText">Dickenson plc</span>
+                        </div>
+                    </div>
+                </li>
+                  
+               
+                <li class="tableRowGroup" data-aura-rendered-by="1237:0">
+                    <div class="slds-list--horizontal forceListRecordItem" data-aura-rendered-by="1185:0" data-aura-class="forceListRecordItem">
+                        <div class="slds-item--label slds-truncate recordCell" title="Phone:" data-aura-rendered-by="1186:0">Phone:</div><div class="slds-item--detail slds-truncate recordCell" data-aura-rendered-by="1188:0">
+                        <span data-aura-rendered-by="1183:0" class="uiOutputText" data-aura-class="uiOutputText">(785) 241-6200</span>
+                        </div>
+                    </div>
+                </li>
+                <li class="tableRowGroup" data-aura-rendered-by="1239:0">
+                    <div class="slds-list--horizontal forceListRecordItem" data-aura-rendered-by="1195:0" data-aura-class="forceListRecordItem">
+                    <div class="slds-item--label slds-truncate recordCell" title="Email:" data-aura-rendered-by="1196:0">Email:</div><div class="slds-item--detail slds-truncate recordCell" data-aura-rendered-by="1198:0">
+                    <span data-aura-rendered-by="1193:0" class="uiOutputText" data-aura-class="uiOutputText">a_young@dickenson.com</span></div></div></li><li class="tableRowGroup" data-aura-rendered-by="1241:0">
+                <div class="slds-list--horizontal forceListRecordItem" data-aura-rendered-by="1205:0" data-aura-class="forceListRecordItem"><div class="slds-item--label slds-truncate recordCell" title="Title:" data-aura-rendered-by="1206:0">Title:</div>
+                    <div class="slds-item--detail slds-truncate recordCell" data-aura-rendered-by="1208:0">
+                        <span data-aura-rendered-by="1203:0" class="uiOutputText" data-aura-class="uiOutputText">SVP, Operations</span>
+                    </div>
+                </div>
+                </li>
+                <li class="tableRowGroup" data-aura-rendered-by="1243:0">
+                    <div class="slds-list--horizontal forceListRecordItem" data-aura-rendered-by="1215:0" data-aura-class="forceListRecordItem">
+                        <div class="slds-item--label slds-truncate recordCell" title="Contact Owner Alias:" data-aura-rendered-by="1216:0">Contact Owner Alias:</div>
+                        <div class="slds-item--detail slds-truncate recordCell" data-aura-rendered-by="1218:0"><span data-aura-rendered-by="1213:0" class="uiOutputText" data-aura-class="uiOutputText">sPith</span>
+                        </div>
+                    </div>
+                </li>
+                </ul>
+            </a>
+            </div>
+            <div class="swipeBody" aria-hidden="{!v.showaction}" data-aura-rendered-by="1251:0" onclick="{!c.hideactions}"><!--render facet: 1252:0-->
+                <button class="actionRowButton" accesskey="" type="button">
+                    <div data-associatedrecordid="00328000004qZEzAAM" class="iconWrapper" style="background-color: #F2CF5B;">
+                        <img class="icon" alt="Call" src="https://sivap-dev-ed.my.salesforce.com/img/icon/t4v35/action/call_120.png"/>
+                    </div><span class="assistiveText"></span> 	
+                </button>
+                <button class="actionRowButton" accesskey="" type="button">
+                <div data-associatedrecordid="00328000004qZEzAAM" class="iconWrapper" style="background-color: #EB7092;">
+                    <img class="icon" alt="New Event" src="https://sivap-dev-ed.my.salesforce.com/img/icon/t4v35/action/new_event_120.png"/>
+                </div><span class="assistiveText"></span> 	
+                </button>
+                <button class="actionRowButton" accesskey="" type="button">
+                    <div data-associatedrecordid="00328000004qZEzAAM" class="iconWrapper" style="background-color: #1DCCBF;">
+                        <img class="icon" alt="Edit" src="https://sivap-dev-ed.my.salesforce.com/img/icon/t4v35/action/edit_120.png"/>
+                    </div><span class="assistiveText">
+                    </span> 			     
+                </button><button class="actionRowButton" accesskey="" type="button">
+                <div data-associatedrecordid="undefined" class="iconWrapper" style="background-color: #;">
+                    <img class="icon" alt="Show More" src="/img/icon/t4v32/action/more_60.png"/>
+                </div><span class="assistiveText"></span> 		
+                </button>
+           
+            </div>
+        </li>
+        </ul>
+    </div>
+    </div>
+
+</aura:component>

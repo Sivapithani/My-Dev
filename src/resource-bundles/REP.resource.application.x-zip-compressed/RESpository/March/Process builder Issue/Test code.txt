@@ -1,0 +1,9 @@
+ocm_Strategy__c Strategy= UnitTestFactory.buildTestStrategy();
+        insert Strategy;
+        
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Fund_Product_Long_Name__c ='TestFP';
+        ff.Strategy__c = Strategy.id;
+        insert ff;
+
+le.Fund_Family__c =ff.id;

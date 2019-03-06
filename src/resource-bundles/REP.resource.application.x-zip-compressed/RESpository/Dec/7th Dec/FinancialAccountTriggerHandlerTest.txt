@@ -1,0 +1,1681 @@
+@isTest
+public with sharing class FinancialAccountTriggerHandlerTest
+{
+    static testMethod void SingleAccountSingleFieldChange() 
+    {   
+        ocm_DA_Rule__c testRule = UnitTestFactory.buildDataApprovalRule();
+        testRule.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testRule.Object_Name__c = OCM_Constants.OCM_CLIENT_ACCOUNT_API_NAME;
+        insert testRule;
+        
+        ocm_DA_Config__c testConfigMarketValue = UnitTestFactory.buildDataApprovalConfig();
+        testConfigMarketValue.Field_API_Name__c = OCM_Constants.OCM_CLIENT_ACCOUNT_FIELD;
+        testConfigMarketValue.Data_Approval_Rule__c = testRule.Id;  
+        insert testConfigMarketValue;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Market_Value__c = 12345.00;
+        insert testFA;
+        
+        testFA.Market_Value__c = 99999.00;
+        
+        test.StartTest();
+        update testFA;
+        test.StopTest();
+        
+        ocm_FinancialAccount__c resultFA = [Select a.Id, a.Market_Value__c From ocm_FinancialAccount__c a Where a.Id =: testFA.Id];
+        List<ocm_Change_Management_Ticket__c> resultTickets = [Select c.Financial_Account__c, c.Field_Updated__c From ocm_Change_Management_Ticket__c c Where c.Financial_Account__c = :testFA.Id];
+    
+        System.assertEquals(testFA.Market_Value__c, resultFA.Market_Value__c);
+        System.assertEquals(1, resultTickets.size());
+        System.assertEquals('Field:Market_Value__c:OldValue:12345.00:NewValue:99999.00', resultTickets[0].Field_Updated__c);
+    }
+    
+    static testMethod void updatingCAandOrgStrategies() 
+    {       
+        RecordType rtypeClient = [select id from RecordType where Name =: 'Client' limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+                
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Strategies__c = 'US Senior Loans';
+        testFA.Market_Value__c = 12345.00;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        insert testFA;        
+        
+        test.StartTest();        
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            update testFA;
+        test.StopTest();
+        
+        list<ocm_FinancialAccount__c> resultFA = [Select a.Id,  a.strategies__c, a.Status__c From ocm_FinancialAccount__c a Where a.Id =: testFA.Id];
+        system.assertEquals(1, resultFA.size());
+        system.assertEquals(testFA.Strategies__c, resultFA.get(0).strategies__c);
+        
+        list<ocm_LegalEntity__c> resultLA = [Select o.Id,  o.Fund_Products_Invested__c, o.Strategies_Invested__c  from ocm_LegalEntity__c o Where o.Id =: testLE.Id];
+        system.assertEquals(1, resultLA.size());
+        system.assertEquals(testFA.Strategies__c, resultLA.get(0).Strategies_Invested__c );
+        
+        list<Account> resultOrg = [Select o.Id, o.Strategies_Client_is_Invested_in__c  From Account o Where o.Id =: testOrganization.Id];        
+        system.assertEquals(1, resultOrg.size());
+        system.assertEquals(testFA.Strategies__c, resultOrg.get(0).Strategies_Client_is_Invested_in__c);
+    }
+    
+    static testMethod void updatingCAandOrgStrategies2() 
+    {       
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];  
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+                
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Strategies__c = 'US Senior Loans';
+        testFA.Market_Value__c = 12345.00;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFA;        
+        
+        test.StartTest();        
+            testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            update testFA;
+        test.StopTest();
+        
+        list<ocm_LegalEntity__c> resultLA = [Select o.Id,  o.Fund_Products_Invested__c, o.Strategies_Invested__c  from ocm_LegalEntity__c o Where o.Id =: testLE.Id];
+        system.assertEquals(1, resultLA.size());
+        system.assertEquals(null, resultLA.get(0).Strategies_Invested__c );
+        
+        list<Account> resultOrg = [Select o.Id, o.Strategies_Client_is_Invested_in__c  From Account o Where o.Id =: testOrganization.Id];        
+        system.assertEquals(1, resultOrg.size());
+        system.assertEquals(null, resultOrg.get(0).Strategies_Client_is_Invested_in__c);
+    }
+    
+    static testMethod void updatingCAandOrgStrategies3() 
+    {       
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1];  
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+                
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Strategies__c = 'US Senior Loans';
+        testFA.Market_Value__c = 12345.00;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFA;        
+        
+        test.StartTest();        
+            testFA.Status__c = null;
+            update testFA;
+        test.StopTest();
+        
+        list<Account> resultOrg = [Select o.Id, o.Strategies_Client_is_Invested_in__c  From Account o Where o.Id =: testOrganization.Id];        
+        system.assertEquals(1, resultOrg.size());
+        system.assertEquals(null, resultOrg.get(0).Strategies_Client_is_Invested_in__c);
+    }
+    
+    static testMethod void SingleAccountMultipleFieldChange() {
+        
+        ocm_DA_Rule__c testRule = UnitTestFactory.buildDataApprovalRule();
+        testRule.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testRule.Object_Name__c = OCM_Constants.OCM_CLIENT_ACCOUNT_API_NAME;
+        insert testRule;
+        
+        ocm_DA_Config__c testConfigMarketValue = UnitTestFactory.buildDataApprovalConfig();
+        testConfigMarketValue.Field_API_Name__c = OCM_Constants.OCM_CLIENT_ACCOUNT_FIELD;
+        testConfigMarketValue.Data_Approval_Rule__c = testRule.Id;  
+        insert testConfigMarketValue;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Market_Value__c = 12345.00;
+        insert testFA;
+
+        
+        testFA.Market_Value__c = 1.00;
+        
+        test.StartTest();
+            update testFA;
+        test.StopTest();
+        
+        ocm_FinancialAccount__c resultFA = [Select a.Id, a.Market_Value__c From ocm_FinancialAccount__c a Where a.Id =: testFA.Id];
+        List<ocm_Change_Management_Ticket__c> resultTickets = [Select c.Financial_Account__c, c.Field_Updated__c From ocm_Change_Management_Ticket__c c Where c.Financial_Account__c = :testFA.Id];
+
+        System.assertEquals(testFA.Market_Value__c, resultFA.Market_Value__c);
+        System.assertEquals(1, resultTickets.size());
+    }
+    
+    static testMethod void TriggerHandlerExceptionTest() 
+    {
+        
+        // Cory's Exception Test Code
+        
+        ocm_DA_Rule__c testRule = UnitTestFactory.buildDataApprovalRule();
+        testRule.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testRule.Object_Name__c = OCM_Constants.OCM_CLIENT_ACCOUNT_API_NAME;
+        insert testRule;
+        
+        ocm_DA_Config__c testConfigMarketValue = UnitTestFactory.buildDataApprovalConfig();
+        testConfigMarketValue.Field_API_Name__c = OCM_Constants.OBJ_EXC_INVALID_FIELD;
+        testConfigMarketValue.Data_Approval_Rule__c = testRule.Id;  
+        insert testConfigMarketValue;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Market_Value__c = 12345.00;
+        insert testFA;
+
+        Map<Id,ocm_FinancialAccount__c> recMap = new Map<Id,ocm_FinancialAccount__c>();
+        recMap.put(testFA.Id,null);
+        
+        testFA.Market_Value__c = 0.00;
+        
+        test.StartTest();
+        try
+        {
+            FinancialAccountTriggerHandler.handleAfterUpdate(recMap,recMap);
+            //update testFA;
+            system.assert(false);
+        }catch(Exception e)
+        {
+            system.assert(true);
+            //System.assert(e.getMessage().contains('FIELD_CUSTOM_VALIDATION_EXCEPTION'));
+            //System.assert(e.getMessage().contains('INVALID_FIELD_THROW_EXCEPTION!'));
+        }
+        test.StopTest();        
+    }
+    
+    public static testMethod void testException2()
+    {
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Market_Value__c = 12345.00;
+        insert testFA;
+
+        Map<Id, ocm_FinancialAccount__c> newMap = new Map<Id, ocm_FinancialAccount__c>();
+        newMap.put(testFA.Id,testFA);
+        Map<Id, ocm_FinancialAccount__c> oldMap = new Map<Id, ocm_FinancialAccount__c>();
+        
+        boolean exceptionThrown = false;
+        try
+        {
+            test.StartTest();
+            FinancialAccountTriggerHandler.handleAfterUpdate(newMap, oldMap);
+            test.StopTest();
+        }
+        catch(OCMException ex)
+        {
+            exceptionThrown = true;
+        }
+        
+        system.assert(exceptionThrown);
+    }
+    
+    static testmethod void testRollupOrgStatusAfterInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        testFA.Defaulted__c = OCM_Constants.OCM_VALUE_YES;
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        insert testFA; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c, Defaulted__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        system.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Defaulted__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusAfterUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+        testFA.Defaulted__c = OCM_Constants.OCM_VALUE_NO;
+        insert testFA;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c,Defaulted__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        system.assertEquals(OCM_Constants.OCM_VALUE_NO,acc.Defaulted__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_NO;
+        testFA.Defaulted__c = OCM_Constants.OCM_VALUE_YES;
+        update testFA;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c,Defaulted__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_NO,acc.Intermediary_Distribution_Channel__c);
+        system.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Defaulted__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusAfterDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+        insert testFA;
+        
+        ocm_FinancialAccount__c testFA2 = UnitTestFactory.buildTestFinancialAccount();
+        testFA2.Client_Investment_Entity__c = testLE.Id;
+        testFA2.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_NO;
+        insert testFA2;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete testFA;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.debug('#### RR '+ApexPages.getMessages());
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_NO,acc.Intermediary_Distribution_Channel__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsAfterInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+                
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE1.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        insert testFA; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsAfterUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE1.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.OCM_VALUE_NO;
+        insert testFA;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+        update testFA;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsAfterDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        testOrganization1.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        testOrganization2.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE1.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+        insert testFA;
+        
+        ocm_FinancialAccount__c testFA2 = UnitTestFactory.buildTestFinancialAccount();
+        testFA2.Client_Investment_Entity__c = testLE2.Id;
+        testFA2.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        insert testFA2;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete testFA;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        system.debug('#### RR '+ApexPages.getMessages());
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization1.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testRollupOrgStatusBulkInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            if(i == 0){
+                testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            }else{
+                testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            }
+            testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+            testFAList.add(testFA);
+        }
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        insert testFAList; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusBulkUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            if(i == 0){
+                testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            }else{
+                testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            }
+            testFAList.add(testFA);
+        }
+        insert testFAList;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_NO,acc.Intermediary_Distribution_Channel__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        testFAList[0].Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+        testFAList[0].Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        update testFAList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.debug('#### RR '+ApexPages.getMessages());
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        System.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusBulkDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.Record_Type_Name__c = OCM_Constants.CLIENT_RECORD_TYPE_NAME;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            if(i == 0){
+                testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            }else{
+                testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            }
+            testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+            testFAList.add(testFA);
+        }
+        insert testFAList;
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete testFAList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.debug('#### RR '+ApexPages.getMessages());
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsBulkInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            if(MATH.mod(i, 2) == 0){
+                testFA.Client_Investment_Entity__c = testLE1.Id;
+            }else{
+                testFA.Client_Investment_Entity__c = testLE2.Id;
+            }
+            if(i < 2){
+                testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            }else{
+                testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            }
+            testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+            testFAList.add(testFA);
+        }
+        
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        insert testFAList; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsBulkUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            if(MATH.mod(i, 2) == 0){
+                testFA.Client_Investment_Entity__c = testLE1.Id;
+            }else{
+                testFA.Client_Investment_Entity__c = testLE2.Id;
+            }
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testFAList.add(testFA);
+        }
+        insert testFAList;
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        for(integer i = 0 ; i < 200 ; i++){
+            testFAList[i].Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            testFAList[i].Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        }
+        update testFAList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testRollupOrgStatusForSubsidiaryClientsBulkDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        RecordType rtypeParent = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        parentOrg.RecordTypeId = rtypeParent.id;
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        testLE1.CIE_ID_EXT__c = 'CIEEX1';
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        insert testLE2;
+        
+        List<ocm_FinancialAccount__c> testFAList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            if(MATH.mod(i, 2) == 0){
+                testFA.Client_Investment_Entity__c = testLE1.Id;
+            }else{
+                testFA.Client_Investment_Entity__c = testLE2.Id;
+            }
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+            testFAList.add(testFA);
+        }
+        insert testFAList;
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_ACTIVE,acc.Status__c);
+        System.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+        
+        test.startTest();
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete testFAList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(OCM_Constants.OCM_STATUS_FORMER,acc.Status__c);
+        system.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_NO);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testNumberofClientAccountAfterInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            insert testFA; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(1, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testNumberofClientAccountAfterInsertBulkified(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(Integer i=1;i<=200;i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            faList.add(testFA);
+        }
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            insert faList; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(200, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testNumberofClientAccountAfterUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFA;
+        
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(1, acc.Number_of_Client_Accounts__c);
+        
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            update testFA;
+        test.stopTest();
+        
+        acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(0, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+    
+    static testmethod void testNumberofClientAccountAfterUpdateBulkified(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(Integer i=1;i<=200;i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            faList.add(testFA);
+        }
+        insert faList; 
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(200, acc.Number_of_Client_Accounts__c);
+        
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            for(ocm_FinancialAccount__c fa : faList){
+                fa.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            }
+            update faList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(0, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testNumberofClientAccountAfterDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Name = 'test';
+        testFA.Client_Investment_Entity__c = testLE.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        insert testFA;
+        
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(1, acc.Number_of_Client_Accounts__c);
+        
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            //testFA.Status__c = OCM_Constants.OCM_STATUS_INACTIVE;
+            delete testFA;
+        test.stopTest();
+        List<ocm_FinancialAccount__c> deletedFa = [select id from ocm_FinancialAccount__c where id =: testFA.Id];
+        
+        acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(0, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testNumberofClientAccountAfterDeleteBulkified(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(Integer i=1;i<=200;i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+            faList.add(testFA);
+        }
+        insert faList; 
+        Account acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(200, acc.Number_of_Client_Accounts__c);
+        
+        test.startTest();
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            delete faList;
+        test.stopTest();
+        
+        acc = [Select id, Name, Number_of_Client_Accounts__c From Account Where Id =: testOrganization.Id Limit 1];
+        System.assertEquals(0, acc.Number_of_Client_Accounts__c);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }
+
+    static testmethod void testRollupDateBecomeClientOnInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Inception_Date__c = system.today();
+        test.startTest();
+        insert testFA1;
+        test.stopTest();
+        
+        List<ocm_LegalEntity__c> resultcie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today(),resultcie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today(),result[0].Date_Became_Client__c);
+    }
+    
+    static testmethod void testRollupDateBecomeClientOnUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Inception_Date__c = system.today().addDays(-10);
+        insert testFA1;
+        
+        List<ocm_LegalEntity__c> resultcie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today().addDays(-10),resultcie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today().addDays(-10),result[0].Date_Became_Client__c);
+        
+        test.startTest();
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        testFA1.Inception_Date__c = system.today();
+        update testFA1;
+        test.stopTest();
+        
+        resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today(),resultCie[0].Date_Became_Client__c);
+        
+        result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today(),result[0].Date_Became_Client__c);
+    }
+    
+    static testmethod void testRollupDateBecomeClientOnDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Inception_Date__c = system.today();
+        insert testFA1;
+        
+        List<ocm_LegalEntity__c> resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today(),resultCie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today(),result[0].Date_Became_Client__c);
+        
+        test.startTest();
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete testFA1;
+        test.stopTest();
+        
+        resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(null,resultCie[0].Date_Became_Client__c);
+        
+        result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(null,result[0].Date_Became_Client__c);
+    }
+    
+    static testmethod void testRollupDateBecomeClientBulkInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 1 ; i <= 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Inception_Date__c = system.today().addDays(i);
+            faList.add(testFA);
+        }
+        test.startTest();
+        insert faList;
+        test.stopTest();
+        
+        List<ocm_LegalEntity__c> resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today().addDays(1),resultCie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today().addDays(1),result[0].Date_Became_Client__c);
+    }
+    
+    static testmethod void testRollupDateBecomeClientBulkUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            faList.add(testFA);
+        }
+        insert faList;
+        
+        List<ocm_LegalEntity__c> resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(null,resultCie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(null,result[0].Date_Became_Client__c);
+        
+        for(integer i = 0 ; i < 200 ; i++){
+            faList[i].Inception_Date__c = system.today().addDays(i);
+        }
+        test.startTest();
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        update faList;
+        test.stopTest();
+        
+        result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today().addDays(0),result[0].Date_Became_Client__c);
+        
+        resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today().addDays(0),resultCie[0].Date_Became_Client__c);
+    }
+    
+    static testmethod void testRollupDateBecomeClientBulkDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Inception_Date__c = system.today().addDays(i);
+            faList.add(testFA);
+        }
+        insert faList;
+
+        List<ocm_LegalEntity__c> resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today().addDays(0),resultCie[0].Date_Became_Client__c);
+        
+        List<Account> result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today().addDays(0),result[0].Date_Became_Client__c);
+        
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Inception_Date__c = system.today().addDays(10);
+        insert testFA1;
+        
+        test.startTest();
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        delete faList;
+        test.stopTest();
+        
+        result = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today().addDays(10),result[0].Date_Became_Client__c);
+        
+        resultCie = [select id, Date_Became_Client__c from ocm_LegalEntity__c where id =: testLE.Id];
+        system.assertEquals(system.today().addDays(10),resultCie[0].Date_Became_Client__c);
+    }
+    /*
+    static testmethod void testRollupLuxInvestorOnInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+        test.startTest();
+        insert testFA1;
+        test.stopTest();
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testRollupLuxInvestorOnBulkInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+            faList.add(testFA);
+        }
+        
+        test.startTest();
+        insert faList;
+        test.stopTest();
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testRollupLuxInvestorOnUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+        insert testFA1;
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+        
+        test.startTest();
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+        update testFA1;
+        test.stopTest();
+        
+        acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testRollupLuxInvestorOnBulkUpdate(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+            faList.add(testFA);
+        }
+        insert faList;
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+        
+        test.startTest();
+        for(ocm_FinancialAccount__c fa : faList){
+            fa.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+        }
+        update faList;
+        test.stopTest();
+        
+        acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+    }
+    
+    static testmethod void testRollupLuxInvestorOnDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+        insert testFA1;
+        
+        ocm_FinancialAccount__c testFA2 = UnitTestFactory.buildTestFinancialAccount();
+        testFA2.Client_Investment_Entity__c = testLE.Id;
+        testFA2.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+        insert testFA2;
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+        
+        test.startTest();
+        delete testFA1;
+        test.stopTest();
+        
+        acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+    }
+    
+    static testmethod void testRollupLuxInvestorOnBulkDelete(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        insert testLE;
+        
+        List<ocm_FinancialAccount__c> faList = new List<ocm_FinancialAccount__c>();
+        for(integer i = 0 ; i < 200 ; i++){
+            ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+            testFA.Client_Investment_Entity__c = testLE.Id;
+            testFA.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+            faList.add(testFA);
+        }
+        insert faList;
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        
+        Account acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+        
+        test.startTest();
+        delete faList;
+        test.stopTest();
+        
+        acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+    }
+    */
+    static testmethod void testRollupDateBecomeClientReparent(){
+        RecordType parentRtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.OCM_PARENT_CLIENT limit 1];
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account testParentOrganization = UnitTestFactory.buildTestAccount();
+        testParentOrganization.RecordTypeId = parentRtypeClient.id;
+        insert testParentOrganization;
+        
+        list<Account> accList = new list<Account>();
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = testParentOrganization.id;
+        accList.add(testOrganization);
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = testParentOrganization.id;
+        accList.add(testOrganization2);
+        insert accList;
+        
+        list<ocm_LegalEntity__c> leList = new list<ocm_LegalEntity__c>();
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        testLE.CIE_ID_EXT__c = 'CIEEXT';
+        leList.add(testLE);
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        testLE2.CIE_ID_EXT__c = 'CIEEX2';
+        leList.add(testLE2);
+        insert leList;
+        
+        list<ocm_FinancialAccount__c> finList = new list<ocm_FinancialAccount__c>();
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Inception_Date__c = system.today();
+        finList.add(testFA1);
+        
+        ocm_FinancialAccount__c testFA2 = UnitTestFactory.buildTestFinancialAccount();
+        testFA2.Client_Investment_Entity__c = testLE2.Id;
+        testFA2.Inception_Date__c = system.today()-1;
+        finList.add(testFA2);
+        insert finList;
+        
+        list<Account> resultA = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today(),resultA[0].Date_Became_Client__c);
+        
+        list<Account> resultA1 = [select id, Date_Became_Client__c from Account where id =: testOrganization2.Id];
+        system.assertEquals(system.today()-1,resultA1[0].Date_Became_Client__c);
+        
+        list<Account> resultA2 = [select id, Parent_Organization_Date_Became_Client__c from Account where id =: testParentOrganization.Id];
+        system.assertEquals(system.today()-1,resultA2[0].Parent_Organization_Date_Became_Client__c);
+        
+        test.startTest();
+            testFA2.Client_Investment_Entity__c = testLE.Id;
+            FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+            FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+            update testFA2;
+        test.stopTest();
+        
+        list<Account> resultB = [select id, Date_Became_Client__c from Account where id =: testOrganization.Id];
+        system.assertEquals(system.today()-1,resultB[0].Date_Became_Client__c);
+        
+        list<Account> resultB1 = [select id, Date_Became_Client__c from Account where id =: testOrganization2.Id];
+        system.assertEquals(null,resultB1[0].Date_Became_Client__c);
+        
+        list<Account> resultB2 = [select id, Parent_Organization_Date_Became_Client__c from Account where id =: testParentOrganization.Id];
+        system.assertEquals(system.today()-1,resultB2[0].Parent_Organization_Date_Became_Client__c);        
+    }
+    /*    
+    static testmethod void testrollupIntDistChannelAfterInsert(){
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization1 = UnitTestFactory.buildTestAccount();
+        testOrganization1.RecordTypeId = rtypeClient.id;
+        testOrganization1.ParentId = parentOrg.Id;
+        insert testOrganization1;
+        
+        Account testOrganization2 = UnitTestFactory.buildTestAccount();
+        testOrganization2.RecordTypeId = rtypeClient.id;
+        testOrganization2.ParentId = parentOrg.Id;
+        insert testOrganization2;
+        
+        ocm_LegalEntity__c testLE1 = UnitTestFactory.buildTestLegalEntity();
+        testLE1.RecordTypeId = lertypeClient.Id;
+        testLE1.Client__c = testOrganization1.Id;
+        insert testLE1;
+        
+        ocm_LegalEntity__c testLE2 = UnitTestFactory.buildTestLegalEntity();
+        testLE2.RecordTypeId = lertypeClient.Id;
+        testLE2.Client__c = testOrganization2.Id;
+        insert testLE2;
+        
+        ocm_FinancialAccount__c testFA = UnitTestFactory.buildTestFinancialAccount();
+        testFA.Client_Investment_Entity__c = testLE1.Id;
+        testFA.Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        testFA.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        
+        test.startTest();
+        //FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        insert testFA; 
+        test.stopTest();
+        
+        Account acc = [Select id, Name, Status__c, Intermediary_Distribution_Channel__c From Account Where Id =: parentOrg.Id Limit 1];
+        System.assertEquals(acc.Intermediary_Distribution_Channel__c,OCM_Constants.OCM_VALUE_YES);
+        System.assertEquals(0,ApexPages.getMessages().size());
+    }    
+    
+    static testmethod void testMethodForAll()
+    {
+        RecordType rtypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_ACCOUNT AND Name =: OCM_Constants.CLIENT_RECORD_TYPE_NAME limit 1]; 
+        RecordType lertypeClient = [select id from RecordType where SObjectType =: OCM_Constants.SOBJECT_NAME_LEGAL_ENTITY AND Name =: OCM_Constants.OCM_CLIENT_INV_ENTITY limit 1]; 
+        
+        Account parentOrg = UnitTestFactory.buildTestAccount();
+        insert parentOrg;
+        
+        Account testOrganization = UnitTestFactory.buildTestAccount();
+        testOrganization.RecordTypeId = rtypeClient.id;
+        testOrganization.ParentId = parentOrg.id;
+        insert testOrganization;
+        
+        ocm_LegalEntity__c testLE = UnitTestFactory.buildTestLegalEntity();
+        testLE.RecordTypeId = lertypeClient.Id;
+        testLE.Client__c = testOrganization.Id;
+        insert testLE;
+        
+        ocm_FinancialAccount__c testFA1 = UnitTestFactory.buildTestFinancialAccount();
+        testFA1.Client_Investment_Entity__c = testLE.Id;
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_YES;
+        testFA1.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_INDIRECT;
+        insert testFA1;
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        
+        Account acc = [Select id, Intermediary_Distribution_Channel__c, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_YES);
+        system.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        
+        testFA1.Oaktree_Lux_Investor__c = OCM_Constants.OCM_VALUE_NO;
+        testFA1.Beneficiary_Bank_Name__c = 'U.S. BANK,N.A.';
+        update testFA1;
+        
+        acc = [Select id, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;
+        testFA1.Intermediary_Distribution_Channel__c = OCM_Constants.FA_INT_DIST_CHANNEL_YES_FUND_DIRECT;
+        update testFA1;        
+        
+        FinancialAccountTriggerHandler.isFirstCallCommitedCapital = false;
+        FinancialBalanceTriggerHandler.FINANCIAL_BAL_AFTER_TRIGGER_FIRED = false;        
+
+        test.startTest();        
+        testFA1.Beneficiary_Bank_Name__c = 'SOCIETE GENERALE BANK AND TRUST S.A.';
+        update testFA1;
+        test.stopTest();
+        
+        ocm_FinancialAccount__c finsResult = [Select Beneficiary_Bank_Name__c from ocm_FinancialAccount__c where id =:testFA1.Id];
+        system.assertEquals('SOCIETE GENERALE BANK AND TRUST S.A.',finsResult.Beneficiary_Bank_Name__c);
+        
+        acc = [Select id, Intermediary_Distribution_Channel__c, Oaktree_Lux_Investor__c From Account Where Id =: testOrganization.Id Limit 1];
+        system.assertEquals(OCM_Constants.OCM_VALUE_YES,acc.Intermediary_Distribution_Channel__c);
+        system.assertEquals(acc.Oaktree_Lux_Investor__c,OCM_Constants.OCM_VALUE_NO);
+    }
+    */    
+}

@@ -1,0 +1,95 @@
+<aura:component  controller ="OpportunityOverRideController" implements="force:appHostable,flexipage:availableForAllPageTypes,force:lightningQuickAction,flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+    
+    <aura:attribute name="lstOfRecordType" type="String[]"/> 
+    <aura:attribute name="isOpenRecType" type="Boolean" default="true" />
+    <aura:attribute name="ShowScreen1" type="Boolean" default="false" />
+    <aura:attribute name="Parent_id" type="id"/>
+    <aura:attribute name="recordId" type="Id" />
+    <aura:attribute name="name" type="string"/>
+    <aura:attribute name="accountId" type="string"/>
+    <aura:attribute name="contactId" type="string"/>
+    <aura:attribute name="recordtypeid" type="string"/>
+    <aura:attribute name="recordtypeLable" type="string"/>
+    <aura:attribute name="createdDate" type="Date"/>
+    <aura:attribute name="Deal" type="Deal__c" default="{'sobjectType':'Deal__c'}"/>
+    <aura:attribute name="newoppty" type="Opportunity"
+         default="{ 'sobjectType': 'Opportunity',
+                        'Name': '',
+                        'Amount__c': 0,
+                        'closeDate': ''
+                        }"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    
+    <aura:attribute name="selectedLookUpRecord" type="sObject" default="{}"/>
+    <aura:attribute name="selectedLookUpRecord1" type="sObject" default="{}"/>
+    
+    <aura:if isTrue="{!v.isOpenRecType}">
+        <div role="dialog" tabindex="-1" aria-labelledby="header43" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header">
+                    <button class="slds-button slds-modal__close slds-button--icon-inverse" title="Close" onclick="{!c.closeModelForRecTypeSelection}">
+                        X<span class="slds-assistive-text">Cancel</span>
+                    </button>
+                    <h2 id="header43" class="slds-text-heading--medium">New Opportunity</h2>
+                </div>
+                
+                <div class="slds-modal__content slds-p-around--medium">
+                    <div class="slds-grid slds-wrap">
+                        <div class="slds-size--1-of-2 slds-large-size--1-of-2">
+                            <div class="slds-align--absolute-center">Select a Record Type</div>                            
+                        </div>
+                        <div class="slds-size--1-of-2 slds-large-size--1-of-2">
+                            <ui:inputSelect aura:id="selectid">
+                                <aura:iteration items="{!v.lstOfRecordType}" var="oppty">                            
+                                    <ui:inputSelectOption text="{!oppty}" label="{!oppty}"  />
+                                </aura:iteration>
+                            </ui:inputSelect>
+                        </div>&nbsp; &nbsp;
+                    </div>                   
+                </div>
+                
+                <div class="slds-modal__footer">
+                    <lightning:button class="slds-button slds-button--neutral" onclick="{!c.closeModelForRecTypeSelection}">Cancel</lightning:button>
+                    <lightning:button class="slds-button slds-button--brand" onclick="{!c.opptyScreen1}">Next</lightning:button>
+                </div>
+            </div>
+        </div>
+        <div class="slds-backdrop slds-backdrop--open"></div>
+    </aura:if>
+    <aura:if isTrue="{!v.ShowScreen1}">
+         
+      <div class="demo-only demo-only--sizing slds-grid slds-wrap">
+           
+                <div class=" slds-size_1-of-2 ">
+                    <label class="slds-form-element__label" for="text-input-id-1"> Deal Name</label>
+                    <div class="slds-form-element__control">
+                        {!v.Deal.Name}    
+                    </div>
+                </div>
+     
+                <div class="slds-size_1-of-2 ">
+                    <!-- <label class="slds-form-element__label" for="text-input-id-1">
+                        <abbr class="slds-required" title="required">*</abbr>Close Date</label>  -->
+                    <div class="slds-form-element__control">
+                        <lightning:input type="date" aura:id="opptyform" label="Close Date"
+                                         name="closedate"
+                                         value="{!v.newoppty.closedate}" required="true"/>
+                    </div>
+                </div>
+           
+        
+            <div class="slds-size_1-of-2">
+                <c:ResualbeLookUp objectAPIName="account" IconName="standard:account" label="Account Name" selectedRecord="{!v.selectedLookUpRecord}"/>
+            </div>
+            <div class="slds-size_1-of-2">
+                <c:ResualbeLookUp objectAPIName="Contact" IconName="standard:Contact" label="Contact Name" selectedRecord="{!v.selectedLookUpRecord1}"/>
+            </div>
+      </div>
+        <br></br>
+        <br></br>
+        <br></br>
+        <br></br>
+         <lightning:button variant="brand" label="Save" title="Save" onclick="{! c.handleClick }"/>
+        </aura:if>
+    
+</aura:component>

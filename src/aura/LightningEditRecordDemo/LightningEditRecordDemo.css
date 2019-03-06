@@ -1,0 +1,23 @@
+.THIS {
+	padding: 1px;
+}
+
+.THIS .accountTable {
+	width: 100%;
+}
+
+.THIS .accountTable th,
+.THIS .accountTable td {
+    text-align: left;
+    padding: 5px;
+    font-size: 16px;
+	border-bottom: 1px solid #DCDCDC;/*0f0c0c */
+}
+
+.THIS .indexCol {
+    width: 50px;
+}
+
+.THIS .btnCol {
+    width: 50px;
+}

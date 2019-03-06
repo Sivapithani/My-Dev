@@ -1,0 +1,43 @@
+/**
+PageRedirectNewPageController this class is the controller for PageRedirectPage to check the record type.
+
+**/
+
+public class PageRedirectPageController {
+    public String selectedRecordType{get;set;}
+    public Id recTypeId{set;get;}
+    public String FlowRecordTypeID;
+    public Id currentPageId;
+    public ApexPages.Standardcontroller std;
+    public Boolean IsFlowRecordType{get;set;}
+
+ /*
+PageRedirectNewPageController Constructor checks for the contact record type.
+*/
+    public PageRedirectPageController (ApexPages.StandardController std){
+        this.std= std;
+        currentPageId = ApexPages.currentPage().getParameters().get('id');          
+        selectedRecordType = ApexPages.currentPage().getParameters().get('RecordType');
+        recTypeId = [Select id from RecordType where sObjectType = 'Contact' and developerName ='Flow'].id;
+        FlowRecordTypeID = String.valueOf(recTypeId).subString(0,15); 
+        newcontact();
+     } 
+    public pagereference newcontact(){
+        
+        if(selectedRecordType!= null && selectedRecordType.length() == 18){
+            selectedRecordType = selectedRecordType.subString(0,15);
+            system.debug('selectedRecordType '+selectedRecordType );
+             //string redirectStandardConurl = '/003/e?nooverride=1&RecordType='+selectedRecordType+'&retURL=%2F003%2Fo';
+            PageReference pageRef = new PageReference('/003/e?nooverride=1&RecordType='+selectedRecordType+'&retURL=%2F003%2Fo');
+            return pageRef;
+        }
+        if(selectedRecordType == FlowRecordTypeID){
+            IsFlowRecordType = true; 
+             PageReference pageRef = new PageReference('/apex/DetailPage?retURL=%2F003%2Fo&RecordType='+selectedRecordType+'&nooverride=1');
+             return pageRef;
+    }
+        return null;
+        }
+ 
+    }   
+

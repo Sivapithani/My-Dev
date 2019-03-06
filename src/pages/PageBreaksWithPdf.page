@@ -1,0 +1,31 @@
+<apex:page controller="PageBreakswithPDF" standardstylesheets="true" renderas="pdf">
+
+
+<div style="page-break-before:always">
+<table width="700" align="center">
+<tr><td>
+    <table width="100%">
+        <tr><td align="center" height="30" valign="center"><b><i>Additional Items</i></b></td></tr>
+    </table>
+  
+    <table width="100%" border="1" cellpadding="5">
+        <tr>
+            <th align="center" width="10%">Item No.</th>
+            <th align="center" width="10%">Quantity</th>
+            <th align="center" width="50%">Description</th>
+     
+        </tr>
+        <apex:repeat value="{!acclist}" var="item">
+        <tr>
+            <td align="center">{!item.name}</td>
+            <td align="center">{!item.phone}</td>
+            <td align="center">{!item.rating}</td>
+         
+        </tr>
+        </apex:repeat>
+    </table>                                       
+</td></tr>
+</table>
+</div>
+
+</apex:page>

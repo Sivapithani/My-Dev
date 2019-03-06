@@ -1,0 +1,185 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+    <aura:attribute name="contactid" type ="string" />
+    <aura:attribute name="Accountid" type ="string" />
+    <aura:attribute name="IsEdit" type ="Boolean"  default="false"/>
+    <aura:attribute name="myContact" type="List" default="[LatName,FirstName,Phone,Mobile]" />
+    <!--************** Mobile ***************** c class="slds-scrollable"-->
+    <aura:if isTrue="{!$Browser.isIOS}">  
+        <ui:scrollerWrapper class="scrollerWrapper"> 
+        <!--  <div  lass="slds-scrollable scrollerWrapper ">  -->
+            <div class="div">  
+                <div class="slds-container_large slds-align_absolute-left">
+                    
+                    <div class="slds-box">
+                        <div class="slds-m-bottom_small slds-page-header">
+                            <div class="slds-media">
+                                
+                                <div class="slds-media__figure">
+                                    <lightning:avatar alternativeText="" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="circle"></lightning:avatar>
+                                </div>
+                                <div class="slds-media__body">
+                                    <div class="slds-page-header__title slds-text-heading_small">Contact</div>
+                                </div>
+                                
+                                <br/>
+                                <br/>
+                                
+                                <div class="slds-media__figure slds-media__figure_reverse">
+                                    <lightning:buttonGroup>
+                                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"/>
+                                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit" onclick="{!c.editcontact}"/>
+                                        
+                                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Add Relationships" iconName="utility:add"/>
+                                    </lightning:buttonGroup>
+                                </div>
+                            </div>
+                            <br/>
+                            <aura:if isTrue ="{!!v.IsEdit}"> 
+                                <lightning:recordViewForm recordId="{!v.contactid}" objectApiName="My_Contact__c">
+                                    <div class="slds-grid">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:outputField fieldName="Name" />
+                                        </div>
+                                    </div>
+                                    <div class="slds-grid">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:outputField fieldName="LastName" />
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:outputField fieldName="FirstName" />
+                                        </div>
+                                    </div>
+                                    <div class="slds-grid">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:outputField fieldName="Phone" />
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:outputField fieldName="Email" />
+                                        </div>
+                                    </div>
+                                </lightning:recordViewForm>
+                            </aura:if>
+                            <aura:if isTrue ="{!v.IsEdit}">
+                                
+                                <lightning:recordEditForm onsubmit="{!c.handleSubmit}" recordId="{!v.contactid}" objectApiName="Contact">
+                                    <!-- the messages component is for error messages -->
+                                    <lightning:messages />
+                                    <div class="slds-grid">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:inputField fieldName="LastName" /> 
+                                        </div>
+                                        
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:inputField fieldName="FirstName" /> 
+                                        </div>
+                                    </div>
+                                    <div class="slds-grid">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:inputField fieldName="Phone" />
+                                        </div> 
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning:inputField fieldName="Email" />
+                                        </div> 
+                                    </div>
+                                    <div class="slds-m-top_medium slds-align_absolute-center">
+                                        <lightning:button  variant="neutral"  name="Cancel" label="cancel"  onclick="{!c.toCancel}"/>
+                                        <lightning:button  variant="brand" type="submit" name="save" label="Save" />
+                                    </div>
+                                </lightning:recordEditForm> 
+                            </aura:if>
+                        </div>
+                    </div> 
+                </div>
+            </div>
+         </ui:scrollerWrapper>
+        
+        <!--************** Mobile Ends *****************  -->
+        
+    </aura:if> 
+  
+    <aura:if isTrue="{!if($Browser.formFactor== 'DESKTOP',true,false)}"> 
+        <div  class="slds-scrollable " >
+            <div class="slds-container_large slds-align_absolute-left">
+                
+                <div class="slds-box">
+                    <div class="slds-m-bottom_small slds-page-header">
+                        <div class="slds-media">
+                            
+                            <div class="slds-media__figure">
+                                <lightning:avatar alternativeText="" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="circle"></lightning:avatar>
+                            </div>
+                            <div class="slds-media__body">
+                                <div class="slds-page-header__title slds-text-heading_small">Contact</div>
+                            </div>
+                            
+                            <div class="slds-media__figure slds-media__figure_reverse">
+                                <lightning:buttonGroup>
+                                    <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"></lightning:button>
+                                    <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit" onclick="{!c.editcontact}"></lightning:button>
+                                    
+                                    <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Add Relationships" iconName="utility:add"></lightning:button> 
+                                </lightning:buttonGroup>
+                            </div>
+                        </div>
+                        <br/>
+                        <aura:if isTrue ="{!!v.IsEdit}"> 
+                            <lightning:recordViewForm recordId="{!v.contactid}" objectApiName="My_Contact__c">
+                                <div class="slds-grid">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:outputField fieldName="Name" />
+                                    </div>
+                                </div>
+                                <div class="slds-grid">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:outputField fieldName="LastName" />
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:outputField fieldName="FirstName" />
+                                    </div>
+                                </div>
+                                <div class="slds-grid">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:outputField fieldName="Phone" />
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:outputField fieldName="Email" />
+                                    </div>
+                                </div>
+                            </lightning:recordViewForm>
+                        </aura:if>
+                        <aura:if isTrue ="{!v.IsEdit}">
+                            
+                            <lightning:recordEditForm onsubmit="{!c.handleSubmit}" recordId="{!v.contactid}" objectApiName="Contact">
+                                <!-- the messages component is for error messages -->
+                                <lightning:messages />
+                                <div class="slds-grid">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:inputField fieldName="LastName" /> 
+                                    </div>
+                                    
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:inputField fieldName="FirstName" /> 
+                                    </div>
+                                </div>
+                                <div class="slds-grid">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:inputField fieldName="Phone" />
+                                    </div> 
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning:inputField fieldName="Email" />
+                                    </div> 
+                                </div>
+                                <div class="slds-m-top_medium slds-align_absolute-center">
+                                    <lightning:button  variant="neutral"  name="Cancel" label="cancel"  onclick="{!c.toCancel}"/>
+                                    <lightning:button  variant="brand" type="submit" name="save" label="Save" />
+                                </div>
+                            </lightning:recordEditForm> 
+                        </aura:if>
+                    </div>
+                </div> 
+            </div>
+        </div>
+        
+    </aura:if> 
+</aura:component>

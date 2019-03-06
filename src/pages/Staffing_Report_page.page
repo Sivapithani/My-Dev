@@ -1,0 +1,166 @@
+<apex:page renderAs="PDF" controller="cds_cs_StaffingReport" applyHtmlTag="false" showHeader="false" >
+    
+
+   
+       
+     <!--   <apex:variable var="count" value="{!0}" />
+        <apex:repeat value="{!StaffingReport}" var="adr">
+            <apex:variable var="count" value="{!count+1}"/>
+            <p style="font-weight:bold;font-size:18px;">
+                {!adr.appearance.Participant__r.name}   
+            </p>
+            <hr style="margin-top:0.5em;"/>
+            <table>
+                <tr>
+                    <td style="font-size:14px;vertical-align:top;">
+                        Docket - {!adr.appearance.Participant__r.Docket__c}<br/>
+                        Date - {!MONTH(adr.appearance.Date__c)}/{!DAY(adr.appearance.Date__c)}/{!YEAR(adr.appearance.Date__c)}
+                    </td>
+                </tr>
+            </table> 
+			<table>
+                <tr>
+                    <td style="width:25%;vertical-align:top;">
+                        <p style="font-style:italic;font-size:14px;">
+                            <b>Test Drug Color</b>
+                        </p>
+                    </td>
+                </tr>
+                <apex:repeat value="{!adr.colors}" var="color">
+                    <tr column="6">                        
+                        <td style="font-size:14px;vertical-align:top;">
+                            Color :{!color.DrugTestColor__c}<br/>
+                            Start Date/End Date:{!MONTH(color.StartDate__c)}/{!DAY(color.StartDate__c)}/{!YEAR(color.StartDate__c)}  / {!MONTH(color.EndDate__c)}/{!DAY(color.EndDate__c)}/{!YEAR(color.EndDate__c)}<br/><br/>
+                        </td>
+                        
+                        
+                    </tr>
+                </apex:repeat>
+                
+                
+                <tr>
+                    <td style="width:25%;vertical-align:top;">
+                        <p style="font-style:italic;font-size:14px;">
+                            <b>Phase</b> 
+                        </p>
+                    </td>
+                </tr>
+                <apex:repeat value="{!adr.phase}" var="phase">
+                    <tr>                        
+                        <td style="font-size:14px;vertical-align:top;">
+                            Phase : {!phase.Phase__c}<br/>
+                            Start Date / End Date: {!MONTH(phase.StartDate__c)}/{!DAY(phase.StartDate__c)}/{!YEAR(phase.StartDate__c)} / {!MONTH(phase.EndDate__c)}/{!DAY(phase.EndDate__c)}/{!YEAR(phase.EndDate__c)}
+                        </td>
+                        
+                    </tr>
+                </apex:repeat>        
+                
+                
+            </table>  -->
+		
+    <table>  
+        <tr>
+            <td style="width:25%;vertical-align:top;">
+                <p style="font-style:italic;font-size:14px;">
+                    <b>Incentives</b>  
+                </p>
+            </td>
+            
+        </tr>
+        <tr>
+            <td style="font-size:14px;vertical-align:top;">
+                Incentive Date /Incentive commentsbox
+            </td>
+        </tr>
+        <tr>
+            <apex:repeat value="{!acclist}" var="phase"> 
+                
+                <td>{!phase.SLAExpirationDate__c}/{!phase.name}</td><br/>
+            </apex:repeat>
+        </tr>   
+        
+    </table>   
+    <table>
+        <tr >
+            <th style="width:25%;vertical-align:top;"> 
+                <p style="font-style:italic;font-size:14px;"><b>Violation</b>   </p>
+            </th>
+            <th style="width:25%;vertical-align:top;"> 
+                <p style="font-style:italic;font-size:14px;"> <b>Sanction</b>  </p>
+            </th>
+        </tr>
+        <tr>
+            <td style="font-size:14px;vertical-align:top;">
+                Violation Date / Violation Description
+            </td>
+            <td style="font-size:14px;vertical-align:top;"> 
+                /Sanction Date /  Sanction Type / sanction name
+            </td>
+        </tr>
+        
+        <tr>
+            <apex:repeat value="{!opptylist}" var="oppty"> 
+                <td >
+                    /{!oppty.CloseDate}/ {!oppty.Name} <br/>
+                </td>
+               
+            </apex:repeat>
+            <apex:repeat value="{!conlist}" var="Con"> 
+                <td > 
+                    /{!Con.Birthdate}/ {!Con.LeadSource}  / {!Con.LastName} <br/>
+                </td>
+                <br/>
+            </apex:repeat>
+        </tr>
+    </table> 
+    
+  <!-- <table style="width:100%">
+        <tr>
+            <td> 
+                <table>
+                <tr>
+                    <th style="width:25%;vertical-align:top;"> 
+                        <p style="font-style:italic;font-size:14px;"><b>Violation</b>   </p>
+                    </th> 
+                </tr>
+                <tr>
+                    <td style="font-size:14px;vertical-align:top;">
+                        Violation Date / Violation Description
+                    </td>
+                </tr>
+                <tr>
+                    <apex:repeat value="{!opptylist}" var="oppty"> 
+                        <td >
+                            /{!oppty.CloseDate}/ {!oppty.Name} 
+                        </td>
+                        <br/>
+                    </apex:repeat>
+                </tr>
+                </table>
+            </td>
+            <td> <table>
+                <tr>
+                    <th style="width:25%;vertical-align:top;"> 
+                        <p style="font-style:italic;font-size:14px;"><b>Sanction</b>   </p>
+                    </th> 
+                </tr>
+                <tr>
+                    <td style="font-size:14px;vertical-align:top;"> 
+                        /Sanction Date /  Sanction Type / sanction name
+                    </td>
+                </tr>
+                <tr>
+                    <apex:repeat value="{!conlist}" var="Con"> 
+                        <td > 
+                            /{!Con.Birthdate}/ {!Con.LeadSource}  / {!Con.LastName} 
+                        </td>
+                        <br/>
+                    </apex:repeat>
+                </tr>
+                </table>
+            </td> 
+        </tr>
+        
+    </table>  -->
+    
+</apex:page>

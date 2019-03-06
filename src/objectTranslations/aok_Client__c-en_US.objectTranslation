@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>Client</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>Clients</value>
+    </caseValues>
+    <fields>
+        <label><!-- Current Household Name --></label>
+        <name>Current_Household_Name__c</name>
+    </fields>
+    <fields>
+        <label><!-- Household --></label>
+        <name>Current_Household__c</name>
+        <relationshipLabel><!-- Clients --></relationshipLabel>
+    </fields>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

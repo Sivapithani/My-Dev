@@ -1,0 +1,36 @@
+
+trigger BlueSkyTrigger on ocm_Blue_Sky_Record__c (after delete, after insert, after update, before update) 
+{    
+    
+    if(trigger.isBefore)
+    {
+        if(trigger.isInsert)
+        {
+             if(!(BlueSkyTriggerHandler.isBeforeCallFire))
+              BlueSkyTriggerHandler.handleBeforeInsert(trigger.new);
+        }
+        else if(trigger.isUpdate){
+           if(!(BlueSkyTriggerHandler.isBeforeCallFire))
+                BlueSkyTriggerHandler.handleBeforeUpdate(trigger.newMap, trigger.oldMap); 
+        }
+    }    
+    
+    if(trigger.isAfter) 
+    {
+        if(trigger.isInsert && !BlueSkyTriggerHandler.isAfterInsertCallFire)
+        {
+                BlueSkyTriggerHandler.handleAfterInsert(trigger.newMap);
+        }
+        if(trigger.isUpdate && !BlueSkyTriggerHandler.isAfterUpdateCallFire)
+        {            
+            BlueSkyTriggerHandler.handleAfterUpdate(trigger.newMap, trigger.oldMap);
+        }
+        /*
+        if(trigger.isDelete)
+        {
+            if(!(BlueSkyTriggerHandler.isAfterDeleteCallFire))
+                BlueSkyTriggerHandler.handleAfterDelete(trigger.old);
+        }
+        */
+    }
+}

@@ -1,0 +1,13 @@
+<apex:page renderAs="pdf" applyHtmlTag="false" showHeader="false">
+    <head>
+       <style>
+            @page {
+                size: landscape;
+            }
+        </style>  
+    </head>
+    
+    <div>
+        dsafdsafasfsafsafsfsfsafssa
+    </div>
+</apex:page>

@@ -1,0 +1,7 @@
+<script> 
+                                              alert(document.getElementById('{!$Component.Nonzero}').value);
+                                              if(document.getElementById('{!$Component.Nonzero}').value == 0){
+                                                  document.getElementById('{!$Component.Nonzero}').style.display = "none";
+                                                  alert(document.getElementById('{!$Component.Nonzero}').value);   
+                                              }   
+                                              </script>

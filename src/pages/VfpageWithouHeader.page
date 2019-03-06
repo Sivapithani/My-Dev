@@ -1,0 +1,17 @@
+<apex:page showHeader="false" lightningStylesheets="true"  standardStylesheets="false">
+     <apex:includeLightning />
+    <div id="lightning" />
+      <apex:includeScript value="/lightning/lightning.out.js"/>
+     <script>
+   
+     $Lightning.use("c:DemoApp", function() {
+        $Lightning.createComponent("c:Activity_Responsive",
+                                   {  },
+            "lightning",
+             function(cmp) {
+            
+        });
+     });
+    </script>
+    
+</apex:page>

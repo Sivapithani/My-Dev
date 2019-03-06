@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>violation</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>violations</value>
+    </caseValues>
+    <fields>
+        <label><!-- Court appearance --></label>
+        <name>CourtAppearance__c</name>
+        <relationshipLabel><!-- violations --></relationshipLabel>
+    </fields>
+    <fields>
+        <label><!-- Notes --></label>
+        <name>Notes__c</name>
+    </fields>
+    <fields>
+        <label><!-- Violation Date --></label>
+        <name>Violation_Date__c</name>
+    </fields>
+    <fields>
+        <label><!-- Violation description --></label>
+        <name>Violation_description__c</name>
+    </fields>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

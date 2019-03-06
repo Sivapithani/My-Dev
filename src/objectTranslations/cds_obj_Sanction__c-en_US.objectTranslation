@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseValues>
+        <plural>false</plural>
+        <value>sanction</value>
+    </caseValues>
+    <caseValues>
+        <plural>true</plural>
+        <value>sanctions</value>
+    </caseValues>
+    <fields>
+        <label><!-- Court appearance --></label>
+        <name>CourtAppearance__c</name>
+        <relationshipLabel><!-- sanctions --></relationshipLabel>
+    </fields>
+    <fields>
+        <label><!-- sanction date --></label>
+        <name>sanction_date__c</name>
+    </fields>
+    <fields>
+        <label><!-- sanction type --></label>
+        <name>sanction_type__c</name>
+        <picklistValues>
+            <masterLabel>text1</masterLabel>
+            <translation><!-- text1 --></translation>
+        </picklistValues>
+        <picklistValues>
+            <masterLabel>text2</masterLabel>
+            <translation><!-- text2 --></translation>
+        </picklistValues>
+        <picklistValues>
+            <masterLabel>text3</masterLabel>
+            <translation><!-- text3 --></translation>
+        </picklistValues>
+        <picklistValues>
+            <masterLabel>text4</masterLabel>
+            <translation><!-- text4 --></translation>
+        </picklistValues>
+    </fields>
+    <startsWith>Consonant</startsWith>
+</CustomObjectTranslation>

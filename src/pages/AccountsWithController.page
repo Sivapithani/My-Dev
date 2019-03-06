@@ -1,0 +1,29 @@
+<apex:page standardController="Account" extensions="Account_Controller" renderAs="pdf">
+   
+    <apex:pageBlock title="My Account Details" > 
+        <table width ="100%" rules="rows">
+            <tr>
+                <td style="font-size:30px;"> Name  </td>
+                <td style="font-size:30px;">Phone  </td>
+                <td style="font-size:30px;"> Rating  </td>
+            </tr>
+            <apex:variable var="rowNum" value="{!1}"/>
+            <apex:repeat value="{!acclist}" var="c"  >
+                
+                <tr>
+                    <td style ="{!if(c.Name != null,'border: 1px ;border-collapse: collapse;','')}"> <apex:outputText style="font-size:20px;" value="{!c.Name}" />  </td>
+                    <td style ="{!if(c.Phone != null,'border: 1px ;border-collapse: collapse;','')}"><apex:outputText style="font-size:20px;" value="{!c.Phone}" /> </td>
+                    <td style ="{!if(c.Rating != null,'border: 1px ;border-collapse: collapse;','')}"> <apex:outputText style="font-size:20px;" value="{!c.Rating}" /> </td>
+                </tr>
+                
+                <div style="{!IF(MOD(rowNum,5)==0 , 'page-break-after:always;','' )}"/>
+                <apex:variable var="rowNum" value="{!rowNum + 1}"/>
+                
+            </apex:repeat>
+            
+            
+        </table> 
+        
+        
+    </apex:pageBlock>
+</apex:page>

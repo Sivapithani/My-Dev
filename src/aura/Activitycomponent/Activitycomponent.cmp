@@ -1,0 +1,138 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+	 <aura:attribute name="conid" type="string" />
+    <aura:dependency resource="markup://force:navigateToSObject" type="EVENT"/>
+    <div class="slds-container_large slds-align_absolute-center">
+      
+    <div class="slds-box">
+        <div class="slds-m-bottom_small slds-page-header">
+            <div class="slds-media">
+           
+                <div class="slds-media__figure">
+                    <lightning:avatar alternativeText="" fallbackIconName="standard:call" size="slds-avatar_medium" src="" variant="circle"></lightning:avatar>
+                </div>
+                             <div class="slds-media__body">
+                    <div class="slds-page-header__title slds-text-heading_small">Activity</div>
+                </div>
+                
+                <div class="slds-media__figure slds-media__figure_reverse">
+                    <lightning:buttonGroup>
+                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Back" iconName="utility:chevronleft" onclick="{!c.Navigatetocontact}"></lightning:button>
+                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Edit" iconName="utility:edit"></lightning:button>
+                        <lightning:button class="slds-theme_neutral" iconPosition="left" variant="neutral" label="Add Relationships" iconName="utility:add"></lightning:button>
+                    </lightning:buttonGroup>
+                </div>
+            </div>
+            <lightning:layout class="slds-m-top_xx-small">
+                <lightning:layoutItem smallDeviceSize="4" size="4">
+                    <lightning:input label="Type" placeholder="Activity" readonly="true" type="text" variant="standard"></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="1"></lightning:layoutItem>
+                <lightning:layoutItem  smallDeviceSize="3" size="3">
+                    <lightning:input label="Date" readonly="true" type="date" variant="standard"></lightning:input>
+                </lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout class="slds-m-top_xx-small">
+                <lightning:layoutItem size="4">
+                    <lightning:input label="Subject" placeholder="Meeting with Bill" readonly="true" type="text" variant="standard"></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="1"></lightning:layoutItem>
+                <lightning:layoutItem size="4">
+                    <lightning:input label="Owner" placeholder="Abraham Vargas" readonly="true" type="text" variant="standard"></lightning:input>
+                </lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout class="slds-m-top_xx-small">
+                <lightning:layoutItem size="12">
+                    <lightning:textarea label="Comments" disabled="true" placeholder="Abraham Met with John, Steve and Tom. To Review the sale of the business." variant="standard"></lightning:textarea>
+                </lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout class="slds-m-top_xx-small">
+                <lightning:layoutItem size="5">
+                    <div class="slds-text-title slds-text-color_weak" style="float: right;">Include on Client Briefing Memo</div>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="3">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout class="slds-m-top_x-small">
+                <lightning:layoutItem size="2">
+                    <div class=" slds-text-title slds-text-color_weak" style="float: left;">Consultant</div>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="2">
+                    <div class=" slds-text-title slds-text-color_weak" style="float: left;">Plan Sponsor</div>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="2">
+                    <div class=" slds-text-title slds-text-color_weak" style="float: left;" >Record Keeper</div>
+                </lightning:layoutItem>
+
+				<lightning:layoutItem size="2">
+                    <div class=" slds-text-title slds-text-color_weak" style="float: left;">Target Date</div>
+                </lightning:layoutItem>
+                 <lightning:layoutItem  size="2">
+                     <div class=" slds-text-title slds-text-color_weak" style="float: left;">Third Party <br/>Administrator</div>
+                </lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout>
+                <lightning:layoutItem size="2" flexibility="grow">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="2"  flexibility="grow">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem  size="2" flexibility="grow">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem  size="2" flexibility="grow">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+                <lightning:layoutItem  size="2" flexibility="grow">
+                    <lightning:input type="checkbox" class="slds-align_absolute-center" label=""></lightning:input>
+                </lightning:layoutItem>
+                
+            </lightning:layout>
+            <br/>
+            <lightning:layout>
+                <lightning:layoutItem flexibility="grow"></lightning:layoutItem>
+                <lightning:layoutItem flexibility="grow"></lightning:layoutItem>
+                <lightning:layoutItem flexibility="grow"></lightning:layoutItem>
+            </lightning:layout>
+            <lightning:layout class="slds-wrap" multipleRows="true">
+                <lightning:layoutItem size="6">
+                    <div class="slds-text-align_left slds-text-title slds-text-color_weak">Existing Relationships</div>
+                </lightning:layoutItem>
+                <lightning:layoutItem size="6"></lightning:layoutItem>
+            </lightning:layout>
+            <table class="slds-table slds-no-row-hover">
+                <thead>
+                    <tr class="slds-text-title_caps">
+                        <th>
+                            <div class="slds-truncate" title="Column 1">Name</div>
+                        </th>
+                        <th>
+                            <div class="slds-truncate" title="Column 1">Record Type</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td>
+                            <div class="slds-text-align_left slds-text-title slds-text-color_weak">Alfred I. duPont Testamentary Trust</div>
+                        </td>
+                        <td>
+                            <div class="slds-text-align_left slds-text-title slds-text-color_weak">Organization</div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td>
+                            <div class="slds-text-align_left slds-text-title slds-text-color_weak">Sean Kelly</div>
+                        </td>
+                        <td>
+                            <div class="slds-text-align_left slds-text-title slds-text-color_weak">Contact</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</aura:component>

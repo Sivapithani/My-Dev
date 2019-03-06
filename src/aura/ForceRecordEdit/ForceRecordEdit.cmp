@@ -1,0 +1,42 @@
+<aura:component controller ="ContactController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+    <!--<aura:handler name="onSaveSuccess" event="force:recordSaveSuccess" action="{!c.handleSaveSuccess}"/> 
+    <aura:handler name="init" value="{!this}" action ="{!c.doInit}"/> -->
+    <aura:attribute name="editActive" type="boolean" default="false"/>
+    <aura:attribute name="Serviceid" type="string"/>
+    <aura:attribute name="ServiceName" type="string" default="Service Provider"/>
+    <!-- Edit Service Modal -->
+    <div class="slds-m-around_xx-large">
+    <aura:if isTrue="{!v.editActive}">
+        <div class="slds-container_fluid">
+            <section>
+                <div aria-hidden="false" id="editPanel" role="dialog" class="slds-modal slds-fade-in-open slds-backdrop slds-backdrop_open" style="display:block;">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <lightning:buttonIcon iconName="utility:close"
+                                                  onclick="{! c.cancel }"
+                                                  alternativeText="close"
+                                                  variant="bare-inverse"
+                                                  class="slds-modal__close"/>
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Edit {!v.ServiceName}</h2>
+                        </header>
+                        <div class="slds-modal__content slds-p-around_medium">
+                            <force:recordEdit recordId="{!v.Serviceid}" aura:id='edit'/>
+                        </div>
+                        <footer class="slds-modal__footer">
+                            <lightning:button variant="neutral" 
+                                              label="Cancel"
+                                              title="Cancel"
+                                              onclick="{! c.cancel }"/>
+                            <lightning:button variant="brand" 
+                                              label="Save"
+                                              title="Save"
+                                              onclick="{! c.save }"/>
+                        </footer>  
+                    </div>
+                </div>
+            </section>
+        </div>
+    </aura:if>
+    </div>
+</aura:component>

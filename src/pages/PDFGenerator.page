@@ -1,0 +1,4 @@
+<apex:page controller="DataDisplayController" renderAs="pdf">
+    {!PDFData}
+   
+</apex:page>

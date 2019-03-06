@@ -1,0 +1,29 @@
+trigger EventRElationTrigger on ocm_EventRelation__c (after delete, after insert) 
+{
+	if(trigger.isAfter)
+	{        
+        if(trigger.isInsert)
+        {
+            // After Insert Section
+            if(!EventRelationTriggerHandler.isFirstCall){
+            	EventRelationTriggerHandler.handleAfterInsert(trigger.newMap);
+            }
+         }
+         
+  		/*
+  		else if(trigger.isUpdate)
+        {
+            if(!TaskRelationTriggerHandler.isFirstCall)
+            {
+            	TaskRelationTriggerHandler.handleAfterUpdate(trigger.newMap,trigger.oldMap);
+            }
+ 		}*/
+		else if(trigger.isDelete)
+ 		{
+            // After Delete Section
+            if(!EventRelationTriggerHandler.isFirstCall){
+            	EventRelationTriggerHandler.handleAfterDelete(trigger.oldMap);
+            }
+        }
+    }
+}

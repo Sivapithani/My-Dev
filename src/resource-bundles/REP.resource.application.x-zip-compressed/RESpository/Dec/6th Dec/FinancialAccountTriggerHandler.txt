@@ -1,0 +1,41 @@
+ Public Static void handleAfterinsertorupdateforOcmAffiliate(List<ocm_FinancialAccount__c > FinAccounts){
+        
+        Set<id>Cieids =new Set<id>();
+        List<ocm_LegalEntity__c > LegalEntityupdateList= new List<ocm_LegalEntity__c >();
+        
+        for(ocm_FinancialAccount__c fa:FinAccounts){
+            Cieids.add(fa.Client_Investment_Entity__c);
+        }
+        system.debug('Cieids@@@'+Cieids);
+        List<ocm_LegalEntity__c > Legalentitylist =[select id, name ,(select id, name,OCM_Affiliate__c from Financial_Accounts_CIE__r ) from ocm_LegalEntity__c where id IN:Cieids];
+        system.debug('Legalentitylist@@@'+Legalentitylist);
+        for(ocm_LegalEntity__c LE:Legalentitylist  ){
+            boolean isAffiliate =false;
+            boolean isNonAffiliate =false; 
+            system.debug('FA@@@'+LE.Financial_Accounts_CIE__r.size()+'  '+LE.Financial_Accounts_CIE__r);
+            if(LE.Financial_Accounts_CIE__r.size()>0){
+                for( ocm_FinancialAccount__c Fa:LE.Financial_Accounts_CIE__r ){
+                    if(Fa.OCM_Affiliate__c == 'Affiliate'){
+                        isAffiliate =true;
+                    }else if(Fa.OCM_Affiliate__c =='Non-Affiliate'){
+                        isNonAffiliate = true;
+                    }
+                    if(isAffiliate){
+                        LE.OCM_Affiliate__c ='Affiliate';
+                    }
+                    if(isNonAffiliate == true && isAffiliate ==false){
+                        LE.OCM_Affiliate__c ='Non-Affiliate';
+                    }
+                    if(isNonAffiliate == false && isAffiliate ==false)
+                         LE.OCM_Affiliate__c ='';
+                 }
+                LegalEntityupdateList.add(LE);
+                system.debug('LegalEntityupdateList@@@'+LegalEntityupdateList.size());
+            }else{
+                 LE.OCM_Affiliate__c =''; 
+                LegalEntityupdateList.add(LE);
+            }
+        }
+        if(LegalEntityupdateList.size()>0)
+        update LegalEntityupdateList;
+    }

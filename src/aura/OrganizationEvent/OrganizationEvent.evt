@@ -1,0 +1,4 @@
+<aura:event type="COMPONENT" description="by this evenet we will be passing the site location id to the Lookup component">
+    <aura:attribute name="siteLocationId" type="String"/>   
+
+</aura:event>

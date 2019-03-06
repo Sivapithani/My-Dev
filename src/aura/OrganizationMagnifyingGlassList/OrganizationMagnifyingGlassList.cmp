@@ -1,0 +1,12 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    
+     <aura:attribute name="selectedsrnoterecord" type="Account" description=""/>
+    <!--aura:registerEvent name="oSelectedRecordEvent" type="c:selectedsObjectRecordEvent"/-->
+    <aura:registerEvent name="siteLocIdEvent" type="c:OrganizationEvent"/>
+    
+    
+    <aura:registerEvent name="aok_evt_oSelectedRecordEvent" type="c:aok_evt_selectedsObjectRecordEvent"/>
+    
+    <td class="slds-truncate"> <a href="javascript:void(0);" onclick="{!c.selectRecord}"> {!v.selectedsrnoterecord.Name} </a> </td>
+ 
+</aura:component>

@@ -1,0 +1,41 @@
+public static void handleAfterInsertforRecentMeetingUpdateonoppty(map<id, ocm_EventRelation__c> newEventRel) 
+    {
+        
+        set<id>eventlist =new set<id>();
+        /*  list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+            Set<string>orgId =new Set<string>();
+            Set<string>FundProductId =new Set<string>(); */
+        for(ocm_EventRelation__c er:newEventRel.values()){ 
+            eventlist.add(er.Event__c);
+        }
+        map<id,list<ocm_EventRelation__c>> eventnEventRelationMap = new map<id,list<ocm_EventRelation__c>>();
+        
+        list<ocm_Event__c> evntList = [Select o.Name, o.Id, (Select Event__c, Related_Fund_Product__c, 							 Organization__c From Event_Relations__r)
+                                       From ocm_Event__c o where Id IN:eventlist];
+        
+        if(evntList !=null && evntList.size()>0){
+            for(ocm_Event__c e:evntList){
+                list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+                Set<string>orgId =new Set<string>();
+                Set<string>FundProductId =new Set<string>(); 
+                
+                for(ocm_EventRelation__c er:e.Event_Relations__r){
+                    if(er.Related_Fund_Product__c !=null && er.Related_Fund_Product__c== ''){
+                        FundProductId.add(er.Related_Fund_Product__c);
+                    }
+                    if(er.Organization__c !=null && er.Organization__c== ''){
+                        orgId.add(er.Organization__c);
+                    }
+                }		
+                
+            }
+        }
+
+if(orgId.size()>0 &&FundProductId.size()>0){
+    list<opportunity> opptylist =[SELECT Id, Fund_Product__c, AccountId FROM Opportunity where AccountId IN:orgId AND Fund_Product__c IN:FundProductId ]
+}
+
+
+    }
+
+https://test.salesforce.com/#

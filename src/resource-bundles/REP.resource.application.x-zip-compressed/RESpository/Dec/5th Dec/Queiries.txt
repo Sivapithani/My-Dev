@@ -1,0 +1,4 @@
+select id ,name,OCM_Affiliate__c, Client_Investment_Entity__r.name,Client_Investment_Entity__r.OCM_Affiliate__c  from ocm_FinancialAccount__c 
+select id, name ,(select id, name,OCM_Affiliate__c from Financial_Accounts_CIE__r where id='a0T1700000189PpEAI') from ocm_LegalEntity__c 
+
+select id, name ,(select id, name,OCM_Affiliate__c from Financial_Accounts_CIE__r ) from ocm_LegalEntity__c where id IN('a0T1700000189PpEAI','a0T1700000191GAEAY','a0T1700000194yeEAA')

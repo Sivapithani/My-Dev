@@ -1,0 +1,527 @@
+public class MailingListOverrideController
+{
+    public String contactId;
+    public String retUrlId;
+    public String ownerName;
+    public String returnURL;    
+    public Contact conEmailIds{get;set;}
+    public ocm_Mailing_List__c mailingList{get;set;}
+    public Boolean fundMailingFlag {get;set;}
+    public Boolean fundMailingIEFlag {get;set;}
+    public Boolean fundmailingGC {get;set;}
+    public Boolean fundmailingDowngradeNotification {get;set;}
+    public String selectedMethodOrType {get;set;}
+    public String assignEmailType {get;set;}
+    public String validationFlag {get;set;}
+    public boolean fmDefaultPref{get; set;}
+
+    PageReference PageRef;
+    
+    public MailingListOverrideController(ApexPages.standardController sc)
+    {
+        selectedMethodOrType = '';
+        validationFlag = '';
+        fmDefaultPref = false;
+        PageRef = ApexPages.CurrentPage();
+        Map<String, RecordType> mailingListRcMap = new Map<String, RecordType>([Select Id, Name, DeveloperName From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_MAILING_LIST]);
+        
+        retUrlId = ApexPages.currentPage().getParameters().get(OCM_Constants.RET_URL);
+        ocm_Mailing_List__c mailingList1 = (ocm_Mailing_List__c) sc.getRecord();
+        if(mailingList1 != null && mailingList1.id != null)
+        {
+            String preparingMailingListSoql = 'Select ';
+            Map<String, Schema.SObjectField> M = Schema.SObjectType.ocm_Mailing_List__c.fields.getMap();
+            for(String ss: M.keySet())
+            {
+                if (M.get(ss).getDescribe().isAccessible())
+                    preparingMailingListSoql += M.get(ss)+', ';
+            }
+            preparingMailingListSoql = preparingMailingListSoql.substring(0,preparingMailingListSoql.length()-2);
+            preparingMailingListSoql += '  From ocm_Mailing_List__c where Id = \''+mailingList1.Id+'\''; 
+            
+            list<ocm_Mailing_List__c> mailingListOverride = database.query(preparingMailingListSoql);
+            mailingList = mailingListOverride[0];
+        }
+        else
+        {
+            mailingList = mailingList1;
+        }
+        
+        RecordType resultRecordType = mailingListRcMap.get(mailingList.RecordTypeId);
+        if(resultRecordType == null)
+        {
+            for (Schema.RecordTypeInfo rtInfo : ocm_Mailing_List__c.SObjectType.getDescribe().getRecordTypeInfos()) 
+            {
+                if (rtInfo.isDefaultRecordTypeMapping()) 
+                {
+                    mailingList.RecordTypeId = rtInfo.RecordTypeId;
+                    resultRecordType = mailingListRcMap.get(rtInfo.RecordTypeId);
+              }
+            }
+        }
+        
+        if(resultRecordType != null){
+            if(resultRecordType.DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING){
+                fundMailingFlag = true;
+                fundMailingIEFlag = false;
+                fundmailingGC = false;
+                fundmailingDowngradeNotification = false;
+            }else if(resultRecordType.DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE){
+                fundMailingFlag = false;
+                fundMailingIEFlag = true;
+                fundmailingGC = false;
+                fundmailingDowngradeNotification = false;
+            }else if(resultRecordType.DeveloperName == OCM_Constants.OCM_RT_MAILING_GEN_CORRESPONDENCE){
+                fundMailingFlag = false;
+                fundMailingIEFlag = false;
+                fundmailingGC = true;
+                fundmailingDowngradeNotification = false;
+            }else if(resultRecordType.DeveloperName == OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION){
+                fundMailingFlag = false;
+                fundMailingIEFlag = false;
+                fundmailingGC = false;
+                fundmailingDowngradeNotification = true;
+            }
+            lookupByContact();
+        }
+    }
+    
+    public List<Schema.FieldSetMember> getFields() {
+        if(fundMailingFlag){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Fund_Mailing.getFields();
+        }else if(fundMailingIEFlag){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Fund_Mailing_Investment_Entity.getFields();
+        }else if(fundmailingGC){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.General_Correspondence.getFields();
+        }else if(fundmailingDowngradeNotification){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Downgrade_Notification.getFields();
+        }
+        return null;
+    }
+    
+    private boolean methodNtypeValidation()
+    {
+        boolean errFlag = false; 
+        map<String, String> mailingListMethodMap = new map<string, String>();
+        map<string, String> mailingListTypeMap = new map<string, String>();
+        list<Schema.FieldSetMember> fieldSetMemberList =  getFields();
+        for(Schema.FieldSetMember fieldSetMemberObj : fieldSetMemberList)
+        {       
+            string fld = fieldSetMemberObj.getFieldPath();
+            if(fieldSetMemberObj.getLabel().endswith('Method') || fieldSetMemberObj.getLabel().endswith('Delivery'))
+            {   
+                if(mailingList.get(fld) != null)
+                {                   
+                    String methodname = '';
+                    if(fieldSetMemberObj.getLabel().endswith('Delivery'))
+                        methodname = fieldSetMemberObj.getLabel().replace(' Delivery', '');
+                    else
+                        methodname = fieldSetMemberObj.getLabel().replace(' Delivery Method', '');
+                    //if(methodname.endswith(')'))
+                        //methodname = removeSplFromName(methodname);
+                    mailingListMethodMap.put(methodname,String.valueOf(mailingList.get(fld)));
+                }
+            }  
+            if(fundMailingFlag == true)
+            {
+                if(fieldSetMemberObj.getLabel().endswith('Type(s)'))
+                {
+                    String methodname = fieldSetMemberObj.getLabel().replace(' Email Type(s)', '');    
+                    mailingListTypeMap.put(methodname,String.valueOf(mailingList.get(fld)));
+                }
+            }
+            else
+            {
+                if(fieldSetMemberObj.getLabel().endswith('Type'))
+                {
+                    String methodname = fieldSetMemberObj.getLabel().replace(' Email Type', '');    
+                        mailingListTypeMap.put(methodname,String.valueOf(mailingList.get(fld)));
+                } 
+            } 
+        }
+        for(String str: mailingListMethodMap.keySet())
+        {
+            if((mailingListMethodMap.get(str) != null && mailingListMethodMap.get(str).contains('Email')) || (fundMailingFlag == true && mailingListMethodMap.get(str).contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION)))
+            {
+                if(mailingListTypeMap.get(str) == null || mailingListTypeMap.get(str) == '')// || (fundMailingFlag == true && mailingList.get(mailingListTypeMap.get(str)) == null))
+                {
+                    errFlag = true;
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, 'Please select a value for '+str+ ' Email Type'));
+                    break;
+                }   
+            }
+            if(mailingListMethodMap.get(str) != null && mailingListMethodMap.get(str).contains('Fax'))
+            {
+                if((conEmailIds.Fax == null) || (conEmailIds.Fax == ''))
+                {
+                    errFlag = true;
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_DeliveryMethod_Fax));
+                    break;
+                }   
+            }
+        }        
+        return errFlag; 
+    }    
+    /*
+    private String removeSplFromName(String delMethodName)
+    {
+        string methodNameDec = '';
+        list<String> methodNameList = delMethodName.split(' ',-1);      
+        if(methodNameList.size()>0)
+        {
+            for(Integer i= 0; i <methodNameList.size()-1; i++)
+            {
+                if(methodNameDec == '')
+                    methodNameDec += methodNameList[i];
+                else
+                    methodNameDec += ' '+methodNameList[i];         
+            }
+        }
+        return methodNameDec;
+    }*/
+       
+    private void assignEmailDependType()
+    {
+        map<String, String> mailingListMethodMap = new map<String, String>();
+        map<string, String> mailingListTypeMap = new map<string, String>();
+        list<Schema.FieldSetMember> fieldSetMemberList =  getFields();
+        for(Schema.FieldSetMember fieldSetMemberObj : fieldSetMemberList)
+        {       
+            string fld = fieldSetMemberObj.getFieldPath();
+            if(fieldSetMemberObj.getLabel().endswith('Method') || fieldSetMemberObj.getLabel().endswith('Delivery'))
+            {   
+                String methodname = '';
+                if(fieldSetMemberObj.getLabel().endswith('Delivery'))
+                    methodname = fieldSetMemberObj.getLabel().replace(' Delivery', '');
+                else
+                    methodname= fieldSetMemberObj.getLabel().replace(' Delivery Method', '');
+                //if(methodname.endswith(')'))
+                    //methodname = removeSplFromName(methodname);   
+                mailingListMethodMap.put(fld,methodname);
+            }
+            if(fundMailingFlag == true)
+            {
+                if(fieldSetMemberObj.getLabel().endswith('Type(s)'))
+                {
+                    String methodname = fieldSetMemberObj.getLabel().replace(' Email Type(s)', '');    
+                    mailingListTypeMap.put(methodname,fld);
+                }
+            } 
+            else
+            {
+                if(fieldSetMemberObj.getLabel().endswith('Type'))
+                {
+                    String methodname = fieldSetMemberObj.getLabel().replace(' Email Type', '');    
+                    mailingListTypeMap.put(methodname,fld);
+                }
+            }  
+        }
+        if((assignEmailType != null) && (mailingListMethodMap.size() > 0) && (mailingListTypeMap.size() > 0))
+        {
+            if((selectedMethodOrType != null) && (selectedMethodOrType != ''))
+            {
+                if(mailingListMethodMap.get(assignEmailType) != null)
+                {                    
+                    if(mailingListTypeMap.get(mailingListMethodMap.get(assignEmailType)) != null)
+                    {
+                        if(selectedMethodOrType == OCM_Constants.OCM_TASK_TYPE_EMAIL)                        
+                            mailingList.put(mailingListTypeMap.get(mailingListMethodMap.get(assignEmailType)),OCM_Constants.MailingList_EmailType_Email1);
+                        else 
+                            if(fundMailingFlag == true)
+                                mailingList.put(mailingListTypeMap.get(mailingListMethodMap.get(assignEmailType)),OCM_Constants.MailingList_EmailType_Email1);                        
+                    }
+                }
+            }    
+            else    
+            {   
+                if(mailingListMethodMap.get(assignEmailType) != null)
+                {
+                    if(mailingListTypeMap.get(mailingListMethodMap.get(assignEmailType)) != null)
+                        mailingList.put(mailingListTypeMap.get(mailingListMethodMap.get(assignEmailType)),null);
+                }   
+            }   
+        }
+    }
+    
+    public void validateMailingPreferences()
+    {
+        validationFlag = '';
+        if(conEmailIds == null)
+        {
+            lookupByContact();
+        }
+        if(selectedMethodOrType != null && selectedMethodOrType.trim().length() > 0)
+        {
+          list<String> selectedMethodREmailList = new list<String>();
+          selectedMethodREmailList =  selectedMethodOrType.split(';');
+          
+          for(String emailCheck : selectedMethodREmailList)
+          {
+            if(emailCheck == OCM_Constants.MailingList_DeliveryMethod_Fax)
+              {
+                  selectedMethodOrType = emailCheck;
+                  if(conEmailIds.Fax == null || conEmailIds.Fax == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_DeliveryMethod_Fax;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_DeliveryMethod_Fax));
+                  }
+              }
+              else if(emailCheck == OCM_Constants.OCM_TASK_TYPE_EMAIL || (fundMailingFlag == true && emailCheck == OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION))
+              {
+                  selectedMethodOrType = emailCheck;
+                  if(conEmailIds.Email == null || conEmailIds.Email == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_EmailType_Email1;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_EmailType_Email1));
+                  }
+                  else
+                  {
+                      assignEmailDependType();
+                  }
+              }            
+              else if(emailCheck == OCM_Constants.MailingList_EmailType_Email1)
+              {
+                  if(conEmailIds.Email == null || conEmailIds.Email == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_EmailType_Email1;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_EmailType_Email1));
+                  }
+              }
+              else if(emailCheck == OCM_Constants.MailingList_EmailType_Email2)
+              {
+                  if(conEmailIds.Email_2__c == null || conEmailIds.Email_2__c == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_EmailType_Email2;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_EmailType_Email2));
+                    
+                  }
+              }
+              else if(emailCheck == OCM_Constants.MailingList_EmailType_Email3)
+              {
+                  if(conEmailIds.Email_3__c == null || conEmailIds.Email_3__c == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_EmailType_Email3;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' '+OCM_Constants.MailingList_EmailType_Email3));
+                  }
+              }
+              else if(emailCheck == 'Email 4')
+              {
+                  if(conEmailIds.Email_4__c == null || conEmailIds.Email_4__c == '')
+                  {
+                      validationFlag = 'Email 4';
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 4'));
+                  }
+              }
+              else if(emailCheck == 'Email 5')
+              {
+                  if(conEmailIds.Email_5__c == null || conEmailIds.Email_5__c == '')
+                  {
+                      validationFlag = 'Email 5';
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 5'));
+                  }
+              }
+              else if(emailCheck == 'Email 6')
+              {
+                  if(conEmailIds.Email_6__c == null || conEmailIds.Email_6__c == '')
+                  {
+                      validationFlag = 'Email 6';
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 6'));
+                  }
+              }
+              else if(emailCheck == 'Email 7')
+              {
+                  if(conEmailIds.Email_7__c == null || conEmailIds.Email_7__c == '')
+                  {
+                      validationFlag = 'Email 7';
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 7'));
+                  }
+              }
+              else if(emailCheck == 'Email 8')
+              {
+                  if(conEmailIds.Email_8__c == null || conEmailIds.Email_8__c == '')
+                  {
+                      validationFlag = 'Email 8';
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, conEmailIds.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 8'));
+                  }
+              }  
+              else if(emailCheck == OCM_Constants.MailingList_EmailType_WriteInEmail)
+              {
+                  if(mailingList.Write_in_Email_Address__c == null || mailingList.Write_in_Email_Address__c == '')
+                  {
+                      validationFlag = OCM_Constants.MailingList_EmailType_WriteInEmail;
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR, OCM_Constants.MailingList_EmailType_ErrMsgWriteIn));
+                  }
+              }         
+            if(validationFlag != '')
+              break;
+      }
+        }
+        else
+            assignEmailDependType();      
+    }
+    
+    public PageReference save()
+    {
+        system.SavePoint sp = Database.setSavepoint();
+        try
+        {   
+            if(validationFlag == '')
+            {
+                if(methodNtypeValidation() == false)
+                {
+                    upsert mailingList;
+                    return new ApexPages.PageReference(retUrlId);
+                }
+            }
+            else
+            {
+                selectedMethodOrType = validationFlag;
+                validateMailingPreferences();
+            }   
+        }
+        catch(Exception e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+        }
+        return null;
+    }
+    
+    public PageReference saveNnew() 
+    {
+        system.SavePoint sp = Database.setSavepoint();
+        try
+        {
+      if(methodNtypeValidation() == false)
+      {
+          upsert mailingList; 
+          mailingList.Id = null;
+      }  
+      return null;
+        }
+        catch(Exception e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+        }
+        return null;
+    }
+    
+    public void lookupByContact()
+    {    
+        if(mailingList.Contact__c != null || mailingList.Contact__c != '')
+            contactId = mailingList.Contact__c;
+        
+        if(contactId != null)
+            conEmailIds = [Select c.Name, c.LastName, c.FirstName, c.Fax, c.Email_8__c, c.Email_7__c, c.Email_6__c, c.Email_5__c, c.Email_4__c, c.Email_3__c, c.Email_2__c, c.Email From Contact c where id = :contactId];
+    }
+    
+    public void fundMailingDefaultPreferences()
+    {  
+       if(fmDefaultPref == true)
+       {
+            mailingList.ADV_Correspondence__c = OCM_Constants.OCM_TASK_TYPE_EMAIL;
+            mailingList.ADV_Correspondence_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Distribution_Notices__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Distribution_Notices_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Drawdown_Notices__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Capital_Call_Notices_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Legal_Mailings__c = OCM_Constants.OCM_TASK_TYPE_EMAIL;
+            mailingList.Legal_Correspondence_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Partner_Statements__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Account_Statements_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Quarterly_Letters__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Quarterly_Letters_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Tax_Mailings_K_1__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Tax_Documents_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            mailingList.Fund_Financials__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            mailingList.Fund_Financials_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+            //mailingList.Holdings_Report__c = OCM_Constants.MailingList_PORTAL_WITH_NOTIFICATION;
+            //mailingList.Holdings_Report_Email_Type_s__c = OCM_Constants.MailingList_EmailType_Email1;
+       }
+       else
+       {
+            mailingList.ADV_Correspondence__c = '';
+            mailingList.ADV_Correspondence_Email_Type_s__c = '';
+            mailingList.Distribution_Notices__c =  '';
+            mailingList.Distribution_Notices_Email_Type_s__c = '';
+            mailingList.Drawdown_Notices__c = '';
+            mailingList.Capital_Call_Notices_Email_Type_s__c = '';
+            mailingList.Legal_Mailings__c = '';
+            mailingList.Legal_Correspondence_Email_Type_s__c = '';
+            mailingList.Partner_Statements__c = '';
+            mailingList.Account_Statements_Email_Type_s__c = '';
+            mailingList.Quarterly_Letters__c = '';
+            mailingList.Quarterly_Letters_Email_Type_s__c = '';
+            mailingList.Tax_Mailings_K_1__c = '';
+            mailingList.Tax_Documents_Email_Type_s__c = '';
+            mailingList.Fund_Financials__c = '';
+            mailingList.Fund_Financials_Email_Type_s__c = '';
+            //mailingList.Holdings_Report__c = '';
+            //mailingList.Holdings_Report_Email_Type_s__c = '';
+       }
+    }
+    
+    public void removeOCPDocAccess()
+    {  
+       if(mailingList.Remove_OCP_Document_Access__c == true)
+       {
+            mailingList.Partner_Statements__c = removePWNorPWWONfromDelieverymethod(mailingList.Partner_Statements__c);
+            if(!(mailingList.Partner_Statements__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Account_Statements_Email_Type_s__c = '';
+            
+            mailingList.Fund_Financials__c = removePWNorPWWONfromDelieverymethod(mailingList.Fund_Financials__c);
+            if(!(mailingList.Fund_Financials__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Fund_Financials_Email_Type_s__c = '';
+            
+            mailingList.Quarterly_Letters__c = removePWNorPWWONfromDelieverymethod(mailingList.Quarterly_Letters__c);
+            if(!(mailingList.Quarterly_Letters__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Quarterly_Letters_Email_Type_s__c = '';
+            
+            mailingList.Holdings_Report__c = removePWNorPWWONfromDelieverymethod(mailingList.Holdings_Report__c);
+            if(!(mailingList.Holdings_Report__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Holdings_Report_Email_Type_s__c = '';
+            
+            mailingList.Investment_Writeup__c = removePWNorPWWONfromDelieverymethod(mailingList.Investment_Writeup__c);
+            if(!(mailingList.Investment_Writeup__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Investment_Writeup_Email_Type_s__c = '';
+            
+            mailingList.Tax_Mailings_K_1__c = removePWNorPWWONfromDelieverymethod(mailingList.Tax_Mailings_K_1__c);
+            if(!(mailingList.Tax_Mailings_K_1__c.contains(OCM_Constants.OCM_TASK_TYPE_EMAIL)))
+              mailingList.Tax_Documents_Email_Type_s__c = '';
+       }        
+    }
+    
+    private string removePWNorPWWONfromDelieverymethod(String MLDelieverymethod)
+    {
+      String finalDM = '';
+      if(!(String.isEmpty(MLDelieverymethod)))
+      {
+        list<String> MLDelieverymethods = MLDelieverymethod.split(';');
+      for(String individualDM : MLDelieverymethods)
+      {
+        if(!((individualDM.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION)) || (individualDM.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))))
+          finalDM +=individualDM+'; ';
+      }
+      if(finalDM != '' && finalDM.length() > 0)    
+        finalDM = finalDM.substring(0, finalDM.length()-2);
+      }
+    return finalDM;  
+    }    
+    
+    public PageReference cancel()
+    {
+        try
+        {
+            if(retUrlId != null)
+                return new ApexPages.PageReference(retUrlId);
+            else
+                return new ApexPages.PageReference('/' + Schema.SObjectType.Contact.getKeyPrefix() + '/o');
+        }
+        catch(Exception e)
+        {
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+                return null;
+        }
+    }
+}

@@ -1,0 +1,12 @@
+<aura:component >
+    <aura:attribute name="account" type="Account" />
+    <aura:attribute name="index" type="Integer" />
+    <tr>
+        <td class="indexCol"><a href="{!'/r/Account/'}">{!v.index}</a></td>
+        <td> <a href = "" aura:id="{!v.account.id}" onclick = "{!c.navigateToAccount}"> {!v.account.Name} </a></td>
+        <td>{!v.account.AccountNumber}</td>
+        <td class="btnCol">
+            <ui:button label="Edit" press="{!c.doEdit}" />
+        </td>
+    </tr>
+</aura:component>

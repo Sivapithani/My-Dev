@@ -1,0 +1,281 @@
+public with sharing class EventRelationTriggerHandler 
+{
+	public static boolean isFirstCall = false;
+	
+	public static void handleAfterInsert(map<id, ocm_EventRelation__c> newEventRel) 
+	{
+        try
+        {
+            if(!isFirstCall)
+                isFirstCall = true;
+            
+            map<id,ocm_EventRelation__c> fundProductMap = new  map<id,ocm_EventRelation__c>();
+            map<id,ocm_EventRelation__c> relOrgIdSet = new map<id,ocm_EventRelation__c>();
+			        
+            for(ocm_EventRelation__c eventRel:newEventRel.values())
+            {
+            	if(eventRel.Related_Fund_Product__c != null)
+            		fundProductMap.put(eventRel.Id,eventRel);
+            	if(eventRel.Organization__c != null)
+            		relOrgIdSet.put(eventRel.Organization__c,eventRel);
+                
+            }
+            
+            if(fundProductMap.size()>0)
+            	updateEventStrategyFundProduct(fundProductMap);
+            
+            //Calling method to update Last Activity Date on Org
+            //updateOrgLastActivityDate(newEventRel);
+            if(relOrgIdSet.size()>0)
+                updateOrgLastActivityDate(relOrgIdSet);
+            
+            //Calling method to update Most Recent Meeting on Opportunity
+            updateOpptyMostReccentMeeting(newEventRel);
+  
+        }
+        catch(Exception e) 
+        {
+            for(ocm_EventRelation__c eventRel : newEventRel.values()) 
+                eventRel.addError(e.getMessage());
+        } 
+	}
+   
+	public static void handleAfterDelete(map<id,ocm_EventRelation__c> oldEventRelRecs)
+	{
+        try
+        {
+            if(!isFirstCall)
+                isFirstCall = true;
+                
+            map<id,ocm_EventRelation__c> fundProductMap = new  map<id,ocm_EventRelation__c>();
+            map<id,ocm_EventRelation__c> relOrgIdSet = new map<id,ocm_EventRelation__c>();
+            for(ocm_EventRelation__c eventRel:oldEventRelRecs.values())
+            {
+            	if(eventRel.Related_Fund_Product__c != null)
+            		fundProductMap.put(eventRel.Id,eventRel);
+            	if(eventRel.Organization__c != null)
+            		relOrgIdSet.put(eventRel.Organization__c,eventRel);	
+            }    
+            
+            if(fundProductMap.size()>0)
+            	updateEventStrategyFundProduct(fundProductMap);
+            
+            //Calling method to update Last Activity Date on Org
+        	//updateOrgLastActivityDate(oldEventRelRecs);
+        	if(relOrgIdSet.size()>0)
+            	updateOrgLastActivityDate(relOrgIdSet);
+            
+            //Calling method to update Most Recent Meeting on Opportunity.
+            updateOpptyWhenMeetingRelationRcdDeleted(oldEventRelRecs);
+        }
+        catch(Exception e)
+        {
+            for(ocm_EventRelation__c a : oldEventRelRecs.values()) 
+            {
+                a.addError(e.getMessage());
+            }
+        }
+    }	 
+	 
+	 //update task Strategy field 
+    public static void updateEventStrategyFundProduct(map<id, ocm_EventRelation__c> fundProductRelMap)
+    { 
+		set<id> eventIds = new set<id>();
+		set<string> eventNames = new set<string>();
+		map<id,ocm_EventRelation__c> val = new map<id,ocm_EventRelation__c>([Select o.Related_Fund_Product__c, o.Name, o.Id, o.Event__c From ocm_EventRelation__c o where id=:fundProductRelMap.keyset()]);
+		for(ocm_EventRelation__c eVal:fundProductRelMap.values())
+		{
+			eventIds.add(eVal.Event__c);
+		}
+		map<id,string> stragtegyMap = new map<id, string>();
+		map<id,ocm_Event__c> eventMap = new map<id,ocm_Event__c>([Select o.Name, o.Id, (Select Event__c, Related_Fund_Product__c, Related_Fund_Product__r.Strategy__r.Name From Event_Relations__r) From ocm_Event__c o where id=:eventIds]);
+		for(ocm_Event__c ea:eventMap.values())
+		{	
+			for(ocm_EventRelation__c er:ea.Event_Relations__r)
+			{
+				if(er.Related_Fund_Product__r.Strategy__r.Name != null)
+				{
+					if(stragtegyMap.containsKey(er.Event__c))
+					{
+						if(stragtegyMap.get(er.Event__c) != er.Related_Fund_Product__r.Strategy__r.Name)
+						{
+							if(!(eventNames.contains(er.Related_Fund_Product__r.Strategy__r.Name)))
+							{
+							string stratName;
+							stratName = stragtegyMap.get(er.Event__c)+'\n'+ er.Related_Fund_Product__r.Strategy__r.Name;
+							stragtegyMap.remove(er.Event__c);
+							stragtegyMap.put(er.Event__c, stratName);
+							eventNames.add(er.Related_Fund_Product__r.Strategy__r.Name);
+							}
+						}	
+					}
+					else
+						stragtegyMap.put(er.Event__c, er.Related_Fund_Product__r.Strategy__r.Name);	
+				}
+			}
+		}
+		map<id, ocm_Event__c> event = new map<id,ocm_Event__c>([Select o.Name, o.Id From ocm_Event__c o where id=:stragtegyMap.keyset()]);
+		list<ocm_Event__c> resultList = new list<ocm_Event__c>();
+		for(ocm_Event__c eventValue:event.Values())
+		{
+			resultList.add(eventValue);
+		}
+		if(resultList.size() > 0)
+			update resultList;
+		
+		//Cleraring Values
+		set<Id> clearSet = new set<Id>();
+		for(ocm_Event__c ea:eventMap.values())
+		{
+			if(!stragtegyMap.containsKey(ea.id))
+			{
+				clearSet.add(ea.Id);
+			}
+		}
+		
+		map<id, ocm_Event__c> cEvent = new map<id,ocm_Event__c>([Select o.Name, o.Id From ocm_Event__c o where id=:clearSet]);
+		list<ocm_Event__c> clearResultList = new list<ocm_Event__c>();
+		for(ocm_Event__c eventValue:cEvent.Values())
+		{
+			clearResultList.add(eventValue);
+		}
+		if(clearResultList.size() > 0)
+			update clearResultList;		
+    } 
+    
+    //update Organization Last Activity Date
+    public static void updateOrgLastActivityDate(map<id, ocm_EventRelation__c> orgIds)
+    { 
+		map<id,date> orgMapDate = new map<id,date>();		
+		//Getting latest task relations for the orgs
+		AggregateResult[] groupedResults = [SELECT Organization__c, MAX(Event__r.StartDate__c) latest 
+										      FROM ocm_EventRelation__c where Organization__c in : orgIds.keySet() 
+										      GROUP BY Organization__c];
+		
+		for (AggregateResult ar : groupedResults)  {
+			orgMapDate.put((Id)ar.get(OCM_Constants.EVENT_RELATED_ORG),(date)ar.get('latest'));
+		}
+		
+		//Getting latest task relations for the orgs
+		groupedResults = [SELECT Related_Organization__c, MAX(Task__r.Due_Date__c) latest 
+					      FROM ocm_Task_Relation__c where Related_Organization__c in : orgIds.keySet() 
+					      and (Task__r.Type__c = :OCM_Constants.OCM_TASK_TYPE_EMAIL or Task__r.Type__c = :OCM_Constants.OCM_TASK_TYPE_PHONE) 
+					      GROUP BY Related_Organization__c];
+		
+		for (AggregateResult ar : groupedResults) {
+			if(orgMapDate.containsKey((Id)ar.get(OCM_Constants.TASK_RELATED_ORG))){ 
+				date d = compareDates(orgMapDate.get((Id)ar.get(OCM_Constants.TASK_RELATED_ORG)), (date)ar.get('latest'));
+				orgMapDate.put((Id)ar.get(OCM_Constants.TASK_RELATED_ORG), d);
+			}else{
+				orgMapDate.put((Id)ar.get(OCM_Constants.TASK_RELATED_ORG),(date)ar.get('latest'));
+			}
+		}
+		
+		if(orgIds != null)
+		{
+			set<Account> finalAccSet = new set<Account>();
+			list<Account> updateAccts = new list<Account>([Select a.LastActivityDate, a.Id From Account a where Id In:orgIds.keySet()]);
+			for(Account acc:updateAccts)
+			{
+				acc.Last_Activity_Date__c = orgMapDate.get(acc.Id);
+				finalAccSet.add(acc);
+			}
+			
+			if(finalAccSet != null)
+			{
+				list<Account> finalAccList = new list<Account>();
+				finalAccList.addAll(finalAccSet);
+				update finalAccList;
+			}
+		}
+    }
+    // update  Opportunity Most Recent meeting field
+    public static void updateOpptyMostReccentMeeting(map<id, ocm_EventRelation__c> newEventRel){
+        
+        set<id>eventset =new set<id>();
+        map<id,list<ocm_EventRelation__c>> eventnEventRelationMap = new map<id,list<ocm_EventRelation__c>>();
+        map<id,set<id>>eventnOrgidMap= new  map<id,set<id>>();
+        map<id,set<id>>eventnFundProductidMap= new  map<id,set<id>>();
+        list<ocm_Event__c> evntList =new list<ocm_Event__c>();
+        Map<id,List<Opportunity>>eventnOpptymap = new  Map<id,List<Opportunity>>();
+        List<Opportunity> updateOpptyList =new List<Opportunity>(); 
+        
+        for(ocm_EventRelation__c er:newEventRel.values()){ 
+            eventset.add(er.Event__c);
+        } 
+        
+        if(eventset !=null)
+            evntList = [Select o.Name, o.Id, (Select Event__c, Related_Fund_Product__c, 							 Organization__c From Event_Relations__r)
+                        From ocm_Event__c o where Id IN:eventset];
+        if(evntList !=null && evntList.size()>0){
+            for(ocm_Event__c e:evntList){
+                list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+                Set<id>orgList =new Set<id>();
+                Set<id>FundProductList =new Set<id>(); 
+                if(e.Event_Relations__r != null){
+                    for(ocm_EventRelation__c er:e.Event_Relations__r){
+                        if(er.Related_Fund_Product__c !=null ){
+                            FundProductList.add(er.Related_Fund_Product__c);
+                        }
+                        if(er.Organization__c !=null ){
+                            orgList.add(er.Organization__c);
+                        }
+                        erList.add(er);
+                        eventnOrgidMap.put(e.id, orgList);
+                        eventnFundProductidMap.put(e.id,FundProductList);
+                    }
+                }
+                eventnEventRelationMap.put(e.id,erList);
+            }
+        }
+        if(eventnEventRelationMap.size() >0){
+           
+            for(id eventid:eventnEventRelationMap.keyset()){
+                list<opportunity> opptylist =[SELECT Id, Fund_Product__c, AccountId,Most_Recent_Meeting__c FROM Opportunity where AccountId IN:eventnOrgidMap.get(eventid) AND Fund_Product__c IN:eventnFundProductidMap.get(eventid)]; 
+                eventnOpptymap.put(eventid,opptylist); 
+            }
+        }
+        if(eventnOpptymap.size()>0){
+            for(id eventId :eventnOpptymap.keySet()){
+                for(opportunity opp:eventnOpptymap.get(eventId)){
+                    opp.Most_Recent_Meeting__c =eventId;
+                    updateOpptyList.add(opp);
+                }
+            }
+        }
+        if(updateOpptyList.size()>0)
+            update updateOpptyList; 
+    }
+    // update  Opportunity Most Recent meeting field when MeetingRelation Record is deleted.
+    public static void updateOpptyWhenMeetingRelationRcdDeleted(map<id,ocm_EventRelation__c>oldEventRelRecs){
+        set<Id>orgIdSet = new set<Id>();
+        set<ID>fundProductIdSet = new set<Id>();
+        List<opportunity> opptyList =new List<opportunity>();
+        for(ocm_EventRelation__c er:oldEventRelRecs.values()){
+            if(er.Organization__c !=null)
+                orgIdSet.add(er.Organization__c);
+            if(er.Related_Fund_Product__c !=null)
+                fundProductIdSet.add(er.Related_Fund_Product__c);
+        }
+        if(orgIdSet.size()>0 ||fundProductIdSet.size()>0){
+            opptyList =[SELECT Id, Fund_Product__c, AccountId,Most_Recent_Meeting__c FROM Opportunity where AccountId IN:orgIdSet OR Fund_Product__c IN:fundProductIdSet]; 
+            
+            if(opptyList.size()>0){
+                for(opportunity opp:opptyList){
+                    opp.Most_Recent_Meeting__c =null;
+                }
+                update opptyList;
+            }
+            
+        }
+    }
+    private static date compareDates(date d1, date d2)
+    {
+        date result;
+        if(d1 >= d2)
+            result = d1;
+        else
+            result = d2;
+        return result;
+    }
+}

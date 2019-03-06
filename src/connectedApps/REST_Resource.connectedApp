@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>siva.satya428@gmail.com</contactEmail>
+    <label>REST_Resource</label>
+    <oauthConfig>
+        <callbackUrl>https://ap7.salesforce.com/</callbackUrl>
+        <consumerKey>3MVG9ZL0ppGP5UrDLOEu2_DYodR8GYwyqqlQHmDaFOx2Ic7JhsTPszEmpM9h3T5GmzNbNx2_yda_7rhwxFuqU</consumerKey>
+        <scopes>Full</scopes>
+    </oauthConfig>
+</ConnectedApp>

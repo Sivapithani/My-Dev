@@ -1,0 +1,58 @@
+public static void handleAfterInsert(map<id, ocm_EventRelation__c> newEventRel) 
+	{
+
+        set<id>eventlist =new set<id>();
+    list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+    Set<string>orgId =new Set<string>orgId();
+    Set<string>FundProductId =new Set<string>orgId();
+        for(ocm_EventRelation__c er:newEventRel){ 
+           eventlist.add(er.Event__c);
+        }
+   map<id,list<ocm_EventRelation__c>> eventnEventRelationMap = new map<id,list<ocm_EventRelation__c>>();
+
+  list<ocm_Event__c> evntList = [Select o.Name, o.Id, (Select Event__c, Related_Fund_Product__c, 							 Organization__c From Event_Relations__r)
+				From ocm_Event__c o where Id IN:eventlist];
+
+if(evntList !=null && evntList.size()>0){
+	for(ocm_Event__c e:evntList){
+       list<ocm_EventRelation__c> erList=new list<ocm_EventRelation__c>();
+        for(ocm_EventRelation__c er:ea.Event_Relations__r){
+        if(er.Related_Fund_Product__c !=null && er.Related_Fund_Product__c== ''){
+        FundProductId.add(er.Related_Fund_Product__c);
+        }
+	if(er.Organization__c !=null && er.Organization__c== ''){
+        orgId.add(er.Organization__c);
+        }
+
+	}		
+	erList.add(er);
+	}
+       eventnEventRelationMap.put(e.id,erList);
+	
+	}
+
+}
+
+
+
+}
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+string query ='SELECT Id, Fund_Product__c, AccountId FROM Opportunity  Where';
+
+string wherecause= '';
+if(){
+}

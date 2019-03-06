@@ -1,0 +1,1231 @@
+public without sharing class MailingListTriggerHandler 
+{
+    public static boolean isBeforeCallFired = false;
+    public static void handleBeforeInsert(List<ocm_Mailing_List__c> newRecs)
+    {        
+        if(!isBeforeCallFired) 
+            isBeforeCallFired = true;
+        
+        map<Id, RecordType> mailingRecordTypes = new map<Id, RecordType>([Select Id, DeveloperName From RecordType where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST]);
+            
+        checkDeliveryMethodsforPortalNotification(newRecs, mailingRecordTypes);
+        orgValidation(newRecs, mailingRecordTypes);
+        mailngListRecValidation(newRecs);
+        processMailingRecs(newRecs, mailingRecordTypes);
+             
+    }
+    
+    public static void handleBeforeUpdate( map<id,ocm_Mailing_List__c> oldRecs, map<id,ocm_Mailing_List__c> newRecs)
+    {        
+        if(!isBeforeCallFired) 
+            isBeforeCallFired = true;
+        
+        map<Id, RecordType> mailingRecordTypes = new map<Id, RecordType>([Select Id, DeveloperName From RecordType where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST]);
+        
+        checkDeliveryMethodsforPortalNotification(newRecs.values(), mailingRecordTypes);
+        orgValidation(newRecs.values(), mailingRecordTypes);
+        mailngListRecValidation(newRecs.values());
+        processBeforeUpdateRecs(oldRecs,newRecs);
+        processMailingRecs(newRecs.values(), mailingRecordTypes);         
+    }     
+    
+    public static void checkDeliveryMethodsforPortalNotification(list<ocm_Mailing_List__c> mailingListRecords, map<Id, RecordType> rtMap)
+    {      
+        // if Contact has "OCP Opt Out" (OCP_Opt_Out__c) = "Yes," prevent save of related Mailing List record 
+        // when any Delivery Method field has value of "Portal with Notification."
+        if(mailingListRecords != null && mailingListRecords.size() > 0)
+        {
+            set<String> contactIds = new set<String>();
+            for(ocm_Mailing_List__c ml: mailingListRecords)
+            {
+                if(ml.Contact__c != null)
+                    contactIds.add(ml.Contact__c);
+            }
+                                    
+            map<String, Contact> contactsMap = new map<String, Contact>([Select Id, OCP_Opt_Out__c, AccountId, Account.Name From Contact Where (Id IN: contactIds)]);
+            
+            for(ocm_Mailing_List__c ml: mailingListRecords)
+            {
+                if(ml.Contact__c != null)
+                {
+                    if(contactsMap != null && contactsMap.size() > 0 && contactsMap.get(ml.Contact__c) != null)
+                    {
+                        if(contactsMap.get(ml.Contact__c).OCP_Opt_Out__c != null && contactsMap.get(ml.Contact__c).OCP_Opt_Out__c == OCM_Constants.OCM_VALUE_YES)
+                        {
+                            list<Schema.FieldSetMember> fieldSetMemberList =  getFields(rtMap, ml.RecordTypeId);
+                            for(Schema.FieldSetMember fieldSetMemberObj : fieldSetMemberList)
+                            {       
+                                if(fieldSetMemberObj.getLabel().endswith(' Delivery Method'))
+                                {
+                                    string fld = fieldSetMemberObj.getFieldPath();
+                                    String resultValue = String.valueOf(ml.get(fld));
+                                    if(resultValue != null && resultValue.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION))
+                                    {
+                                        ml.addError('The Contact you have selected has opted out of OCP. You cannot send notifications via the portal to this Contact.');
+                                    }
+                                }
+                            }
+                        }
+                        if(ml.Status__c != null && ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE && contactsMap.get(ml.Contact__c).AccountId != null && contactsMap.get(ml.Contact__c).Account.Name == 'No Longer With Company')
+                        {
+                            ml.addError('You cannot create an active Mailing list record to the Contact associated to "No Longer with Company" organization');
+                        }                        
+                    }
+                }
+            }
+        }
+    }
+    
+    public static List<Schema.FieldSetMember> getFields(map<Id, RecordType> rtMap, Id RecordTypeId) 
+    {
+        if(rtMap.get(RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Fund_Mailing.getFields();
+        }else if(rtMap.get(RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Fund_Mailing_Investment_Entity.getFields();
+        }else if(rtMap.get(RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_GEN_CORRESPONDENCE){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.General_Correspondence.getFields();
+        }else if(rtMap.get(RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION){
+            return SObjectType.ocm_Mailing_List__c.FieldSets.Downgrade_Notification.getFields();
+        }
+        return null;
+    }
+    
+    public static void orgValidation(list<ocm_Mailing_List__c> mailinglists, map<Id, RecordType> mailingRecordTypes)
+    {
+        list<ocm_Mailing_List__c> fundmailings = new list<ocm_Mailing_List__c>();
+        list<ocm_Mailing_List__c> funmailingInvEntities = new list<ocm_Mailing_List__c>();
+        
+        if(mailinglists != null && mailinglists.size() > 0)
+        {
+            for(ocm_Mailing_List__c ml: mailinglists)
+            {
+                if(ml.Contact__c != null && ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                {                    
+                    if(mailingRecordTypes.get(ml.RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING)
+                    {
+                        fundmailings.add(ml);
+                    }
+                    
+                    if(mailingRecordTypes.get(ml.RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE)
+                    {
+                        funmailingInvEntities.add(ml);
+                    }
+                }
+            }
+            
+            if(fundmailings != null && fundmailings.size() > 0)
+            {
+                validationFundMailing(fundmailings);
+            }
+            
+            if(funmailingInvEntities != null && funmailingInvEntities.size() > 0)
+            {
+                validationFundMailingInvestmentEntities(funmailingInvEntities);
+            }
+        }
+    }
+    
+    public static void validationFundMailing(list<ocm_Mailing_List__c> fundmailings)
+    {
+        set<Id> fundMailingcontactIds = new set<Id>();
+        map<Id, ocm_FinancialAccounttoLegalEntity__c> fa2leMap = new map<Id, ocm_FinancialAccounttoLegalEntity__c>();
+        
+        set<Id> ca2leIds = new set<Id>();
+        set<Id> account1Ids = new set<Id>();
+        set<Id> account2Ids = new set<Id>();
+        set<Id> faIds = new set<Id>();
+        
+        if(fundmailings != null && fundmailings.size() > 0)
+        {
+            for(ocm_Mailing_List__c ml: fundmailings)
+            {
+                if(ml.Contact__c != null)
+                {
+                    fundMailingcontactIds.add(ml.Contact__c);
+                }
+                 
+                if(ml.Client_Account_Legal_Entity_Relationship__c != null)
+                {
+                    ca2leIds.add(ml.Client_Account_Legal_Entity_Relationship__c);
+                }
+            }
+            
+            if(fundMailingcontactIds != null && fundMailingcontactIds.size() > 0)
+            {
+                // Validation for Mailing list with Fund Mailing recordtype
+                map<Id, Contact> contactsMap = new map<Id, Contact>([Select Id, AccountId, Account.Name From Contact Where Id IN: fundMailingcontactIds]);
+                if(contactsMap != null && contactsMap.size() > 0)
+                {
+                    for(Contact con: contactsMap.values())
+                    {
+                        if(con.AccountId != null)
+                        {
+                            account1Ids.add(con.AccountId);
+                        }
+                    }
+                    
+                    if(ca2leIds != null && ca2leIds.size() > 0)
+                    {
+                        fa2leMap = new map<Id, ocm_FinancialAccounttoLegalEntity__c>([Select Id, Name, Financial_Account__c, Financial_Account__r.Client_Investment_Entity__r.Client__c From ocm_FinancialAccounttoLegalEntity__c Where Id IN: ca2leIds]);
+                        if(fa2leMap != null && fa2leMap.size() > 0)
+                        {
+                            for(ocm_FinancialAccounttoLegalEntity__c fa2le: fa2leMap.values())
+                            {
+                                account2Ids.add(fa2le.Financial_Account__r.Client_Investment_Entity__r.Client__c);
+                                if(fa2le.Financial_Account__c != null)
+                                {
+                                    faIds.add(fa2le.Financial_Account__c);
+                                }
+                            }
+                        }    
+                    }
+                    
+                    map<String, ocm_OrganizationsToFinancialAccount__c> org2FAMap = new map<String, ocm_OrganizationsToFinancialAccount__c>();
+                    if(account1Ids != null && account1Ids.size() > 0)
+                    {
+                        list<ocm_OrganizationsToFinancialAccount__c> org2FAList = [Select Id, Name, Organization__c, Financial_Account__c, Status__c From ocm_OrganizationsToFinancialAccount__c Where Organization__c IN: account1Ids AND Financial_Account__c IN: faIds];
+                        if(org2FAList != null && org2FAList.size() > 0)
+                        {
+                            for(ocm_OrganizationsToFinancialAccount__c org2FA: org2FAList)
+                            {
+                                if(org2FA.Organization__c != null && org2FA.Financial_Account__c != null)
+                                {
+                                    org2FAMap.put(org2FA.Organization__c+'->'+org2FA.Financial_Account__c+'->'+org2FA.Status__c, org2FA);
+                                }
+                            }
+                        }
+                    }
+                    
+                    for(ocm_Mailing_List__c ml: fundmailings)
+                    {
+                        Boolean condition1 = false;
+                        Boolean condition2 = false;
+                        
+                        if(ml.Contact__c != null)
+                        {
+                            Contact con = contactsMap.get(ml.Contact__c);
+                            if(con != null && con.AccountId != null && (con.Account.Name != 'No Longer With Company' && !con.Account.Name.contains('Oaktree')))
+                            {                            
+                                ocm_FinancialAccounttoLegalEntity__c fa2le = new ocm_FinancialAccounttoLegalEntity__c();
+                                if(ml.Client_Account_Legal_Entity_Relationship__c != null)
+                                    fa2le = fa2leMap.get(ml.Client_Account_Legal_Entity_Relationship__c);
+                                if(con != null && fa2le != null)
+                                {
+                                    if(con.AccountId == fa2le.Financial_Account__r.Client_Investment_Entity__r.Client__c)
+                                        condition1 = true;
+                                }                            
+                                
+                                if(con != null && con.AccountId != null)
+                                {
+                                    if((con != null && con.AccountId != null) && (fa2le != null && fa2le.Financial_Account__c != null))
+                                    {
+                                        ocm_OrganizationsToFinancialAccount__c resultorg2FA = org2FAMap.get(con.AccountId+'->'+fa2le.Financial_Account__c+'->'+ml.Status__c);
+                                        if(ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                                        {
+                                            if(resultorg2FA != null)
+                                                condition2 = true;
+                                        }
+                                        else if(ml.Status__c == OCM_Constants.OCM_STATUS_INACTIVE)
+                                        {
+                                            ocm_OrganizationsToFinancialAccount__c resultorg2FA2 = org2FAMap.get(con.AccountId+'->'+fa2le.Financial_Account__c+'->'+OCM_Constants.OCM_STATUS_ACTIVE);
+                                            if(resultorg2FA != null || resultorg2FA2 != null)
+                                                condition2 = true;
+                                        }
+                                    }
+                                }
+                                if(!(condition1 == true || condition2 == true))                     
+                                    ml.addError(OCM_Constants.OCM_MAILING_VALIDATION_MSG);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    public static void validationFundMailingInvestmentEntities(list<ocm_Mailing_List__c> fundmailingInvEntities)
+    {
+        set<Id> fundMailingIEcontactIds = new set<Id>();
+        map<Id, ocm_LegalEntity__c> leMap = new map<Id, ocm_LegalEntity__c>();
+        
+        set<Id> cieIds = new set<Id>();
+        set<Id> account1Ids = new set<Id>();
+        set<Id> account2Ids = new set<Id>();
+        
+        Boolean condition1 = false;
+        Boolean condition2 = false;
+        
+        if(fundmailingInvEntities != null && fundmailingInvEntities.size() > 0)
+        {
+            for(ocm_Mailing_List__c ml: fundmailingInvEntities)
+            {
+                if(ml.Contact__c != null)
+                    fundMailingIEcontactIds.add(ml.Contact__c);
+                if(ml.Client_Investment_Entity__c != null)
+                    cieIds.add(ml.Client_Investment_Entity__c);
+            }
+        
+            if(fundMailingIEcontactIds != null && fundMailingIEcontactIds.size() > 0)
+            {
+                // Validation for Mailing list with Fund Mailing - Investment Entity recordtype 
+                map<Id, Contact> contactsMap = new map<Id, Contact>([Select Id, AccountId, Account.Name From Contact Where Id IN: fundMailingIEcontactIds]);
+                if(contactsMap != null && contactsMap.size() > 0)
+                {
+                    for(Contact con: contactsMap.values())
+                    {
+                        if(con.AccountId != null)
+                            account1Ids.add(con.AccountId);
+                    }
+                }
+                
+                if(cieIds != null && cieIds.size() > 0){
+                    leMap = new map<Id, ocm_LegalEntity__c>([Select Id, Name, Client__c  From ocm_LegalEntity__c Where Id IN: cieIds]);
+                    if(leMap != null && leMap.size() > 0)
+                    {
+                        for(ocm_LegalEntity__c le: leMap.values())
+                        {
+                            if(le.Client__c != null)
+                                account2Ids.add(le.Client__c);
+                        }
+                    }
+                }
+                    
+                map<String, ocm_AccounttoAccount__c> relatedOrganizationsMap = new map<String, ocm_AccounttoAccount__c>();
+                if((account1Ids != null && account1Ids.size() > 0) && (account2Ids != null && account2Ids.size() > 0))
+                {
+                    list<ocm_AccounttoAccount__c> a2aList = [Select Id, Name, Account__c, Account2__c From ocm_AccounttoAccount__c Where Account__c IN: account1Ids AND Account2__c IN: account2Ids];
+                    if(a2aList != null && a2aList.size() > 0)
+                    {
+                        for(ocm_AccounttoAccount__c ro: a2aList)
+                        {
+                            if(ro.Account__c != null && ro.Account2__c != null)
+                                relatedOrganizationsMap.put(ro.Account__c+'~'+ro.Account2__c, ro);
+                        }
+                    }
+                }
+                    
+                for(ocm_Mailing_List__c ml: fundmailingInvEntities)
+                {
+                    if(ml.Contact__c != null)
+                    {
+                        Contact con = contactsMap.get(ml.Contact__c);
+                        
+                        if(con != null && con.AccountId != null && (!(con.Account.Name.contains('Oaktree')) || con.Account.Name != 'No Longer with Company'))
+                        {
+                            ocm_LegalEntity__c le = new ocm_LegalEntity__c();
+                            if(ml.Client_Investment_Entity__c != null)
+                                le = leMap.get(ml.Client_Investment_Entity__c);
+                            if(con != null && le != null)
+                            {
+                                if(con.AccountId == le.Client__c)
+                                    condition1 = true;
+                            }
+                            
+                            if((con != null && con.AccountId != null) && (le != null && le.Client__c != null))
+                            {
+                                ocm_AccounttoAccount__c relatedOrg = relatedOrganizationsMap.get(con.AccountId+'~'+le.Client__c);
+                                if(relatedOrg != null)
+                                    condition2 = true;
+                            }
+                        
+                            if(!(condition1 == true || condition2 == true))
+                                ml.addError(OCM_Constants.OCM_MAILING_VALIDATION_MSG);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    public static void mailngListRecValidation(list<ocm_Mailing_List__c> newRecs)
+    {
+    	for(ocm_Mailing_List__c ml: newRecs)
+    	{
+			if(((String.isNotBlank(ml.ADV_Correspondence__c)) && ml.ADV_Correspondence__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.ADV_Correspondence__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Distribution_Notices__c)) && ml.Distribution_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Distribution_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Drawdown_Notices__c)) && ml.Drawdown_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Drawdown_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Legal_Mailings__c)) && ml.Legal_Mailings__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Legal_Mailings__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Partner_Statements__c)) && ml.Partner_Statements__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Partner_Statements__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Fund_Financials__c)) && ml.Fund_Financials__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Fund_Financials__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Quarterly_Letters__c)) && ml.Quarterly_Letters__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Quarterly_Letters__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Tax_Mailings_K_1__c)) && ml.Tax_Mailings_K_1__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Tax_Mailings_K_1__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Downgrade_Notification_Delivery_Method__c)) && ml.Downgrade_Notification_Delivery_Method__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Downgrade_Notification_Delivery_Method__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Account_Profile__c)) && ml.Account_Profile__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Account_Profile__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Factsheets_Delivery_Method__c)) && ml.Factsheets_Delivery_Method__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Factsheets_Delivery_Method__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Holdings_Report__c)) && ml.Holdings_Report__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Holdings_Report__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Investment_Writeup__c)) && ml.Investment_Writeup__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Investment_Writeup__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Final_Performance__c)) && ml.Final_Performance__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Final_Performance__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)) || 
+				((String.isNotBlank(ml.Preliminary_Performance__c)) && ml.Preliminary_Performance__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) && ml.Preliminary_Performance__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)))
+    		{
+    			ml.addError(OCM_Constants.OCM_PORTAL_WITH_WITHOUT_DUPLICATE_MSG);
+    		}    		
+    		if(((String.isNotBlank(ml.ADV_Correspondence_Email_Type_s__c)) && (String.isBlank(ml.ADV_Correspondence__c))) ||
+    			(String.isNotBlank(ml.Distribution_Notices_Email_Type_s__c) && (String.isBlank(ml.Distribution_Notices__c))) ||
+    			(String.isNotBlank(ml.Capital_Call_Notices_Email_Type_s__c) && (String.isBlank(ml.Drawdown_Notices__c))) ||
+    			(String.isNotBlank(ml.Legal_Correspondence_Email_Type_s__c) && (String.isBlank(ml.Legal_Mailings__c))) ||
+    			(String.isNotBlank(ml.Account_Statements_Email_Type_s__c) && (String.isBlank(ml.Partner_Statements__c))) ||
+    			(String.isNotBlank(ml.Fund_Financials_Email_Type_s__c) && (String.isBlank(ml.Fund_Financials__c))) ||
+    			(String.isNotBlank(ml.Quarterly_Letters_Email_Type_s__c) && (String.isBlank(ml.Quarterly_Letters__c))) ||
+    			(String.isNotBlank(ml.Tax_Documents_Email_Type_s__c) && (String.isBlank(ml.Tax_Mailings_K_1__c))) ||
+    			(String.isNotBlank(ml.Downgrade_Notification_Email_Type_s__c) && (String.isBlank(ml.Downgrade_Notification_Delivery_Method__c))) ||    			
+    			(String.isNotBlank(ml.Account_Profile_Email_Type_s__c) && (String.isBlank(ml.Account_Profile__c))) ||
+                (String.isNotBlank(ml.Factsheets_Email_Type_s__c) && (String.isBlank(ml.Factsheets_Delivery_Method__c))) || 
+                (String.isNotBlank(ml.Holdings_Report_Email_Type_s__c) && (String.isBlank(ml.Holdings_Report__c))) || 
+                (String.isNotBlank(ml.Investment_Writeup_Email_Type_s__c) && (String.isBlank(ml.Investment_Writeup__c))) || 
+                (String.isNotBlank(ml.Final_Performance_Email_Type_s__c) && (String.isBlank(ml.Final_Performance__c))) || 
+                (String.isNotBlank(ml.Preliminary_Performance_Email_Type_s__c) && (String.isBlank(ml.Preliminary_Performance__c))))
+            {
+            	 ml.addError(OCM_Constants.OCM_EMAIL_VALIDATION_MSG);  
+            }            
+    	}
+    }
+     
+    public static void processBeforeUpdateRecs(map<id,ocm_Mailing_List__c> oldRecs, map<id,ocm_Mailing_List__c> newRecs)
+    {
+        if(UserInfo.getUserName() == 'trsintegration@oaktreecapital.com.stg' || UserInfo.getUserName() == 'salesforceapi@oaktreecapital.com' || UserInfo.getUserName() == 'ccowgill@oaktreecapital.com' || UserInfo.getUserName() == 'trsintegration@oaktreecapital.com' || UserInfo.getUserName() == 'ccowgill@oaktreecapital.com.fdm' || UserInfo.getUserName() == 'trsintegration@oaktreecapital.com.fdm') //Hate To do This, but we can we need it temporarily 
+        {
+            for(ocm_Mailing_List__c newRec : newRecs.values())
+            {
+                ocm_Mailing_List__c oldRec = oldRecs.get(newRec.Id);
+                if(newRec.ADV_Correspondence__c == null && oldRec.ADV_Correspondence__c != null)
+                    newRec.ADV_Correspondence__c = oldRec.ADV_Correspondence__c;
+                if(newRec.Tax_Mailings_K_1__c == null && oldRec.Tax_Mailings_K_1__c != null)
+                    newRec.Tax_Mailings_K_1__c = oldRec.Tax_Mailings_K_1__c;
+                if(newRec.Distribution_Notices__c == null && oldRec.Distribution_Notices__c != null)
+                    newRec.Distribution_Notices__c = oldRec.Distribution_Notices__c;
+                if(newRec.Drawdown_Notices__c == null && oldRec.Drawdown_Notices__c != null)
+                    newRec.Drawdown_Notices__c = oldRec.Drawdown_Notices__c;
+                if(newRec.Final_Performance__c == null && oldRec.Final_Performance__c != null)
+                    newRec.Final_Performance__c = oldRec.Final_Performance__c;
+                if(newRec.Fund_Financials__c == null && oldRec.Fund_Financials__c != null)
+                    newRec.Fund_Financials__c = oldRec.Final_Performance__c;
+                if(newRec.Holdings_Report__c == null && oldRec.Holdings_Report__c != null)
+                    newRec.Holdings_Report__c = oldRec.Holdings_Report__c;
+                if(newRec.Partner_Statements__c == null && oldRec.Partner_Statements__c != null)
+                    newRec.Partner_Statements__c = oldRec.Partner_Statements__c;
+                if(newRec.Legal_Mailings__c == null && oldRec.Legal_Mailings__c != null)
+ 	               newRec.Legal_Mailings__c = oldRec.Legal_Mailings__c;                
+                if(newRec.Natural_Persons__c == null && oldRec.Natural_Persons__c != null)
+                    newRec.Natural_Persons__c = oldRec.Natural_Persons__c;
+                if(newRec.Quarterly_Letters__c == null && oldRec.Quarterly_Letters__c != null)
+                    newRec.Quarterly_Letters__c = oldRec.Quarterly_Letters__c;
+                if(newRec.Preliminary_Performance__c== null && oldRec.Preliminary_Performance__c!= null)
+                    newRec.Preliminary_Performance__c= oldRec.Preliminary_Performance__c;                
+            }
+        }
+    }  
+    
+    public static void processMailingRecs(List<ocm_Mailing_List__c> recs, map<Id, RecordType> mailingRecordTypes)
+    {
+        Set<String> clientAccountIds = new Set<String>();
+        Set<String> fa2leIds = new Set<String>();
+        list<ocm_Mailing_List__c> updateEmailonMailingList = new list<ocm_Mailing_List__c>();
+        set<Id> contactIds = new set<Id>();
+        
+        for(ocm_Mailing_List__c rec : recs)
+        {
+            if(rec.Financial_Account__c != null)
+            {
+                clientAccountIds.add(rec.Financial_Account__c);
+            }
+            
+            if(rec.Financial_Account__c == null && rec.Client_Account_Legal_Entity_Relationship__c != null)
+            {
+                fa2leIds.add(rec.Client_Account_Legal_Entity_Relationship__c);
+            }
+            
+            if(rec.Financial_Account__c != null && rec.Client_Account_Legal_Entity_Relationship__c != null)
+            {
+                fa2leIds.add(rec.Client_Account_Legal_Entity_Relationship__c);
+            }
+        }
+        
+        map<id,ocm_FinancialAccount__c> finMap = new Map<id,ocm_FinancialAccount__c>([Select Id, Name, Client_Investment_Entity__c, (Select Id, Name, Financial_Account__c From Financial_Account_to_Legal_Entities__r) from ocm_FinancialAccount__c where id in:clientAccountIds]);
+        for(ocm_Mailing_List__c rec : recs)
+        {
+            if(rec.Financial_Account__c != null && rec.Client_Account_Legal_Entity_Relationship__c == null)
+            {
+                ocm_FinancialAccount__c clientAccount = finMap.get(rec.Financial_Account__c);
+                if(clientAccount.Financial_Account_to_Legal_Entities__r != null && clientAccount.Financial_Account_to_Legal_Entities__r.size() >= 1)
+                {
+                    rec.Client_Account_Legal_Entity_Relationship__c = clientAccount.Financial_Account_to_Legal_Entities__r.get(0).Id;
+                    rec.Client_Investment_Entity__c = clientAccount.Client_Investment_Entity__c;
+                }
+            }
+        }
+        
+        map<String, ocm_FinancialAccounttoLegalEntity__c> fa2leMAP = new map<String, ocm_FinancialAccounttoLegalEntity__c>([Select Id, Name, Financial_Account__c, Exclude_from_OCP__c, Legal_Entity__c, Financial_Account__r.Client_Investment_Entity__r.eW8_Status__c From ocm_FinancialAccounttoLegalEntity__c Where Id IN: fa2leIds]);            
+        if(fa2leMAP != null && fa2leMAP.size() > 0)
+        {
+            for(ocm_Mailing_List__c rec : recs)
+            {
+                if(fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c) != null)
+                {                 
+                    rec.Financial_Account__c = fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c).Financial_Account__c;
+                    rec.eW8_Status__c = fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c).Financial_Account__r.Client_Investment_Entity__r.eW8_Status__c;
+                }   
+            }
+        }
+        
+        for(ocm_Mailing_List__c rec : recs)
+        {
+            if(mailingRecordTypes != null && mailingRecordTypes.get(rec.RecordTypeId).DeveloperName == OCM_Constants.OCM_RT_MAILING_FUND_MAILING)
+            {               
+                // Populating OCP_Document_Access_Type__c = 'Yes', if any of the below multi-picklist fields
+                // has the 'portal with notifiation' or 'portal without notification' values
+                if(rec.Status__c == OCM_Constants.OCM_STATUS_ACTIVE && ((rec.Partner_Statements__c != null && (rec.Partner_Statements__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Partner_Statements__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) ||
+                ((rec.Fund_Financials__c != null) && (rec.Fund_Financials__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Fund_Financials__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) || 
+                ((rec.Quarterly_Letters__c != null) && (rec.Quarterly_Letters__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Quarterly_Letters__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) || 
+                ((rec.Holdings_Report__c != null) && (rec.Holdings_Report__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Holdings_Report__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) || 
+                ((rec.Investment_Writeup__c != null) && (rec.Investment_Writeup__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Investment_Writeup__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) ||
+                ((rec.Distribution_Notices__c != null) && (rec.Distribution_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Distribution_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) ||
+                ((rec.Drawdown_Notices__c != null) && (rec.Drawdown_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Drawdown_Notices__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION))) ||
+                ((rec.Tax_Mailings_K_1__c!= null) && (rec.Tax_Mailings_K_1__c.contains(OCM_Constants.OCM_PORTAL_WITH_NOTIFICATION) || rec.Tax_Mailings_K_1__c.contains(OCM_Constants.OCM_PORTAL_WITHOUT_NOTIFICATION)))
+                ))
+                {
+                    if((fa2leMAP != null && fa2leMAP.size() > 0) && (fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c) != null) && (fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c).Exclude_from_OCP__c != null) && (fa2leMAP.get(rec.Client_Account_Legal_Entity_Relationship__c).Exclude_from_OCP__c == OCM_Constants.OCM_VALUE_YES))
+                        rec.addError('Portal with/without Notification options are not allowed to this CA2LE as it is excluded from OCP, please choose a different one!');                      
+                    else
+                        rec.OCP_Document_Access_Type__c = OCM_Constants.OCM_VALUE_YES;
+                }
+                else
+                {
+                    rec.OCP_Document_Access_Type__c = OCM_Constants.OCM_VALUE_NO;
+                }
+                                
+                if(rec.Status__c == OCM_Constants.OCM_STATUS_ACTIVE && ((rec.Account_Profile_Email_Type_s__c != null && rec.Account_Profile_Email_Type_s__c.contains('Email')) ||
+                (rec.Account_Statements_Email_Type_s__c != null && rec.Account_Statements_Email_Type_s__c.contains('Email')) || 
+                (rec.ADV_Correspondence_Email_Type_s__c != null && rec.ADV_Correspondence_Email_Type_s__c.contains('Email')) || 
+                (rec.Capital_Call_Notices_Email_Type_s__c != null && rec.Capital_Call_Notices_Email_Type_s__c.contains('Email')) || 
+                (rec.Distribution_Notices_Email_Type_s__c != null && rec.Distribution_Notices_Email_Type_s__c.contains('Email')) || 
+                (rec.Downgrade_Notification_Email_Type_s__c != null && rec.Downgrade_Notification_Email_Type_s__c.contains('Email')) ||
+                (rec.Factsheets_Email_Type_s__c != null && rec.Factsheets_Email_Type_s__c.contains('Email')) ||
+                (rec.Final_Performance_Email_Type_s__c != null && rec.Final_Performance_Email_Type_s__c.contains('Email')) ||
+                (rec.Firm_Announcements_Email_Type_s__c != null && rec.Firm_Announcements_Email_Type_s__c.contains('Email')) ||
+                (rec.Firm_Events_Email_Type_s__c != null && rec.Firm_Events_Email_Type_s__c.contains('Email')) || 
+                (rec.Fund_Financials_Email_Type_s__c != null && rec.Fund_Financials_Email_Type_s__c.contains('Email')) ||
+                (rec.Fund_Specific_Events_Email_Type_s__c != null && rec.Fund_Specific_Events_Email_Type_s__c.contains('Email')) ||
+                (rec.Investment_Writeup_Email_Type_s__c != null && rec.Investment_Writeup_Email_Type_s__c.contains('Email')) ||
+                (rec.Legal_Correspondence_Email_Type_s__c != null && rec.Legal_Correspondence_Email_Type_s__c.contains('Email')) || 
+                (rec.Holdings_Report_Email_Type_s__c != null && rec.Holdings_Report_Email_Type_s__c.contains('Email')) || 
+                (rec.Preliminary_Performance_Email_Type_s__c != null && rec.Preliminary_Performance_Email_Type_s__c.contains('Email')) || 
+                (rec.Quarterly_Letters_Email_Type_s__c != null && rec.Quarterly_Letters_Email_Type_s__c.contains('Email')) || 
+                (rec.Tax_Documents_Email_Type_s__c != null && rec.Tax_Documents_Email_Type_s__c.contains('Email'))))
+                {
+                    updateEmailonMailingList.add(rec); 
+                    contactIds.add(rec.Contact__c);                 
+                }                           
+            }
+        }
+        if((updateEmailonMailingList != null && updateEmailonMailingList.size() > 0) && (contactIds != null && contactIds.size() > 0))
+        {
+            updateEmailsOnMailingList(updateEmailonMailingList, contactIds);
+        }
+    }
+    
+    public static void updateEmailsOnMailingList(list<ocm_Mailing_List__c> mailinglists, set<Id> contactIds)
+    {
+        if((mailinglists != null && mailinglists.size() > 0) && (contactIds != null && contactIds.size() > 0))
+        {
+            map<Id, Contact> contactsMap = new map<Id, Contact>([Select Id, Name, Email, Email_2__c, Email_3__c, Email_4__c, Email_5__c, Email_6__c, Email_7__c, Email_8__c 
+                                                                From Contact Where Id IN: contactIds]);
+            if(contactsMap != null && contactsMap.size() > 0)
+            {
+                for(ocm_Mailing_List__c ml: mailinglists)
+                {
+                    if(ml.Contact__c != null && (contactsMap != null && contactsMap.get(ml.Contact__c) != null))
+                    {
+                        String accountProfilesEmails = getEmailStringFromContactForMailingList('Account_Profile_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Account_Profile_Email_s__c = accountProfilesEmails;
+                        
+                        String accountStatementEmails = getEmailStringFromContactForMailingList('Account_Statements_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Account_Statements_Email_s__c = accountStatementEmails;
+                        
+                        String advCorrespondenceEmails = getEmailStringFromContactForMailingList('ADV_Correspondence_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.ADV_Correspondence_Email_s__c = advCorrespondenceEmails;
+                        
+                        String capitalCallNoticeEmails = getEmailStringFromContactForMailingList('Capital_Call_Notices_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Capital_Call_Notices_Email_s__c = capitalCallNoticeEmails;
+                        
+                        String distributionNoticesEmails = getEmailStringFromContactForMailingList('Distribution_Notices_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Distribution_Notices_Email_s__c = distributionNoticesEmails;
+                        
+                        String downgradeNotificationEmails = getEmailStringFromContactForMailingList('Downgrade_Notification_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Downgrade_Notification_Email_s__c = downgradeNotificationEmails;
+                        
+                        String factsheetsEmails = getEmailStringFromContactForMailingList('Factsheets_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Factsheets_Email_s__c = factsheetsEmails;
+                        
+                        String finalPerformanceEmails = getEmailStringFromContactForMailingList('Final_Performance_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Final_Performance_Email_s__c = finalPerformanceEmails;
+                        
+                        //String firmAnnouncementsEmails = getEmailStringFromContactForMailingList('Firm_Announcements_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        //ml.Firm_Announcements_Email_s__c = firmAnnouncementsEmails;
+                        
+                        //String firmEventsEmails = getEmailStringFromContactForMailingList('Firm_Events_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        //ml.Firm_Events_Email_s__c = firmEventsEmails;
+                        
+                        String fundFinancialsEmails = getEmailStringFromContactForMailingList('Fund_Financials_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Fund_Financials_Email_s__c = fundFinancialsEmails;
+                        
+                        //String fundSpecificEventsEmails = getEmailStringFromContactForMailingList('Fund_Specific_Events_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        //ml.Fund_Specific_Events_Email_s__c = fundSpecificEventsEmails;
+                        
+                        String investmentWriteupEmails = getEmailStringFromContactForMailingList('Investment_Writeup_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Investment_Writeup_Email_s__c = investmentWriteupEmails;
+                        
+                        String legalCorrespondenceEmails = getEmailStringFromContactForMailingList('Legal_Correspondence_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Legal_Correspondence_Email_s__c = legalCorrespondenceEmails;
+                        
+                        String holdingsReportEmails = getEmailStringFromContactForMailingList('Holdings_Report_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Portfolio_Holdings_Email_s__c = holdingsReportEmails;
+                        
+                        String preliminaryPerformanceEmails = getEmailStringFromContactForMailingList('Preliminary_Performance_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Preliminary_Performance_Email_s__c = preliminaryPerformanceEmails;
+                        
+                        String quarterlyLettersEmails = getEmailStringFromContactForMailingList('Quarterly_Letters_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Quarterly_Letters_Email_s__c = quarterlyLettersEmails;
+                        
+                        String taxDocumentsEmails = getEmailStringFromContactForMailingList('Tax_Documents_Email_Type_s__c', ml, contactsMap.get(ml.Contact__c));
+                        ml.Tax_Documents_Email_s__c = taxDocumentsEmails;
+                    }
+                }
+            }
+        }
+    }
+    
+    public static String getEmailStringFromContactForMailingList(String fieldName, ocm_Mailing_List__c ml, Contact con)
+    {
+        String appendEmailsStr = '';
+        if(fieldName != null && fieldName.trim().length() > 0)
+        {
+            String fieldValue = (String)ml.get(fieldName);
+            if(fieldValue != null && fieldValue.contains('Email'))
+            {
+                Boolean isEmailRequireSeperator = false;
+                if(fieldValue.contains('Email 1'))
+                {
+                    if(con != null && con.Email != null)
+                    {
+                        appendEmailsStr += con.Email;
+                        isEmailRequireSeperator = true;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 1');
+                }
+                
+                if(fieldValue.contains('Email 2'))
+                {
+                    if(con != null && con.Email_2__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_2__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 2');
+                }
+                
+                if(fieldValue.contains('Email 3'))
+                {
+                    if(con != null && con.Email_3__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_3__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 3');
+                }
+                
+                if(fieldValue.contains('Email 4'))
+                {
+                    if(con != null && con.Email_4__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_4__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 4');
+                }
+                
+                if(fieldValue.contains('Email 5'))
+                {
+                    if(con != null && con.Email_5__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_5__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 5');
+                }
+                
+                if(fieldValue.contains('Email 6'))
+                {
+                    if(con != null && con.Email_6__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_6__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 6');
+                }
+                
+                if(fieldValue.contains('Email 7'))
+                {
+                    if(con != null && con.Email_7__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_7__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 7');
+                }
+                
+                if(fieldValue.contains('Email 8'))
+                {
+                    if(con != null && con.Email_8__c != null)
+                    {
+                        if(isEmailRequireSeperator)
+                        {
+                            appendEmailsStr += '; ';
+                        }
+                        isEmailRequireSeperator = true;
+                        appendEmailsStr += con.Email_8__c;
+                    }
+                    else
+                        ml.addError(con.Name+' '+OCM_Constants.MailingList_EmailType_ErrMsg+' Email 8');
+                }
+                return appendEmailsStr;
+            }
+        }
+        return null;
+    }
+    
+    
+    
+    //Method Creating Data Approval Ticket for insert
+    public static boolean hasAlreadyRanAfterInsert = false;
+    public static boolean hasAlreadyRanAfterUpdate = false;
+    public static boolean hasAlreadyRanAfterDelete = false;
+    
+    public static void processAfterInsertApprovals(map<id,ocm_Mailing_List__c> approvalRecs)
+    {
+        try
+        {
+            if(!hasAlreadyRanAfterInsert) 
+                    hasAlreadyRanAfterInsert = true;
+              
+             map<string, Id> recordIdMap = new map<string, Id>();
+             set<Id> ownedbyForeignCIESet = new set<Id>();
+             set<Id> ownedbyForeignMailingFFSet = new set<Id>();
+             set<Id> rollupConQuarterlyLtrSet = new set<Id>();
+             set<Id> ca2leIds = new set<Id>();
+             list<RecordType> rtList = [Select r.Id, r.DeveloperName From RecordType r where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST];       
+             
+             for(RecordType rt: rtList)
+             {
+                if(rt.Id != null)
+                    recordIdMap.put(rt.DeveloperName, rt.Id);                     
+             }       
+            //Raising exception To cover the catch block in test class.
+            for(Id recId : approvalRecs.keyset()){
+                system.debug(approvalRecs.get(recId).Contact__c);
+            }
+            
+            if(!ChangeManagementTicketTriggerHandler.hasAlreadyRanAfterUpdateTrigger()) 
+            {
+                //Query DCM Rule object for related Config Objects where DCM Rule matches ocm_FinancialAccount__c API name
+                list<ocm_DA_Rule__c> rules = [Select d.Status__c, d.Object_Name__c, d.Id, (Select Id, Field_API_Name__c, Field_Owner__c From Data_Approval_Configs__r) From ocm_DA_Rule__c d Where Object_Name__c = 'ocm_Mailing_List__c' limit 1];
+                system.debug('### rules = '+rules.size());
+                if(rules.size() == 1)
+                {
+                    if(rules[0].Status__c == OCM_Constants.OCM_STATUS_ACTIVE) 
+                    {
+                        map<Id,ocm_Mailing_List__c> approvalRecMap = new map<Id,ocm_Mailing_List__c>([Select o.Client_Investment_Entity__r.Name, o.Client_Account_Legal_Entity_Relationship__r.Name, o.Contact__r.Name, o.Financial_Account__r.Name,o.Write_in_Email_Address__c, o.Withdrawn_Rating_by_Either_List__c, o.Withdrawn_Rating_By_Either_Email__c, o.Withdrawn_Rating_By_Either_Delivery_Meth__c, o.Webcasts__c, o.Tax_Mailings_List__c, o.Tax_Mailings_K_1__c, o.Tax_Mailings_Email__c, o.Status__c, o.Split_Rated_Email__c, o.Split_Rated_Email_Type__c, o.Split_Rated_Delivery_Method__c, o.Quarterly_Letters__c, o.Quarterly_Letters_List__c, o.Quarterly_Letters_Email__c, o.Preliminary_Performance__c, o.Preliminary_Performance_List__c, o.Preliminary_Performance_Email__c, o.Partner_Statements__c, o.Partner_Statements_List__c, o.Partner_Statements_Email__c, o.Natural_Persons__c, o.Natural_Persons_List__c, o.Natural_Persons_Email__c, o.Natural_Persons_BD_Email__c, o.Natural_Persons_BD_Email_Type__c, o.Natural_Persons_BD_Delivery_Method__c, o.Name, o.Mailing_Address__c, o.Legal_Mailings__c, o.Legal_Mailings_List__c, o.Legal_Mailings_Email__c, o.Legal_Entity_Full_Name__c, o.Investment_Writeup__c, o.Investment_Writeup_List__c, o.Investment_Writeup_Email__c, o.Inactivation_Date__c, o.Id, o.Holiday_e_Card__c, o.Holiday_e_Card_List__c, o.Holiday_e_Card_Email__c, o.Holdings_Report__c, o.Holdings_Report_List__c, o.Holdings_Report_Email__c, o.HM_Memo__c, o.HM_Memo_List__c, o.HM_Memo_Email__c, o.General_Correspondence_Summary__c, o.Fund_Specific_Events_List__c, o.Fund_Specific_Events_Email__c, o.Fund_Mailing_Summary__c, o.Fund_Financials__c, o.Fund_Financials_List__c, o.Fund_Financials_Email__c, o.Firm_Events__c, o.Firm_Events_List__c, o.Firm_Events_Email__c, o.Financial_Account__c, o.Final_Performance__c, o.Final_Performance_List__c, o.Final_Performance_Email__c, o.Fax__c, o.Factsheets_Email__c, o.Factsheets_Email_Type__c, o.Factsheets_Delivery_Method__c, o.Email_Address__c, o.Email_3__c, o.Email_2__c, o.Drawdown_Notices__c, o.Drawdown_Notices_List__c, o.Drawdown_Notices_Email__c, o.Downgrades_to_B1_B_Email__c, o.Downgrades_to_B1_B_Delivery_Method__c, o.Downgrades_by_B1_B_Email_Type__c, o.Downgrade_Notification_Summary__c, o.Distribution_Notices__c, o.Distribution_Notices_List__c, o.Distribution_Notices_Email__c, o.D_Defaulted_Email__c, o.D_Defaulted_Email_Type__c, o.D_Defaulted_Delivery_Method__c, o.Contact_s_Organization_Name__c, o.Contact__c, o.Client_Investment_Entity__c, o.Client_Account_s_Client_Name__c, o.Client_Account_Legal_Entity_Relationship__c, o.Caa3_CCC_by_One_Email__c, o.Caa3_CCC_by_One_Email_Type__c, o.Caa3_CCC_by_One_Delivery_Method__c, o.Caa2_CCC_by_One_Email__c, o.Caa2_CCC_by_One_Email_Type__c, o.Caa2_CCC_by_One_Delivery_Method__c, o.CC_Split_Email__c, o.CC_Split_Email_Type__c, o.CC_Split_Delivery_Method__c, o.CCC_by_Both_Email__c, o.CCC_by_Both_Email_Type__c, o.CCC_by_Both_Delivery_Method__c, o.Account_Profile__c, o.Account_Profile_List__c, o.Account_Profile_Email__c, o.ADV_Correspondence__c, o.ADV_Correspondence_List__c, o.ADV_Correspondence_Email__c From ocm_Mailing_List__c o where o.Id in : approvalRecs.keyset()]);
+                        DataChangeManagementHelper.processDataApprovalsOnInsert(approvalRecMap);
+                    }
+                }
+            }
+            
+            set<Id> contactIdsForValidateOCP = new set<Id>();
+            for(ocm_Mailing_List__c ml:approvalRecs.values())
+            {
+                if(ml.Contact__c != null){
+                    contactIdsForValidateOCP.add(ml.Contact__c);
+                }
+                
+                if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                {
+                    if(ml.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES && ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                    {
+                        if(ml.Contact__c != null)
+                            ownedbyForeignCIESet.add(ml.Contact__c);
+                    }   
+                }
+                if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                {
+                    if(ml.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES && ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                    {
+                        if(ml.Contact__c != null)
+                            ownedbyForeignMailingFFSet.add(ml.Contact__c);
+                    }   
+                }
+                if((ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE) && (ml.Contact__c != null))
+                    rollupConQuarterlyLtrSet.add(ml.Contact__c);
+                if((ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE) && (ml.Client_Account_Legal_Entity_Relationship__c != null))
+                    ca2leIds.add(ml.Client_Account_Legal_Entity_Relationship__c);    
+            }
+            
+            if(contactIdsForValidateOCP != null && contactIdsForValidateOCP.size() > 0){
+                ValidateHasOCPForContact(contactIdsForValidateOCP);
+            }
+            
+            if(ownedbyForeignCIESet != null && ownedbyForeignCIESet.size()>0)
+                rollupOwnedByForeignCIESet(ownedbyForeignCIESet);
+            if(ownedbyForeignMailingFFSet != null && ownedbyForeignMailingFFSet.size()>0)
+                rollupOwnedByForeignMailingFFSet(ownedbyForeignMailingFFSet);           
+            if(rollupConQuarterlyLtrSet != null && rollupConQuarterlyLtrSet.size()>0)
+                rollupConQuarterlyLtr(rollupConQuarterlyLtrSet);
+            if(ca2leIds != null && ca2leIds.size()>0)
+                rollupMailingListRecsAtCA2LE(ca2leIds);
+            
+        }
+        catch(DmlException e) 
+        {
+            for(ocm_Mailing_List__c rec : approvalRecs.values()) 
+            {
+                rec.addError(e.getDmlMessage(0));
+            }
+        }
+        catch(Exception e)
+        {
+            
+            for(ocm_Mailing_List__c rec : approvalRecs.values()) 
+            {
+                rec.addError(e.getMessage());
+            }
+        }    
+    }
+    
+    //Method Creating Data Approval Ticket for field tracking
+    public static void processAfterUpdateApprovals(map<id,ocm_Mailing_List__c> newRecs,map<id,ocm_Mailing_List__c> oldRecs)
+    {
+        try {
+            if(!hasAlreadyRanAfterUpdate) 
+                hasAlreadyRanAfterUpdate = true;
+            
+            set<Id> contactIdsForValidateOCP = new set<Id>();
+            map<string, Id> recordIdMap = new map<string, Id>();
+            set<Id> ownedbyForeignCIESet = new set<Id>();             
+            set<Id> ownedbyForeignMailingFFSet = new set<Id>();
+            set<Id> rollupConQuarterlyLtrSet = new set<Id>();
+            set<Id> ca2leIds = new set<Id>();
+            list<RecordType> rtList = [Select r.Id, r.DeveloperName From RecordType r where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST];       
+ 
+            for(RecordType rt: rtList)
+            {
+                if(rt.Id != null)
+                    recordIdMap.put(rt.DeveloperName, rt.Id);                   
+            }
+            
+            if(!ChangeManagementTicketTriggerHandler.hasAlreadyRanAfterUpdateTrigger()) 
+            {
+                //Query DCM Rule object for related Config Objects where DCM Rule matches ocm_Mailing_List__c API name
+                list<ocm_DA_Rule__c> rules = [Select d.Status__c, d.Object_Name__c, d.Id, (Select Id, Field_API_Name__c, Field_Owner__c From Data_Approval_Configs__r) From ocm_DA_Rule__c d Where Object_Name__c = 'ocm_Mailing_List__c' limit 1];
+                if(rules.size() == 1) 
+                {
+                    if(rules[0].Status__c == OCM_Constants.OCM_STATUS_ACTIVE) 
+                        DataChangeManagementHelper.processDataApprovals(oldRecs, newRecs, rules[0]);
+                }
+            }
+            
+            for(ocm_Mailing_List__c ml:newRecs.values())
+            {
+                if(ml.Contact__c != null){
+                    contactIdsForValidateOCP.add(ml.Contact__c);
+                }
+                
+                if((oldRecs.get(ml.id).Client_Account_s_CIE__c != ml.Client_Account_s_CIE__c) || (oldRecs.get(ml.id).Owned_by_Foreign_CIE__c != ml.Owned_by_Foreign_CIE__c) || (oldRecs.get(ml.id).Status__c != ml.Status__c) || (oldRecs.get(ml.id).Contact__c != ml.Contact__c) || (oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c != ml.Client_Account_Legal_Entity_Relationship__c) || (oldRecs.get(ml.id).Client_Investment_Entity__c != ml.Client_Investment_Entity__c))
+                {
+                    if(oldRecs.get(ml.id).Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES)
+                    {
+                        if((oldRecs.get(ml.id).Client_Account_s_CIE__c != ml.Client_Account_s_CIE__c) || (oldRecs.get(ml.id).Owned_by_Foreign_CIE__c != ml.Owned_by_Foreign_CIE__c) || (oldRecs.get(ml.id).Status__c != ml.Status__c) || (oldRecs.get(ml.id).Contact__c != ml.Contact__c) || (oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c != ml.Client_Account_Legal_Entity_Relationship__c) || (oldRecs.get(ml.id).Client_Investment_Entity__c != ml.Client_Investment_Entity__c))
+                        {
+                            if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                                ownedbyForeignCIESet.add(oldRecs.get(ml.id).Contact__c);
+                            else if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                                ownedbyForeignMailingFFSet.add(oldRecs.get(ml.id).Contact__c);  
+                        }   
+                    }
+                    if(ml.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES)
+                    {   
+                        if((oldRecs.get(ml.id).Client_Account_s_CIE__c != ml.Client_Account_s_CIE__c) || (oldRecs.get(ml.id).Owned_by_Foreign_CIE__c != ml.Owned_by_Foreign_CIE__c) || (oldRecs.get(ml.id).Status__c != ml.Status__c) || (oldRecs.get(ml.id).Contact__c != ml.Contact__c) || (oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c != ml.Client_Account_Legal_Entity_Relationship__c) || (oldRecs.get(ml.id).Client_Investment_Entity__c != ml.Client_Investment_Entity__c))
+                        {
+                            if(ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE)
+                            {
+                                if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                                    ownedbyForeignCIESet.add(ml.Contact__c);
+                                else if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                                    ownedbyForeignMailingFFSet.add(ml.Contact__c);  
+                            }   
+                        }   
+                    }                    
+                }
+                if((ml.Status__c != oldRecs.get(ml.id).Status__c) || (ml.Quarterly_Letters__c != oldRecs.get(ml.id).Quarterly_Letters__c) || (ml.Contact__c != oldRecs.get(ml.id).Contact__c))
+                {
+                    if(ml.Contact__c != null)
+                        rollupConQuarterlyLtrSet.add(ml.Contact__c);
+                    if(ml.Contact__c != oldRecs.get(ml.id).Contact__c)
+                        rollupConQuarterlyLtrSet.add(oldRecs.get(ml.id).Contact__c);
+                }
+                if((ml.Status__c != oldRecs.get(ml.id).Status__c) || (ml.Client_Account_Legal_Entity_Relationship__c != oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c) || (ml.Downgrade_Notification_Delivery_Method__c != oldRecs.get(ml.id).Downgrade_Notification_Delivery_Method__c) || (ml.Tax_Mailings_K_1__c != oldRecs.get(ml.id).Tax_Mailings_K_1__c) || (ml.Drawdown_Notices__c != oldRecs.get(ml.id).Drawdown_Notices__c) || (ml.Distribution_Notices__c != oldRecs.get(ml.id).Distribution_Notices__c) || (ml.Legal_Mailings__c != oldRecs.get(ml.id).Legal_Mailings__c) || (ml.Quarterly_Letters__c != oldRecs.get(ml.id).Quarterly_Letters__c))
+                {
+                    if(ml.Client_Account_Legal_Entity_Relationship__c != null)
+                        ca2leIds.add(ml.Client_Account_Legal_Entity_Relationship__c);
+                    if(ml.Client_Account_Legal_Entity_Relationship__c != oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c)
+                        ca2leIds.add(oldRecs.get(ml.id).Client_Account_Legal_Entity_Relationship__c);
+                }
+            }
+            
+            if(contactIdsForValidateOCP != null && contactIdsForValidateOCP.size() > 0){
+                ValidateHasOCPForContact(contactIdsForValidateOCP);
+            }
+                   
+            if(ownedbyForeignCIESet != null && ownedbyForeignCIESet.size()>0)
+                rollupOwnedByForeignCIESet(ownedbyForeignCIESet);
+            if(ownedbyForeignMailingFFSet != null && ownedbyForeignMailingFFSet.size()>0)
+                rollupOwnedByForeignMailingFFSet(ownedbyForeignMailingFFSet);  
+            if(rollupConQuarterlyLtrSet != null && rollupConQuarterlyLtrSet.size()>0)
+                rollupConQuarterlyLtr(rollupConQuarterlyLtrSet);    
+            if(ca2leIds != null && ca2leIds.size()>0)
+                rollupMailingListRecsAtCA2LE(ca2leIds);     
+        }
+        catch(DmlException e) 
+        {
+            for(ocm_Mailing_List__c rec : newRecs.values()) 
+            {
+                rec.addError(e.getDmlMessage(0));
+            }
+        }
+        catch(Exception e) 
+        {
+            for(ocm_Mailing_List__c rec : newRecs.values()) 
+            {
+                rec.addError(e.getMessage());
+            }
+        }    
+    }
+    
+    public static void ValidateHasOCPForContact(set<Id> contactIds){
+        map<Id, Contact> contactsMapForOCP = new map<Id, Contact>();
+        Id fundMailingRCId = Schema.SObjectType.ocm_Mailing_List__c.getRecordTypeInfosByName().get('Fund Mailing').getRecordTypeId();
+        
+        if(contactIds != null && contactIds.size() > 0){
+            contactsMapForOCP = new map<Id, Contact>([Select Id, Name, 
+                                (Select Id, Name, Status__c, OCP_Document_Access_Type__c 
+                                    From Mailing_Lists__r 
+                                    Where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE
+                                    AND OCP_Document_Access_Type__c =: OCM_Constants.OCM_VALUE_YES
+                                    AND RecordTypeId =: fundMailingRCId)
+                            From Contact 
+                            Where Id IN: contactIds]);
+            if(contactsMapForOCP != null && contactsMapForOCP.size() > 0){
+                for(Contact con: contactsMapForOCP.values()){
+                    if(con.Mailing_Lists__r != null && con.Mailing_Lists__r.size() > 0){
+                        con.Has_OCP_Access__c = OCM_Constants.OCM_VALUE_YES;
+                    }else{
+                        con.Has_OCP_Access__c = OCM_Constants.OCM_VALUE_NO;
+                    }
+                }
+                
+                update contactsMapForOCP.values();
+            }
+        } 
+    }
+    
+    public static void processAfterDelete(map<Id, ocm_Mailing_List__c> oldML) 
+    {
+        if(!hasAlreadyRanAfterDelete)
+            hasAlreadyRanAfterDelete = true;
+        
+        try
+        {
+            map<string, Id> recordIdMap = new map<string, Id>();
+            set<Id> ownedbyForeignCIESet = new set<Id>();
+            set<Id> ownedbyForeignMailingFFSet = new set<Id>();
+            set<Id> rollupConQuarterlyLtrSet = new set<Id>();
+            set<Id> ca2leIds = new set<Id>();
+            set<Id> contactIdsForValidateOCP = new set<Id>();
+            list<RecordType> rtList = [Select r.Id, r.DeveloperName From RecordType r where SobjectType=:OCM_Constants.SOBJECT_NAME_MAILING_LIST];       
+            set<ocm_Deleted_Records__c> delRecSet = new set<ocm_Deleted_Records__c>();
+            for(RecordType rt: rtList)
+            {
+                if(rt.Id != null)
+                    recordIdMap.put(rt.DeveloperName, rt.Id);                     
+            }
+                    
+            if(oldML != null && oldML.size() > 0)
+            {
+                for(ocm_Mailing_List__c ml:oldML.values())
+                {               
+                    ocm_Deleted_Records__c delRec = new ocm_Deleted_Records__c();
+                    delRec.Deleted_Record_ID__c = ml.Id;
+                    delRec.Object_Name__c = ml.Id.getSObjectType().getDescribe().getName();
+                    delRecSet.add(delRec);
+                    
+                    if(ml.Contact__c != null)
+                        contactIdsForValidateOCP.add(ml.Contact__c);
+                        
+                    if((ml.Owned_by_Foreign_CIE__c != null && ml.Owned_by_Foreign_CIE__c == OCM_Constants.OCM_VALUE_YES) && (ml.Status__c != null && ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE))
+                    {
+                        if((recordIdMap.get(OCM_Constants.OCM_RT_MAILING_DOWNGRADE_NOTIFICATION) == ml.RecordTypeId) || (recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING) == ml.RecordTypeId))
+                        {
+                            if(ml.Contact__c != null)
+                                ownedbyForeignCIESet.add(ml.Contact__c);
+                        }
+                        if(recordIdMap.get(OCM_Constants.OCM_RT_MAILING_FUND_MAILING_CIE) == ml.RecordTypeId)
+                        {
+                            if(ml.Contact__c != null)
+                                ownedbyForeignMailingFFSet.add(ml.Contact__c);
+                        }
+                    }
+                    if((ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE) && (ml.Contact__c != null))
+                        rollupConQuarterlyLtrSet.add(ml.Contact__c);
+                    if((ml.Status__c == OCM_Constants.OCM_STATUS_ACTIVE) && (ml.Client_Account_Legal_Entity_Relationship__c != null))
+                        ca2leIds.add(ml.Client_Account_Legal_Entity_Relationship__c);   
+                }               
+            }
+            if(ownedbyForeignCIESet != null && ownedbyForeignCIESet.size()>0)
+                rollupOwnedByForeignCIESet(ownedbyForeignCIESet);
+            if(ownedbyForeignMailingFFSet != null && ownedbyForeignMailingFFSet.size()>0)
+                rollupOwnedByForeignMailingFFSet(ownedbyForeignMailingFFSet); 
+            if(rollupConQuarterlyLtrSet != null && rollupConQuarterlyLtrSet.size()>0)
+                rollupConQuarterlyLtr(rollupConQuarterlyLtrSet); 
+            if(ca2leIds != null && ca2leIds.size()>0)
+                rollupMailingListRecsAtCA2LE(ca2leIds);            
+            if(contactIdsForValidateOCP != null && contactIdsForValidateOCP.size()>0)
+                ValidateHasOCPForContact(contactIdsForValidateOCP);
+            if(delRecSet != null && delRecSet.size()>0)
+            {
+                list<ocm_Deleted_Records__c> delRecList = new list<ocm_Deleted_Records__c>();
+                delRecList.addAll(delRecSet);
+                insert delRecList;
+            }
+        }
+        catch(Exception e)
+        {
+            for(ocm_Mailing_List__c ml : oldML.values())
+            {
+                ml.addError(e.getMessage());
+            }
+        }    
+    }
+    
+    
+    public static void rollupOwnedByForeignCIESet(set<Id> foreignIds)
+    {
+        set<Contact> foreignCIEOwnedSet = new set<Contact>();
+        if(foreignIds != null)
+        {
+            list<Contact> foreignCIEOwnedList = [Select c.Name, c.Id, c.Related_Foreign_CIEs_CA_Mailings__c, (Select id, Name,Client_Account_s_CIE__c From Mailing_Lists__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES) From Contact c where id IN :foreignIds];
+            for(Contact con : foreignCIEOwnedList)
+            {
+                con.Related_Foreign_CIEs_CA_Mailings__c = '';
+                if(con.Mailing_Lists__r.size() > 0)
+                {                   
+                    string newForCIEOwn = '';
+                    string oldForCIEOwn = '';
+                    for(ocm_Mailing_List__c ml : con.Mailing_Lists__r)
+                    {
+                        if(ml.Client_Account_s_CIE__c != null)
+                        {
+                            string CIEval = '';
+                            CIEval = ml.Client_Account_s_CIE__c;
+                            if(!(newForCIEOwn.contains(CIEval)))
+                            {
+                                newForCIEOwn += CIEval+'; ';
+                                if(newForCIEOwn.length() >= 250)
+                                {
+                                    if(!(newForCIEOwn.endsWith('(+)')))
+                                        newForCIEOwn = oldForCIEOwn+'(+)';
+                                }                           
+                                else
+                                {
+                                    oldForCIEOwn = newForCIEOwn;
+                                }                          
+                            }
+                        }
+                    }
+                    if(newForCIEOwn.endsWith('(+)'))
+                        con.Related_Foreign_CIEs_CA_Mailings__c = newForCIEOwn;
+                    else
+                    {
+                        if(newForCIEOwn != '')
+                            con.Related_Foreign_CIEs_CA_Mailings__c = newForCIEOwn.substring(0,newForCIEOwn.length()-2);
+                    }    
+                }
+                foreignCIEOwnedSet.add(con);
+            }
+        }               
+        if(foreignCIEOwnedSet != null)
+        {
+            list<Contact> finalList = new list<Contact>();
+            finalList.addAll(foreignCIEOwnedSet);
+            system.debug('====finalList===='+finalList);
+            update finalList;
+        }    
+    }
+    
+    public static void rollupOwnedByForeignMailingFFSet(set<Id> foreignIds)
+    {
+        set<Contact> foreignCIEOwnedSet = new set<Contact>();
+        if(foreignIds != null)
+        {
+            list<Contact> foreignCIEOwnedList = [Select c.Name, c.Id, c.Related_Foreign_CIEs_CIE_Mailings__c, (Select id, Name,Client_Account_s_CIE__c, Client_Investment_Entity__r.Name From Mailing_Lists__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Owned_by_Foreign_CIE__c = :OCM_Constants.OCM_VALUE_YES) From Contact c where id in : foreignIds];
+            for(Contact con : foreignCIEOwnedList)
+            {
+                con.Related_Foreign_CIEs_CIE_Mailings__c = '';
+                if(con.Mailing_Lists__r.size() > 0)
+                {                   
+                    string newForCIEOwn = '';
+                    string oldForCIEOwn = '';
+                    for(ocm_Mailing_List__c ml : con.Mailing_Lists__r)
+                    {
+                        if(ml.Client_Investment_Entity__c != null)
+                        {
+                            string CIEval = '';
+                            CIEval = ml.Client_Investment_Entity__r.Name;
+                            if(!(newForCIEOwn.contains(CIEval)))
+                            {
+                                newForCIEOwn += CIEval+'; ';
+                                if(newForCIEOwn.length() >= 250)
+                                {
+                                    if(!(newForCIEOwn.endsWith('(+)')))
+                                        newForCIEOwn = oldForCIEOwn+'(+)';
+                                }                           
+                                else
+                                {
+                                    oldForCIEOwn = newForCIEOwn;
+                                }
+                            }                              
+                        }   
+                    }
+                    if(newForCIEOwn.endsWith('(+)'))
+                        con.Related_Foreign_CIEs_CIE_Mailings__c = newForCIEOwn;
+                    else
+                    {
+                        if(newForCIEOwn != '')
+                            con.Related_Foreign_CIEs_CIE_Mailings__c = newForCIEOwn.substring(0,newForCIEOwn.length()-2);
+                    }    
+                }
+                foreignCIEOwnedSet.add(con);
+            }
+        }               
+        if(foreignCIEOwnedSet != null)
+        {
+            list<Contact> finalList = new list<Contact>();
+            finalList.addAll(foreignCIEOwnedSet);
+            update finalList;
+        }    
+    }
+    
+    public static void rollupConQuarterlyLtr(set<Id> conIds)
+    {
+        set<Contact> ReceivesQtrLetterSet = new set<Contact>();
+        if(conIds != null && conIds.size() > 0)
+        {
+            list<Contact> ReceivesQtrLetterList = [Select c.Name, c.Id, c.Receives_Quarterly_Letters__c, (Select id, Name, Quarterly_Letters__c From Mailing_Lists__r where Status__c =: OCM_Constants.OCM_STATUS_ACTIVE and Quarterly_Letters__c != null limit 1) From Contact c where id IN :conIds];
+            for(Contact con : ReceivesQtrLetterList)
+            {
+                if(con.Mailing_Lists__r.size() > 0)
+                    con.Receives_Quarterly_Letters__c = OCM_Constants.OCM_VALUE_YES;
+                else
+                    con.Receives_Quarterly_Letters__c = OCM_Constants.OCM_VALUE_NO;
+                ReceivesQtrLetterSet.add(con);
+            }
+        }               
+        if(ReceivesQtrLetterSet != null)
+        {
+            list<Contact> finalList = new list<Contact>();
+            finalList.addAll(ReceivesQtrLetterSet);
+            update finalList;
+        }    
+    }
+    
+    public static void rollupMailingListRecsAtCA2LE(set<Id> ca2leIds)
+    {
+        set<ocm_FinancialAccounttoLegalEntity__c> updateSet = new set<ocm_FinancialAccounttoLegalEntity__c>();
+        if((ca2leIds != null) && (ca2leIds.size()>0))
+        {
+            list<ocm_FinancialAccounttoLegalEntity__c> CA2LEcountList = [Select o.Id, o.Count_of_Tax_Mailings_K_1__c, o.Count_of_Drawdown_Notices__c, o.Count_of_Downgrade_Notifications__c, o.Count_of_Distribution_Notices__c, O.Count_of_Legal_Correspondence__c, O.Count_of_Quarterly_Letters__c,  (Select Downgrade_Notification_Delivery_Method__c, Distribution_Notices__c, Drawdown_Notices__c, Tax_Mailings_K_1__c, Legal_Mailings__c, Quarterly_Letters__c From Mailing_Lists__r WHERE (Status__c = :OCM_Constants.OCM_STATUS_ACTIVE AND (Distribution_Notices__c != NULL OR Drawdown_Notices__c != NULL OR Tax_Mailings_K_1__c != NULL OR Downgrade_Notification_Delivery_Method__c  != NULL OR Legal_Mailings__c != NULL OR Quarterly_Letters__c != NULL))) From ocm_FinancialAccounttoLegalEntity__c o WHERE o.Id IN :ca2leIds];
+            for(ocm_FinancialAccounttoLegalEntity__c fale: CA2LEcountList)
+            {
+                integer DowngradeNotification = 0;
+                integer TaxMailing = 0;
+                integer DrawdownNotice = 0;
+                integer DistributionNotice = 0;  
+                integer LegalMailings = 0;
+                integer QuarterlyLetters = 0;  
+                if(fale.Mailing_Lists__r.size()>0)
+                {
+                    for(ocm_Mailing_List__c ml : fale.Mailing_Lists__r)
+                    {
+                        if((ml.Downgrade_Notification_Delivery_Method__c != null) && (ml.Downgrade_Notification_Delivery_Method__c != ''))
+                            DowngradeNotification += 1;
+                        if((ml.Tax_Mailings_K_1__c != null) && (ml.Tax_Mailings_K_1__c != ''))
+                            TaxMailing += 1;
+                        if((ml.Drawdown_Notices__c != null) && (ml.Drawdown_Notices__c != ''))
+                            DrawdownNotice += 1;
+                        if((ml.Distribution_Notices__c != null) && (ml.Distribution_Notices__c != ''))
+                            DistributionNotice += 1; 
+                        if((ml.Legal_Mailings__c != null) && (ml.Legal_Mailings__c != ''))
+                            LegalMailings += 1;
+                        if((ml.Quarterly_Letters__c != null) && (ml.Quarterly_Letters__c != ''))
+                            QuarterlyLetters += 1;      
+                    }                   
+                }
+                fale.Count_of_Downgrade_Notifications__c = DowngradeNotification;
+                fale.Count_of_Tax_Mailings_K_1__c = TaxMailing;
+                fale.Count_of_Drawdown_Notices__c = DrawdownNotice;
+                fale.Count_of_Distribution_Notices__c = DistributionNotice;
+                fale.Count_of_Legal_Correspondence__c = LegalMailings;
+                fale.Count_of_Quarterly_Letters__c = QuarterlyLetters;
+                updateSet.add(fale);
+            }
+            
+            if((updateSet != null) && (updateSet.size()>0))
+            {
+                list<ocm_FinancialAccounttoLegalEntity__c> updateList = new list<ocm_FinancialAccounttoLegalEntity__c>();
+                updateList.addAll(updateSet);
+                RelatedFAToLETriggerHandler.isFirstUpdate = true;
+                RelatedFAToLETriggerHandler.isFirstCallClientInvestment = true;             
+                update updateList;
+                RelatedFAToLETriggerHandler.isFirstUpdate = false;
+                RelatedFAToLETriggerHandler.isFirstCallClientInvestment = false;
+            }
+        }    
+    }
+}

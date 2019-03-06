@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LiveChatAgentConfig xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assignments>
+        <profiles>
+            <profile>Admin</profile>
+            <profile>StandardAul</profile>
+            <profile>Custom%3A Support Profile</profile>
+            <profile>Standard</profile>
+        </profiles>
+        <users>
+            <user>siva.pithani5883@salesforce.com</user>
+        </users>
+    </assignments>
+    <enableAgentFileTransfer>false</enableAgentFileTransfer>
+    <enableAgentSneakPeek>false</enableAgentSneakPeek>
+    <enableAssistanceFlag>false</enableAssistanceFlag>
+    <enableAutoAwayOnDecline>false</enableAutoAwayOnDecline>
+    <enableAutoAwayOnPushTimeout>false</enableAutoAwayOnPushTimeout>
+    <enableChatConferencing>true</enableChatConferencing>
+    <enableChatMonitoring>true</enableChatMonitoring>
+    <enableChatTransferToAgent>true</enableChatTransferToAgent>
+    <enableChatTransferToButton>true</enableChatTransferToButton>
+    <enableChatTransferToSkill>true</enableChatTransferToSkill>
+    <enableLogoutSound>true</enableLogoutSound>
+    <enableNotifications>true</enableNotifications>
+    <enableRequestSound>true</enableRequestSound>
+    <enableSneakPeek>true</enableSneakPeek>
+    <enableVisitorBlocking>false</enableVisitorBlocking>
+    <enableWhisperMessage>true</enableWhisperMessage>
+    <label>Chat Configuration</label>
+    <supervisorSkills>
+        <skill>webchat</skill>
+    </supervisorSkills>
+    <transferableButtons>
+        <button>Chat_Button</button>
+    </transferableButtons>
+    <transferableSkills>
+        <skill>webchat</skill>
+    </transferableSkills>
+</LiveChatAgentConfig>

@@ -1,0 +1,141 @@
+@isTest
+private class BlueSkyTriggerHandlerTest 
+{
+    private static ocm_Blue_Sky_Record__c bsr; 
+   // public static ocm_Blue_Sky_Record__c bsr; 
+    static testMethod void bsrInsertTest() 
+    {
+        assignData();
+        test.startTest();
+            insert bsr;
+        test.stopTest();
+        
+        list<Opportunity> op = [select Id, Name, StageName,Fund_Close_Picklist__c from Opportunity where AccountId = :bsr.Organization__c];
+        system.assert(op.size()>0);
+        system.assertEquals('Selected by Rep', op[0].StageName);
+        system.assertEquals('TBD', op[0].Fund_Close_Picklist__c);
+        
+        
+        ocm_Blue_Sky_Record__c obsr = [select Opportunity__r.Name from ocm_Blue_Sky_Record__c where id = :bsr.id];
+        system.assertEquals(op[0].Name, obsr.Opportunity__r.Name);
+    }
+    
+    static testMethod void bsrInsertTestScenario2() 
+    {       
+        assignData();
+        String closeEndOppRecId = [Select Id From RecordType Where SObjectType =: OCM_Constants.SOBJECT_NAME_OPPORTUNITY AND DeveloperName =: OCM_Constants.OCM_RT_OPPORTUNITY_CLOSED_END_COMMITMENTS limit 1].id;
+
+        String dateVal = '1999-1-1';
+        Opportunity op = new Opportunity();
+        op.RecordTypeId = closeEndOppRecId;
+        op.AccountId = bsr.Organization__c;
+        op.Fund_Product__c = bsr.Fund_Product__c;
+        op.Fund_Close_Picklist__c = 'TBD';
+        op.Amount__c = null;
+        op.StageName = 'Selected by Rep';
+        op.Fund_Close__c = bsr.Fund_Close__c;
+        op.OwnerId = bsr.Marketing_Rep__c;              
+        op.CloseDate = Date.valueOf(dateVal);
+        op.Name = 'Test | Test | TBD';      
+        insert op;
+
+        test.startTest();
+            insert bsr;         
+        
+            list<Opportunity> opList = [select Id, StageName,Fund_Close_Picklist__c from Opportunity where AccountId = :bsr.Organization__c];
+            system.assert(opList.size()>0);
+            system.assertEquals('Selected by Rep', opList[0].StageName);
+            system.assertEquals('TBD', opList[0].Fund_Close_Picklist__c);
+            
+            ocm_Blue_Sky_Record__c obsr = [select Opportunity__r.Name from ocm_Blue_Sky_Record__c where id = :bsr.id];
+            system.assertEquals(op.Name, obsr.Opportunity__r.Name);
+        test.stopTest();
+        
+    }    
+    
+    static testMethod void bsrUpdateTestScenario() 
+    {
+        assignData();
+        insert bsr;
+                    
+        list<Opportunity> op = [select Id, Name, StageName,Fund_Close_Picklist__c from Opportunity where AccountId = :bsr.Organization__c];
+        system.assert(op.size()>0);
+        system.assertEquals('Selected by Rep', op[0].StageName);
+        system.assertEquals('TBD', op[0].Fund_Close_Picklist__c);
+        
+        ocm_Blue_Sky_Record__c obsr = [select Opportunity__r.Name from ocm_Blue_Sky_Record__c where id = :bsr.id];
+        system.assertEquals(op[0].Name, obsr.Opportunity__r.Name);
+        
+        test.startTest();
+            bsr.Blue_Sky_Status__c = OCM_Constants.OCM_BLUESKY_STATUS_PPM_SENT;
+            BlueSkyTriggerHandler.isAfterUpdateCallFire = false;
+            BlueSkyTriggerHandler.isBeforeCallFire =false;
+            update bsr; 
+        test.stopTest();
+        
+        Account a = [select a.Blue_Sky_Status__c, a.Blue_Sky_Link__c, a.Blue_Sky_Fund__c, a.Blue_Sky_Date__c from Account a where Name = :OCM_Constants.TEST_ACCOUNT limit 1];
+        system.assertEquals(bsr.Blue_Sky_Status__c, a.Blue_Sky_Status__c);
+        system.assertEquals(bsr.Evidence_Link__c, a.Blue_Sky_Link__c);
+        system.assertEquals('Test FF', a.Blue_Sky_Fund__c);
+        system.assertEquals(bsr.Evidence_Date__c, a.Blue_Sky_Date__c);
+    }
+    
+    static void assignData()
+    {
+        Account a = [select id from Account where Name = :OCM_Constants.TEST_ACCOUNT limit 1];
+        Contact con =  [select id from Contact where FirstName = 'Test' limit 1];
+        ocm_Strategy__c strat =  [select id from ocm_Strategy__c where Name = 'Fund of Fund' limit 1];
+        ocm_FundFamily__c ff =  [select id from ocm_FundFamily__c where Name = 'Test FF' limit 1];
+        ocm_Fund_Close__c fc =  [select id from ocm_Fund_Close__c where Fund_Close_Name__c = '01' limit 1];
+        ocm_Marketing_Entity__c me = [select id from ocm_Marketing_Entity__c where Name ='Test' limit 1];
+        User usr = [Select Id, Name From User Where OCM_Marketing_Rep__c = true limit 1];
+        
+        bsr = new ocm_Blue_Sky_Record__c();
+        bsr.Name = 'Test';
+        bsr.Blue_Sky_Status__c = 'Selected by Rep'; 
+        bsr.Contact__c = con.Id;
+        bsr.Fund_Product__c = ff.Id;
+        bsr.Fund_Close__c = fc.Id;
+        bsr.Marketing_Rep__c = usr.Id;
+        bsr.Organization__c = a.Id;
+        bsr.Marketing_Entity__c = me.Id;
+        bsr.Evidence_Link__c = 'www.google.com';
+        bsr.Evidence_Date__c = system.today();
+    }
+    
+    @testSetup static void setupData() 
+    {
+        RecordType rtypeClient = [select id from RecordType where Name =: OCM_Constants.OCM_CLIENT limit 1];
+        
+        Account a = UnitTestFactory.buildTestAccount();
+        a.RecordTypeId = rtypeClient.Id;
+        a.Name = OCM_Constants.TEST_ACCOUNT;
+        a.Primary_Marketing_Representative__c = UserInfo.getUserId();
+        a.Marketing_Comments__c = 'test Comments';
+        insert a;
+        
+        Contact con = new Contact();
+        con.FirstName='Test';
+        con.LastName='Con';
+        Con.Email ='test@gmail.com';
+        con.AccountId=a.Id;        
+        insert con;
+        
+        ocm_Strategy__c testStrategyDD1 = UnitTestFactory.buildTestStrategy();
+        testStrategyDD1.Name  = 'Fund of Fund';
+        insert testStrategyDD1;
+
+        ocm_FundFamily__c ff = UnitTestFactory.buildTestFundFamily();
+        ff.Name = 'Test FF';
+        ff.Fund_Family_Abbreviation__c = 'TFF';
+        ff.Marketing_Status__c = OCM_Constants.OCM_STATUS_ACTIVE;
+        ff.Strategy__c = testStrategyDD1.id;
+        insert ff;
+        
+        ocm_Fund_Close__c fundClose = new ocm_Fund_Close__c(Close_Date__c = System.today()+5, Fund_Family__c = ff.Id, Fund_Close_Name__c = '01');
+        insert fundClose;
+        
+        ocm_Marketing_Entity__c me = new ocm_Marketing_Entity__c(Name = 'Test');
+        insert me;                
+    }
+}

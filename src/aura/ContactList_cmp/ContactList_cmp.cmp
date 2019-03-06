@@ -1,0 +1,68 @@
+<aura:component controller="ContactController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+	<aura:dependency resource="markup://force:navigateToComponent" type="EVENT"/> 
+   <aura:registerEvent name="Navigation" type="c:ContactNavigationEvent" /> 
+     <aura:registerevent name="forceNavig2Component" type="force:navigateToComponent"/> 
+    <aura:handler name="init" value ="{!this}" action ="{!c.myAction}" />
+    <aura:attribute name="contact" type="Contact[]" />
+     <aura:attribute name="isNavigation" type="Boolean" default="false"/>
+    <aura:attribute name="selectedcontact" type="String" />
+    <aura:attribute name="recordId" type="String" />
+    
+   <!--<div class="slds-scrollable" > -->
+   <!-- <ui:scrollerWrapper class="scrollableWrap">
+    <table>
+            <tr><td><b>Name</b></td>
+             <td><b>Phone</b></td>
+             <td><b>Email</b></td></tr>
+    <aura:iteration items="{!v.contact}" var="accs1" >
+        <tr>   
+        <td > <a><span id="{!accs1.Id}" onclick="{!c.Navigate2comp}">{!accs1.LastName}{!accs1.FirstName}</span> </a> </td> 
+            <td> {!accs1.Phone}</td>
+            <td> {!accs1.Email}</td>
+        </tr>     
+   
+     </aura:iteration>                                            
+        </table>
+   
+         </ui:scrollerWrapper>  -->
+    <aura:if isTrue="{!$Browser.isPhone}"> 
+     <ui:scrollerWrapper class="scrollerWrapper">
+      <!--   <div class="slds-scrollable " > -->
+    <div class="div"> 
+    <table>
+            <tr><td><b>Name</b></td>
+             <td><b>Phone</b></td>
+             <td><b>Email</b></td></tr>
+    <aura:iteration items="{!v.contact}" var="accs1" >
+        <tr>   
+        <td > <a><span id="{!accs1.Id}" onclick="{!c.Navigate2comp}">{!accs1.LastName}{!accs1.FirstName}</span> </a> </td> 
+            <td> {!accs1.Phone}</td>
+            <td> {!accs1.Email}</td>
+        </tr>     
+   
+     </aura:iteration>                                            
+        </table>
+          </div>
+           </ui:scrollerWrapper>
+        <!--  </div>  -->
+    </aura:if> 
+    <aura:if isTrue="{!if($Browser.formFactor== 'DESKTOP',true,false)}"> 
+     <div class="slds-scrollable" >
+   
+    <table>
+            <tr><td><b>Name</b></td>
+             <td><b>Phone</b></td>
+             <td><b>Email</b></td></tr>
+    <aura:iteration items="{!v.contact}" var="accs1" >
+        <tr>   
+        <td > <a><span id="{!accs1.Id}" onclick="{!c.Navigate2comp}">{!accs1.LastName}{!accs1.FirstName}</span> </a> </td> 
+            <td> {!accs1.Phone}</td>
+            <td> {!accs1.Email}</td>
+        </tr>     
+   
+     </aura:iteration>                                            
+        </table>
+          </div>
+      
+   </aura:if> 
+</aura:component>

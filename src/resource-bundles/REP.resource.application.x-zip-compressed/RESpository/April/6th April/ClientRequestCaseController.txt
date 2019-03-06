@@ -1,0 +1,936 @@
+public with sharing class ClientRequestCaseController 
+{
+    public Case caseRec {get; set;}
+    public Case fundCaseRec {get; set;}
+    public Account acc{get; set;}
+    public string retId {get; set;}
+    public String selectedValues {get; set;}
+    public String expandAll {get; set;}
+    public String selectAll {get; set;} 
+    public String clonedFPvalues {get; set;}
+    public String clonedStratValues {get; set;}    
+    ocm_ProcessTask__c processTask; 
+    public list<ocm_ProcessTask__c> listProcessTaks{ get; set; }
+    public string recDevName{get; set;}
+    private String returnURL;
+    private String recType4Edit;
+    private boolean isClone;
+    public boolean ptPageMsgs{get; set;}
+    public boolean showRecurringErrMsg {get; set;}
+    public ClientRequestCaseController(ApexPAges.StandardController std)
+    {
+        processTask = new ocm_ProcessTask__c();
+        acc = new Account();
+        expandAll = '';
+        selectAll = '';
+        clonedFPvalues = '';
+        clonedStratValues = '';
+        ptPageMsgs = false;
+        showRecurringErrMsg = true;
+        isClone = false;
+        if(!(String.isEmpty(apexpages.currentpage().getparameters().get('Clone'))) && apexpages.currentpage().getparameters().get('Clone') == OCM_Constants.OCM_VALUE_YES)
+            isClone = true;
+        retId = apexpages.currentpage().getparameters().get('id');
+        if(string.isNotEmpty(apexpages.currentpage().getparameters().get('RecordType')))
+            recType4Edit = apexpages.currentpage().getparameters().get('RecordType');   
+        if(retId != null && retId != '')
+        {
+            retFields(retId);
+            if(isClone == true)
+                cloneCaseAndChildren();
+        }            
+        else
+        {
+            caseRec = new Case();
+            map<String, String> parametersMap = ApexPages.currentPage().getParameters();
+            String[] keys = new String[]{'RecordType', 'retURL', 'cancelURL', 'ent'};
+            String recId = '';
+            if(parametersMap != null && parametersMap.size()>0)
+              recId = parametersMap.get(keys[0]);
+            if(string.isNotBlank(recId) && recId.length() > 10)
+            {
+            RecordType crRec = [Select Id, DeveloperName From RecordType Where SObjectType =: OCM_Constants.OBJ_CASE AND id = :recId];
+            recDevName = crRec.DeveloperName;            
+            caseRec.RecordTypeId = crRec.id;
+            caseRec.OwnerId = Userinfo.getUserId();
+            if(crRec.DeveloperName == OCM_Constants.CASE_RECUR_CLIENT_REQ_RECORD_DEV_NAME)
+            {
+                caseRec.Begin_Recurring_as_of__c = system.today();
+                caseRec.Frequency__c = 'Weekly (52)';
+            }
+            listProcessTaks = new list<ocm_ProcessTask__c>();
+            listProcessTaks.add(processTask);
+            returnURL = ApexPages.currentPage().getParameters().get(OCM_Constants.RET_URL);
+            }
+        }
+    }
+    /*
+    public List<Schema.FieldSetMember> getFields() 
+    {
+        return SObjectType.Case.FieldSets.Client_Request.getFields();
+    }
+    */
+    private void retFields(string caseId)
+    {
+        /*
+        list<Schema.FieldSetMember> fieldSetMemberList = SObjectType.Case.FieldSets.Client_Request.getFields();        
+        String preparingCaseSoql = 'Select ';
+        for(Schema.FieldSetMember fieldSetMemberObj : fieldSetMemberList)
+            preparingCaseSoql += fieldSetMemberObj.getFieldPath()+', ';
+        */
+        String preparingCaseSoql = '';
+        preparingCaseSoql += 'Select c.Audit_Tracker_ID__c, c.Time__c, c.Automation_Status__c, c.Frequency__c, c.Month_Quarter_End__c, c.Due_Day__c, c.Begin_Recurring_as_of__c, c.Due_on_the__c, c.Additional_Days_Type__c, c.Due_Weekday__c, c.Additional_Days__c, c.Due_Month__c, c.Strategies_Selected__c, c.Fund_Code__c, c.Fund_Products_Selected__c, c.Prospect_Organization__c, c.Third_Party_Organization__c, c.Subject, c.Status, c.Request_Type_MSP__c, c.Request_Type_Text__c, c.Request_Recieved_From__c, c.Request_Received_Date__c, c.Request_Purpose_Services__c, c.Request_Purpose_Sales__c, c.Request_Purpose_Internal__c, c.RecordTypeId, c.RecordType.DeveloperName, c.Owner.Id, c.OwnerId, c.Overall_Due_Date__c, c.Mutual_Fund_SICAV_Clients_or_Prospects__c, c.Internal_Requestor__c, c.Firm_Level_not_strategy_specific__c, c.Date_Closed__c, c.Client_or_Prospect_Organization__c, c.Client_Directed_Due_Date__c, c.CLO_Debt_Equity_Investor__c,(Select Name, Comments__c, Task_Due_Date__c, Due_date__c, Status__c, Task_Completed_Date__c, Task_Time_Intensity__c, Assign_To_Name__c From Process_Task__r) From Case c where Id = \''+caseId+'\''; 
+        
+        list<Case> caseOverride = database.query(preparingCaseSoql);        
+        caseRec = caseOverride[0];
+        
+        if(string.isNotEmpty(recType4Edit))
+        {
+          RecordType crRec = [Select Id, DeveloperName From RecordType Where SObjectType =: OCM_Constants.OBJ_CASE AND id = :recType4Edit];
+          caseRec.RecordTypeId = crRec.Id;
+          recDevName = crRec.DeveloperName;
+          //if((recDevName != '') && (recDevName == OCM_Constants.CASE_RECUR_CLIENT_REQ_RECORD_DEV_NAME))
+            //caseRec.Frequency__c = 'Weekly (52)';
+        }
+        else
+          recDevName = caseOverride[0].RecordType.DeveloperName;
+        //Assign Fund & Strategies         
+        list<String> fundNameList = new list<String>();
+        list<String> strategyNameList = new list<String>();
+        if(caseRec.Strategies_Selected__c != null)
+        {
+            clonedStratValues = caseRec.Strategies_Selected__c;
+            strategyNameList = caseRec.Strategies_Selected__c.split(', ');
+        }   
+        if(caseRec.Fund_Products_Selected__c != null)
+        {   
+            clonedFPvalues = caseRec.Fund_Code__c;
+            fundNameList = caseRec.Fund_Products_Selected__c.split('; ');
+        }
+        if(fundNameList != null && fundNameList.size() > 0)
+        {
+            list<ocm_FundFamily__c> ffList = [Select o.Name, o.Id, o.Fund_Family_Abbreviation__c From ocm_FundFamily__c o where o.Strategy__c != null];
+            map<String, Id> ffMap = new map<String, Id>();
+            for(ocm_FundFamily__c fc: ffList)
+              ffMap.put(fc.Name, fc.id);
+              
+            for(String ffl : fundNameList)
+            {
+                if(selectedValues == null)
+                    selectedValues = '';
+                if(ffMap != null && ffMap.get(ffl) != null)    
+                selectedValues += ffMap.get(ffl)+',';
+            }
+        }
+        
+        if(strategyNameList != null && strategyNameList.size() > 0)
+        {
+            for(ocm_Strategy__c strList : [Select o.Id From ocm_Strategy__c o where Name IN :strategyNameList])
+            {
+                if(selectedValues == null)
+                    selectedValues = '';
+                selectedValues += strList.Id+',';
+            }
+        }
+        if(string.isNotEmpty(selectedValues) && selectedValues.length() > 4)
+            selectedValues = selectedValues.substring(0,selectedValues.length()-1);
+            
+        listProcessTaks = new list<ocm_ProcessTask__c>();
+        if(isClone != true)
+        {           
+            if(caseRec != null && caseRec.Process_Task__r != null && caseRec.Process_Task__r.size()>0)
+            {
+                listProcessTaks = caseRec.Process_Task__r;
+                //listProcessTaks.add(processTask);
+            }
+            else
+                listProcessTaks.add(processTask);
+            resetFPflags();        
+        }
+        returnURL = caseId;
+    }
+    
+    public void cloneCaseAndChildren() 
+    {
+        caseRec.Id = null;
+        caseRec.Status = OCM_Constants.OCM_STATUS_OPEN;
+        caseRec.Date_Closed__c = null;
+        caseRec.Time__c = null;
+        caseRec.Request_Received_Date__c = null;
+        caseRec.Overall_Due_Date__c = null;
+        if(caseRec.Strategies_Selected__c != null)
+            clonedStratValues = caseRec.Strategies_Selected__c;
+        if(caseRec.Fund_Code__c != null)   
+            clonedFPvalues = caseRec.Fund_Code__c;        
+        if(caseRec != null && caseRec.Process_Task__r != null && caseRec.Process_Task__r.size()>0)
+        {
+            for(ocm_ProcessTask__c pt: caseRec.Process_Task__r)
+            {
+                pt.id = null;
+                pt.Due_date__c = null;
+                pt.Task_Due_Date__c = null;
+                pt.Task_Completed_Date__c = null;
+                pt.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+                listProcessTaks.add(pt);
+            }
+            //listProcessTaks.add(processTask);
+        }
+        else
+        {
+            listProcessTaks = new list<ocm_ProcessTask__c>();
+            listProcessTaks.add(processTask);
+        }
+        resetFPflags();
+    }
+    
+    public PageReference reDirect2Page()
+    {
+        string defaultCaseRec = '';
+        string prepareUrl = '';
+        boolean onboard = false;
+        map<String, String> parametersMap = ApexPages.currentPage().getParameters();
+        String[] keys = new String[]{'RecordType', 'retURL', 'cancelURL', 'ent'};
+        
+        for(Schema.RecordTypeInfo rtInfo : Case.SObjectType.getDescribe().getRecordTypeInfos()) 
+        {
+      if(rtInfo.isDefaultRecordTypeMapping()) 
+        defaultCaseRec = rtInfo.getName();
+    }
+        
+        if((string.isNotBlank(defaultCaseRec)) && !(defaultCaseRec.startsWith('Client')))
+          onboard = true;
+        if(onboard == true)
+        {
+          for(String s : keys)
+            {
+                if(parametersMap.containsKey(s)) 
+                    prepareUrl += s + '=' + parametersMap.get(s) + '&';
+            }
+            if(prepareUrl.length() > 0) 
+                prepareUrl = prepareUrl.substring(0, prepareUrl.length()-1);
+                
+            return new PageReference('/'+Case.SObjectType.getDescribe().getKeyPrefix()+'/e?nooverride=1&'+prepareUrl);
+        }
+        
+        String recId = '';
+        if(parametersMap != null && parametersMap.size()>0)
+          recId = parametersMap.get(keys[0]);
+
+        string recDevName = '';
+        
+        if(recId != null && recId != '')
+        {
+            RecordType recType = [Select r.Name, r.DeveloperName From RecordType r where Id = :recId];
+            
+            if((recType != null) && (recType.DeveloperName != ''))
+                recDevName = recType.DeveloperName;
+        }
+        if((recDevName != '') && (recDevName != OCM_Constants.CASE_CLIENT_REQ_RECORD_DEV_NAME) && (recDevName != OCM_Constants.CASE_RECUR_CLIENT_REQ_RECORD_DEV_NAME))
+        {       
+            for(String s : keys)
+            {
+                if(parametersMap.containsKey(s)) 
+                    prepareUrl += s + '=' + parametersMap.get(s) + '&';
+            }
+            if(prepareUrl.length() > 0) 
+                prepareUrl = prepareUrl.substring(0, prepareUrl.length()-1);
+                
+            return new PageReference('/'+Case.SObjectType.getDescribe().getKeyPrefix()+'/e?nooverride=1&'+prepareUrl);
+        }
+        else
+            return null;     
+    }
+    
+    public PageReference save()
+    {
+        system.SavePoint sp = Database.setSavepoint();        
+        try
+        {
+            ptPageMsgs = false;
+            if(caseRec.Status == 'Completed' && caseRec.Date_Closed__c == null)
+            {
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter the Date Closed for a completed Case.'));
+                return null;
+            }
+            if(string.isEmpty(selectedValues))
+            {
+                if(caseRec.Firm_Level_not_strategy_specific__c == null || caseRec.Firm_Level_not_strategy_specific__c == false)
+                {
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,' You must select at least one Strategy for a Client Request Case. If this is a firm level case that is not related to a Strategy, please check the "Firm Level (not strategy specific)" checkbox field.'));
+                    return null; 
+                }
+            }
+            else
+            {
+                if(caseRec.Firm_Level_not_strategy_specific__c != null && caseRec.Firm_Level_not_strategy_specific__c == true)
+                {
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Please unselect Firm Level (not strategy specific) OR clear out Fund/Products & Strategies to proceed.'));
+                    return null; 
+                }
+            }           
+            if(recurringValidations() == true)
+            {
+              caseAssignment();
+              showRecurringErrMsg = true;
+              
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if((pt.Assign_To_Name__c == null && (pt.Name != null || pt.Task_Due_Date__c  != null)) ||
+                          (pt.Name == null && (pt.Assign_To_Name__c != null || pt.Task_Due_Date__c  != null)) ||
+                          (pt.Task_Due_Date__c == null && (pt.Name != null || pt.Assign_To_Name__c  != null)) ||
+                          (pt.Status__c == null && (pt.Assign_To_Name__c != null || pt.Name != null || pt.Assign_To_Name__c  != null)))
+                    {
+                        Database.rollback(sp);
+                        ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Assigned To, Process Task Name, Due Date and Status are required to save Process Tasks OR you can clear all fields.'));
+                        ptPageMsgs = true;                     
+                        return null;
+                        break;
+                    }
+                }
+            }            
+                    
+            RecordType procesTaskCRRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.OBJ_PROCESS_TASK AND DeveloperName =:OCM_Constants.CASE_CLIENT_REQ_PT_RECORD_DEV_NAME limit 1];
+            list<ocm_ProcessTask__c> newProcessTaskList = new list<ocm_ProcessTask__c>();
+            list<ocm_ProcessTask__c> updatedProcessTaskList = new list<ocm_ProcessTask__c>();
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if(pt.Assign_To_Name__c != null && pt.Name != null && pt.Task_Due_Date__c  != null && pt.Status__c != null && pt.Id != null)
+                        updatedProcessTaskList.add(pt);                                              
+                }
+            }            
+            
+            if(updatedProcessTaskList != null && updatedProcessTaskList.size()>0)
+                update updatedProcessTaskList;  
+            
+            upsert caseRec;
+            
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if(pt.Assign_To_Name__c != null && pt.Name != null && pt.Task_Due_Date__c  != null && pt.Status__c != null && pt.Id == null)
+                    {
+                        pt.Case__c = caseRec.Id;
+                        pt.RecordTypeId = procesTaskCRRecordTypeId.Id;
+                        pt.Assigned_By__c = Userinfo.getUserId();
+                        newProcessTaskList.add(pt);
+                    }
+                }
+            }  
+            
+            if(newProcessTaskList != null && newProcessTaskList.size()>0)
+                insert newProcessTaskList;  
+                            
+              PageReference pf = new PageReference('/'+caseRec.Id);
+              pf.setRedirect(true);
+              return pf;
+            }
+            else{ 
+              showRecurringErrMsg = false;
+              return null;
+            }
+        }
+        catch(DmlException e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getDmlMessage(0)));
+            return null; 
+        }        
+        catch(Exception e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+            return null; 
+        }         
+    }
+    
+    public PageReference saveNnew()
+    {
+        system.SavePoint sp = Database.setSavepoint();
+        try
+        {
+            if(caseRec.Status == 'Completed' && caseRec.Date_Closed__c == null)
+            {
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter the Date Closed for a completed Case.'));
+                return null;
+            }
+            
+            if(string.isEmpty(selectedValues))
+            {
+                if(caseRec.Firm_Level_not_strategy_specific__c == null || caseRec.Firm_Level_not_strategy_specific__c == false)
+                {
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must select at least one Strategy for a Client Request Case. If this is a firm level case that is not related to a Strategy, please check the "Firm Level (not strategy specific)" checkbox field.'));
+                    return null; 
+                }
+            }
+            else
+            {
+                if(caseRec.Firm_Level_not_strategy_specific__c != null && caseRec.Firm_Level_not_strategy_specific__c == true)
+                {
+                    ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Please unselect Firm Level (not strategy specific) or Fund/Products & Strategies to proceed the case.'));
+                    return null; 
+                }
+            }   
+            if(recurringValidations() == true)
+            {
+              caseAssignment();
+              showRecurringErrMsg = true;
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if((pt.Assign_To_Name__c == null && (pt.Name != null || pt.Task_Due_Date__c  != null)) ||
+                          (pt.Name == null && (pt.Assign_To_Name__c != null || pt.Task_Due_Date__c  != null)) ||
+                          (pt.Task_Due_Date__c == null && (pt.Name != null || pt.Assign_To_Name__c  != null)) ||
+                          (pt.Status__c == null && (pt.Assign_To_Name__c != null || pt.Name != null || pt.Assign_To_Name__c  != null)))
+                    {
+                        Database.rollback(sp);
+                        ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Assigned To, Process Task Name, Due Date and Status are required to save Process Tasks OR you can clear all fields.'));
+                        ptPageMsgs = true;                     
+                        return null;
+                        break;
+                    }
+                }
+            }            
+                    
+            RecordType procesTaskCRRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.OBJ_PROCESS_TASK AND DeveloperName =:OCM_Constants.CASE_CLIENT_REQ_PT_RECORD_DEV_NAME limit 1];
+            list<ocm_ProcessTask__c> newProcessTaskList = new list<ocm_ProcessTask__c>();
+            list<ocm_ProcessTask__c> updatedProcessTaskList = new list<ocm_ProcessTask__c>();
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if(pt.Assign_To_Name__c != null && pt.Name != null && pt.Task_Due_Date__c  != null && pt.Status__c != null && pt.Id != null)
+                        updatedProcessTaskList.add(pt);                                              
+                }
+            }            
+            
+            if(updatedProcessTaskList != null && updatedProcessTaskList.size()>0)
+                update updatedProcessTaskList;  
+            
+            upsert caseRec;
+            
+            if(!(listProcessTaks.isEmpty()) && (listProcessTaks != null && listProcessTaks.size() > 0))
+            {
+                for(ocm_ProcessTask__c pt : listProcessTaks)
+                {
+                    if(pt.Assign_To_Name__c != null && pt.Name != null && pt.Task_Due_Date__c  != null && pt.Status__c != null && pt.Id == null)
+                    {
+                        pt.Case__c = caseRec.Id;
+                        pt.RecordTypeId = procesTaskCRRecordTypeId.Id;
+                        pt.Assigned_By__c = Userinfo.getUserId();
+                        newProcessTaskList.add(pt);
+                    }
+                }
+            }  
+            
+            if(newProcessTaskList != null && newProcessTaskList.size()>0)
+                insert newProcessTaskList;  
+            
+            }else{
+              showRecurringErrMsg = false;
+              system.debug('### showRecurringErrMsg : '+showRecurringErrMsg);
+            }
+        }
+        catch(DmlException e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getDmlMessage(0)));
+            return null; 
+        }
+        catch(Exception e)
+        {
+            Database.rollback(sp);
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+        }
+        return null;            
+    }
+    
+    private void caseAssignment()
+    {
+      if(selectedValues != null && selectedValues != '')
+        {
+            set<Id> fundIdSet =  filterFundProductIds(selectedValues);
+            set<Id> strategyIdSet =  filterStrategyIds(selectedValues);
+            String Strategies = '';  
+            if(fundIdSet != null && fundIdSet.size()>0)
+            {
+                list<ocm_FundFamily__c> fundFamilyList = [Select o.Name, o.Id, o.Strategy__r.Name, o.Fund_Family_Abbreviation__c From ocm_FundFamily__c o where id IN :fundIdSet];
+                String fundName = '';
+                Integer fundCountforSave = 0;
+                String fundCodeforSave = '';                    
+                for(ocm_FundFamily__c ff: fundFamilyList)
+                {
+                    if(ff.Name != null)// && (!fundName.contains(ff.Name))
+                    {
+                        fundName += ff.Name+'; ';
+                        fundCodeforSave += ff.Fund_Family_Abbreviation__c +', ';
+                        fundCountforSave += 1;
+                    }
+                    if(ff.Strategy__r.Name != null && (!Strategies.contains(ff.Strategy__r.Name)))
+                        Strategies += ff.Strategy__r.Name+', ';      
+                }
+                if(fundName != '')
+                    caseRec.Fund_Products_Selected__c = fundName.substring(0,fundName.length()-2);
+                if(fundCodeforSave != '')
+                    caseRec.Fund_Code__c = fundCodeforSave.substring(0,fundCodeforSave.length()-2);
+                caseRec.Fund_Count__c = string.ValueOf(fundCountforSave);   
+            }
+            else
+            {
+                caseRec.Fund_Count__c = null;   
+                caseRec.Fund_Code__c = null;
+                caseRec.Fund_Products_Selected__c = null;
+            }   
+            if(strategyIdSet != null && strategyIdSet.size() > 0)
+            {                               
+                list<ocm_Strategy__c> strategyList = [Select o.Name, o.Id From ocm_Strategy__c o where id IN :strategyIdSet];
+                for(ocm_Strategy__c str: strategyList)
+                {
+                    if(str.Name != null && (!Strategies.contains(str.Name)))
+                        Strategies += str.Name+', ';
+                }
+                if(Strategies != '')
+                    caseRec.Strategies_Selected__c = Strategies.substring(0,Strategies.length()-2);
+            }
+            else if(Strategies != '')
+                    caseRec.Strategies_Selected__c = Strategies.substring(0,Strategies.length()-2);
+        }
+        else
+        {
+            caseRec.Fund_Count__c = null;   
+            caseRec.Fund_Code__c = null;
+            caseRec.Fund_Products_Selected__c = null;               
+            caseRec.Strategies_Selected__c = null;
+        }
+        if(string.isNotEmpty(caseRec.Request_Recieved_From__c))
+        {
+            if(caseRec.Request_Recieved_From__c == 'Client')
+            {   
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Third_Party_Organization__c = null;
+                caseRec.Prospect_Organization__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'Prospect')
+            {   
+                caseRec.Client_or_Prospect_Organization__c = null; 
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Third_Party_Organization__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+            }           
+            else if((caseRec.Request_Recieved_From__c == 'Third Parties') || (caseRec.Request_Recieved_From__c == 'Consultant'))
+            {
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null; 
+                caseRec.Prospect_Organization__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'Oaktree Internal')
+            {
+                caseRec.Client_or_Prospect_Organization__c = null;  
+                caseRec.Third_Party_Organization__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+                caseRec.Prospect_Organization__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'Prospect Agnostic')
+            {
+                caseRec.Client_or_Prospect_Organization__c = null;  
+                caseRec.Third_Party_Organization__c = null;             
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'Client Agnostic')
+            {
+                caseRec.Client_or_Prospect_Organization__c = null;  
+                caseRec.Third_Party_Organization__c = null;             
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+                caseRec.Prospect_Organization__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'Mutual Fund/SICAV Clients or Prospects')
+            {
+                caseRec.Client_or_Prospect_Organization__c = null;  
+                caseRec.Third_Party_Organization__c = null;             
+                caseRec.Internal_Requestor__c = null;
+                caseRec.CLO_Debt_Equity_Investor__c = null;
+                caseRec.Prospect_Organization__c = null;
+            }
+            else if(caseRec.Request_Recieved_From__c == 'CLO Debt/Equity Investor')
+            {
+                caseRec.Client_or_Prospect_Organization__c = null;  
+                caseRec.Third_Party_Organization__c = null;             
+                caseRec.Internal_Requestor__c = null;
+                caseRec.Mutual_Fund_SICAV_Clients_or_Prospects__c = null;
+                caseRec.Prospect_Organization__c = null;
+            }   
+        }
+        if(acc != null)
+        {
+            if(String.isNotEmpty(acc.Strategies_Client_is_Invested_in__c))
+                caseRec.Strategy_Invested__c = acc.Strategies_Client_is_Invested_in__c;
+            if(String.isNotEmpty(acc.Fund_Products_Invested__c))    
+                caseRec.Fund_Products_Invested__c = acc.Fund_Products_Invested__c;
+        }
+        if(fundCaseRec != null)
+        {       
+            if(String.isNotEmpty(fundCaseRec.Fund_Code__c))
+                caseRec.Fund_Code_Invested__c = fundCaseRec.Fund_Code__c;
+            if(String.isNotEmpty(fundCaseRec.Fund_Count__c))
+                caseRec.Fund_Count_Invested__c = fundCaseRec.Fund_Count__c;         
+        }          
+    }
+    
+    public boolean recurringValidations()
+    {
+      boolean isValid = false;
+      if(recDevName == OCM_Constants.CASE_CLIENT_REQ_RECORD_DEV_NAME)
+        isValid = true;
+      else 
+      {  
+        if(caseRec.Frequency__c != null)
+        {
+          if(caseRec.Frequency__c == 'Weekly (52)')
+          {
+            if(caseRec.Due_Weekday__c == null)
+              ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter a due date values  for a Recurring Case'));
+            else
+            {
+              if((caseRec.Due_Weekday__c != 'Business Day' && caseRec.Due_Weekday__c != 'Calendar Day'))
+                isValid = true;
+              else
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Weekday/Bus/Cal: You can only select Monday-Friday for a Weekly frequency.'));
+            }    
+                
+          }
+          else if(caseRec.Frequency__c == 'Monthly (12)')
+          {
+            if(caseRec.Month_Quarter_End__c != null)
+            {
+              if(caseRec.Month_Quarter_End__c == 'Month End')
+              {
+                if((caseRec.Due_Day__c == null) && (caseRec.Due_on_the__c == null) && (caseRec.Due_Weekday__c == null))
+                  isValid = true;
+                else 
+                        ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Month/Quarter End: Please clear out Due Day, Due on the and Due Weekend/Bus/Cal.'));
+              }
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Month/Quarter End: Please choose Month End only.'));  
+            }
+            else if (caseRec.Due_Day__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_on_the__c == null) && (caseRec.Due_Weekday__c != null))
+              {
+                if(caseRec.Due_Weekday__c == 'Business Day' || caseRec.Due_Weekday__c == 'Calendar Day')
+                {
+                  if(caseRec.Due_Weekday__c == 'Business Day')
+                  {
+                    if(Integer.valueOf(caseRec.Due_Day__c) <= 20)
+                      isValid = true;
+                    else
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Day:  If you selected Business Days, your Due Day can only be 1-20.'));  
+                  }
+                  else
+                    isValid = true;
+                }  
+                else
+                  ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Weekday/Bus/Cal: Please choose either Business Day or Calendar Day only'));
+              }
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected.'));  
+            }
+            else if (caseRec.Due_on_the__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_Weekday__c != null) && (caseRec.Due_Day__c == null))
+                isValid = true;
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected.'));  
+            }
+            else 
+              ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter a due date values  for a Recurring Case.'));          
+          }        
+          else if(caseRec.Frequency__c == 'Quarterly (4)')
+          {
+            if(caseRec.Month_Quarter_End__c != null)
+            {
+              if(caseRec.Month_Quarter_End__c != 'Month End')
+              {
+                if((caseRec.Due_Day__c == null) && (caseRec.Due_on_the__c == null) && (caseRec.Due_Month__c == null) && (caseRec.Due_Weekday__c == null))
+                  isValid = true;
+                else 
+                        ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Month/Quarter End: Please clear out Due Day, Due on the, Due Month and Due Weekend/Bus/Cal.'));
+              }
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Month/Quarter End: Please choose Quarter End only.'));    
+            }
+            else if (caseRec.Due_Day__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_on_the__c == null) && (caseRec.Due_Month__c != null) && (caseRec.Due_Weekday__c != null))
+              {
+                if(caseRec.Due_Weekday__c == 'Business Day' || caseRec.Due_Weekday__c == 'Calendar Day')
+                {
+                  if(caseRec.Due_Weekday__c == 'Business Day')
+                  {
+                    if(Integer.valueOf(caseRec.Due_Day__c) <= 20)
+                      isValid = true;
+                    else
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Day:  If you selected Business Days, your Due Day can only be 1-20.'));  
+                  }
+                  else
+                    isValid = true;
+                }  
+                else
+                  ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Weekday/Bus/Cal: Please choose either Business Day or Calendar Day only'));
+              }
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected.'));  
+            }
+            else if (caseRec.Due_on_the__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_Month__c != null) && (caseRec.Due_Weekday__c != null) && (caseRec.Due_Day__c == null))
+                isValid = true;
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected.'));  
+            }
+            else
+              ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter a due date values  for a Recurring Case.'));
+          }        
+          else if((caseRec.Frequency__c == 'Semi-annually (2)') || (caseRec.Frequency__c == 'Annually (1)'))
+          {
+            if (caseRec.Due_Day__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_on_the__c == null) && (caseRec.Due_Month__c != null) && (caseRec.Due_Weekday__c != null))
+              {
+                if(caseRec.Due_Weekday__c == 'Business Day' || caseRec.Due_Weekday__c == 'Calendar Day')
+                {
+                  if(caseRec.Due_Weekday__c == 'Business Day')
+                  {
+                    if(Integer.valueOf(caseRec.Due_Day__c) <= 20)
+                      isValid = true;
+                    else
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Day:  If you selected Business Days, your Due Day can only be 1-20.'));  
+                  }
+                  else
+                    isValid = true;
+                }  
+                else
+                  ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Due Weekday/Bus/Cal: Please choose either Business Day or Calendar Day only'));
+              }
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected.'));  
+            }
+            else if (caseRec.Due_on_the__c != null)
+            {
+              if((caseRec.Month_Quarter_End__c == null) && (caseRec.Due_Month__c != null) && (caseRec.Due_Weekday__c != null) && (caseRec.Due_Day__c == null))
+                isValid = true;
+              else 
+                      ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter all due date values for the Due Date option that you have selected'));  
+            }
+            else
+              ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You must enter a due date values  for a Recurring Case.'));          
+          }
+          if(caseRec.Frequency__c != 'Weekly (52)')
+          {
+            if(caseRec.Additional_Days__c != null && caseRec.Additional_Days_Type__c != null)
+            {
+              if(Integer.ValueOf(caseRec.Additional_Days__c) > 120)
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'You can only add up to 120 Additional Days to a Recurring Request.'));
+            }
+          }      
+        }
+      }      
+      return isValid;
+    }
+            
+    public void insertEmptyPT()
+    {
+        boolean isValid = true;
+        ocm_ProcessTask__c prT = new ocm_ProcessTask__c();
+        RecordType procesTaskCRRecordTypeId = [Select Id, Name From RecordType Where SObjectType =: OCM_Constants.OBJ_PROCESS_TASK AND DeveloperName =:OCM_Constants.CASE_CLIENT_REQ_PT_RECORD_DEV_NAME limit 1];
+        prT.RecordTypeId = procesTaskCRRecordTypeId.id;
+        prT.Status__c = OCM_Constants.OCM_STATUS_OPEN;
+        for(ocm_ProcessTask__c pt: listProcessTaks)
+        {
+            if(pt.Assign_To_Name__c == null || pt.Name == null || pt.Task_Due_Date__c  == null || pt.Status__c == null)
+            {
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Assigned To, Process Task Name, Due Date and Status are required to save Process Tasks OR you can clear all fields.'));
+                isValid = false;
+                ptPageMsgs = true;
+                break;
+            }               
+        }
+        if(isValid == true)
+            listProcessTaks.add(prT);
+    }
+    
+    public void deletePTrow()
+    {
+        integer rowNumber;
+        rowNumber = Integer.valueOf(apexpages.currentpage().getparameters().get('ptIndex'));
+        listProcessTaks.remove(rowNumber);   
+    }
+    public void expandAll()
+    {
+       expandAll = OCM_Constants.OCM_VALUE_YES;
+    }
+    public void collapseAll()
+    {
+       expandAll = OCM_Constants.OCM_VALUE_NO;
+    }
+    
+    public void assignClosedDate()
+    {
+        if(caseRec.Status == 'Completed')
+            caseRec.Date_Closed__c = system.today();
+        else
+            caseRec.Date_Closed__c = null;  
+    }
+    
+    public void resetDueDay()
+    {
+      if(caseRec.Month_Quarter_End__c != null)
+      {
+        caseRec.Due_Day__c = null;
+        caseRec.Due_Weekday__c = null;
+        caseRec.Due_on_the__c = null;
+        caseRec.Due_Month__c = null;
+        caseRec.Additional_Days__c = null;
+        caseRec.Additional_Days_Type__c = null;
+      }          
+    }
+    
+    public void validationB4ReqRecFrom()
+    {
+        if(string.isNotBlank(caseRec.Request_Recieved_From__c))
+        {
+            if(string.isBlank(caseRec.Subject))
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Subject: You must enter a value'));
+            else if(string.isBlank(caseRec.Request_Type__c))
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Request Type: You must enter a value'));
+            else if(caseRec.Overall_Due_Date__c == null)
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Overall Due Date: You must enter a value'));
+            else if(caseRec.Client_Directed_Due_Date__c == null)
+                ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,'Client Directed Due Date: You must enter a value'));           
+        }       
+    }
+    
+    public void selectAll()
+    {
+        selectAll = OCM_Constants.OCM_VALUE_YES;
+        selectedValues = '';
+        map<Id, ocm_Strategy__c> strategyMap = new map<Id, ocm_Strategy__c>([Select o.Name, o.Id, (Select Id, Name From Funds_Products__r) From ocm_Strategy__c o order by Name]);
+        for(ocm_Strategy__c strat : strategyMap.values())
+        {
+            if(selectedValues == null)
+                selectedValues = '';
+            selectedValues += strat.Id+',';
+            if(strat.Funds_Products__r != null && strat.Funds_Products__r.size() > 0)
+            {
+                for(ocm_FundFamily__c r : strat.Funds_Products__r)
+                {
+                    selectedValues += r.Id+',';
+                }
+            }            
+        }
+        if(string.isNotEmpty(selectedValues) && selectedValues.length() > 4)
+            selectedValues = selectedValues.substring(0,selectedValues.length()-1);        
+    }
+    public void unselectAll() 
+    {
+        selectAll = OCM_Constants.OCM_VALUE_NO;
+        selectedValues = '';
+    }
+    public void resetFPflags() 
+    {
+        if(caseRec != null && caseRec.Client_or_Prospect_Organization__c != null)
+        {    
+            acc = [Select a.Strategies_Client_is_Invested_in__c, a.Fund_Products_Invested__c From Account a where id = :caseRec.Client_or_Prospect_Organization__c];        
+            fundCaseRec = new Case();
+            list<string> fundNames = new list<String>(); 
+            if(acc != null && acc.Fund_Products_Invested__c != null)
+            {
+                if(acc.Fund_Products_Invested__c.contains(';'))
+                {
+                    fundNames = acc.Fund_Products_Invested__c.split(';');
+                    //fundCaseRec.Fund_Count__c = string.ValueOf(fundNames.size());        
+                    acc.Fund_Products_Invested__c = acc.Fund_Products_Invested__c.replace(';', '\r\n');
+                }
+                else
+                {
+                    fundCaseRec.Fund_Count__c = '1';
+                    fundNames.add(acc.Fund_Products_Invested__c);
+                }   
+            }
+            if(fundNames != null && fundNames.size()>0)
+            {
+                list<ocm_FundFamily__c> fundList = [Select o.Name, o.Fund_Family_Abbreviation__c From ocm_FundFamily__c o where Name IN :fundNames];
+                string fundCode = '';
+                for(ocm_FundFamily__c ff: fundList)
+                {
+                    if(ff.Fund_Family_Abbreviation__c != null)
+                    {
+                        if(fundCode == '')
+                            fundCode = ff.Fund_Family_Abbreviation__c;
+                        else
+                            fundCode = fundCode+'\r\n'+ff.Fund_Family_Abbreviation__c;
+                    }   
+                }
+                fundCaseRec.Fund_Code__c = fundCode;
+            }
+        }
+    }
+    public PageReference cancel()
+    {
+        try
+        {
+            if(returnURL != null)
+                return new ApexPages.PageReference('/'+returnURL);
+            else
+                return new ApexPages.PageReference('/' + Schema.SObjectType.Case.getKeyPrefix() + '/o');
+        }
+        catch(Exception e)
+        {
+            ApexPages.addMessage(new ApexPages.Message(ApexPages.SEVERITY.ERROR,e.getMessage()));
+            return null;
+        }
+    }
+    
+    public set<Id> filterFundProductIds(string selectedIds)
+    {
+       list<string> fundIdListasString = new list<string>();
+       set<Id> fundIdList = new set<Id>();
+       fundIdListasString = selectedIds.split(',');       
+       for(String fund :fundIdListasString)
+       {
+            string makePlainID = fund.deleteWhitespace();
+            id myId = Id.valueOf(makePlainID);
+            if(myId.getSObjectType().getDescribe().getName() == OCM_Constants.SOBJECT_NAME_FUND_FAMILY)
+                fundIdList.add(myId);
+       }
+       return fundIdList;       
+    }
+    
+    public set<Id> filterStrategyIds(string selectedIds)
+    {
+       list<string> strategyIdListasString = new list<string>();
+       set<Id> strategyIdList = new set<Id>();
+       strategyIdListasString = selectedIds.split(',');       
+       for(String strategy :strategyIdListasString)
+       {
+            string makePlainID = strategy.deleteWhitespace();
+            id myId = Id.valueOf(makePlainID);
+            if(myId.getSObjectType().getDescribe().getName() == OCM_Constants.SOBJECT_NAME_STRATEGY)
+                strategyIdList.add(myId);
+       }
+       return strategyIdList;       
+    }
+}
